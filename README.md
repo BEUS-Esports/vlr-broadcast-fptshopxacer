@@ -1,42 +1,39 @@
-# sv
+<!-- markdownlint-disable MD041 -->
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+> "Work expands so as to fill the time available for its completion" - Parkinson's Law
+>
+> Actually, work always expands to my personal life =))))))
 
-## Creating a project
+# FPT Shop x Acer - VLR Graphics Controller
 
-If you're seeing this, you've probably already done this step. Congrats!
+Upcoming project for the FPT Shop x Acer Valorant Broadcast Graphics Controller.
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Expected features includes
 
-To recreate this project with the same configuration:
+- CRUD tasks and management features for:
+  - Teams -> Players
+  - Tournaments -> Matches -> Games
+  - Game Resources
+- Graphics:
+  - Player Lineup
+  - Player Stats
+  - Map Veto
+  - Agent Select
+  - In-Game
+  - Post-Game
+  - MVP
 
-```sh
-# recreate this project
-pnpm dlx sv@1.0.0-next.7 create --template minimal --types ts --add prettier eslint vitest="usages:unit,component" playwright tailwindcss="plugins:forms" sveltekit-adapter="adapter:node" drizzle="database:sqlite+sqlite:libsql" ai-tools="ide:other" --install pnpm .
-```
+## Inspiration
 
-## Developing
+- Valorant Champions Tour broadcast graphics
+- [Barracks.gg](https://barracks.gg) Graphics Controller, works well with Riot Games' Partner Tournaments as it has live data.
+- [Previous work with TFT for the FPT Shop Uni Tour 2026](https://github.com/Rookie001MC/tft-broadcast)
+  - Features CRUD actions, Winner GFX, Post-Game GFX, Ranking GFX.
+- [Riot Games' API](https://developer.riotgames.com), includes actual game data, and game resources via Data Dragon.
+- [CommunityDragon](https://communitydragon.org), does what Data Dragon do, with more resources and more proper structure.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Expected integrations
 
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- Live Game Data:
+  - [ValoSpectra](https://www.valospectra.com/), server here: <https://github.com/ValoSpectra/Spectra-Server>, uses Overwolf under the hood.
+  - [GStack](https://gstack.app), GStack-Client API schema here: <https://gstack.app/API/VHUD.html>, uses OCR and Machine Vision.
