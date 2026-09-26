@@ -1,0 +1,244 @@
+# FPT Shop x Acer — App Build Plan
+
+## Goal and status
+
+Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
+
+**This is a planning deliverable. Application implementation has not started and is not authorized by the request to write these documents.** All implementation checkboxes below remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+
+The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
+
+## Starting point
+
+| Existing item          | Current state / implication                                                                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.       |
+| Database               | Drizzle with the libSQL client and SQLite dialect. `src/lib/server/db/schema.ts` contains a scaffold `task` table, not the planned application schema.                                       |
+| Routes                 | `/admin` and `/gfx` have basic layouts. Administration is still placeholder content. The graphics canvas is transparent 1920×1080.                                                           |
+| Production graphics    | `src/routes/gfx/+layout.js` currently sets `ssr = false` and `csr = dev`, disabling client rendering in production. Resolve this when building actual outputs and verify a production build. |
+| Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.           |
+
+Real GStack game payloads and successful Spectra hosted post-game reports are not available yet. Documented/synthetic fixtures can support implementation; only actual captures can establish live-provider compatibility. Preserve unrelated working-tree changes and example files throughout.
+
+## Build sequence
+
+```text
+1. Secure foundation
+   → 2. Profiles and resources
+   → 3. Tournament/match/game management  [first usable milestone]
+   → 4. Manual statistics
+   → 5. Shared broadcast controls and all test graphics
+   → 6. Live providers and HUD failover
+   → 7. Spectra post-game import
+   → 8. Design-team asset integration
+   → 9. Deployment, recovery, and broadcast rehearsal
+```
+
+Phase 8 can proceed once Phase 5's data/control contracts are stable and design assets arrive. Provider validation can happen as soon as a test match is available. Neither is a dependency of the first management milestone.
+
+## Phase 1 — Establish a secure, persistent application foundation
+
+### Work
+
+- [ ] Inspect the current scaffold, scripts, environment configuration, and local database before changing anything. Record the baseline check/build results; distinguish existing issues from new work.
+- [ ] Add the initial reviewed Drizzle migrations and persistent local database setup. Keep schema ownership in `src/lib/server/db`; retire demo records/code only after checking usage and data.
+- [ ] Implement individual login/logout, password hashing, and database-backed sessions using established runtime/library primitives. Keep session tokens and provider secrets out of client-visible data.
+- [ ] Add Administrator/Operator authorization and User Management: create account, change role, reset password, disable account, and invalidate sessions. Provide a local first-administrator bootstrap without public signup or an email dependency.
+- [ ] Establish the Skeleton management shell, server validation/error conventions, accessible form behavior, and stale-write handling that later slices can reuse. Keep helpers tied to actual shared behavior.
+
+### Done when
+
+- Two individual users can sign in. Operators can enter operational areas but cannot invoke User Management, including through direct requests.
+- Disabled accounts and reset passwords invalidate prior sessions; the last usable administrator cannot be accidentally removed.
+- Database/session state survives restart, and the first-administrator setup has a documented recovery path.
+
+### Focused proof
+
+Test authorization through server endpoints, session invalidation, and last-administrator protection. Add a login/role browser flow. Run `pnpm check` and the relevant tests; use a disposable database for migration proof.
+
+## Phase 2 — Add reusable profiles, assets, and game resources
+
+### Work
+
+- [ ] Add Team and Player records and CRUD screens. Start with the profile fields in the specification; keep tournament membership out of a player's single global team field.
+- [ ] Implement safe logo/portrait upload and storage, with normal/white/black team-logo variants and missing-asset placeholders.
+- [ ] Add the maps and agents needed by game preparation and the templates. Add equipment assets when the live HUD consumes them; do not build unused catalogue editors.
+- [ ] Choose and verify a suitable resource-catalogue import source. Support deliberate refreshes and local asset availability; keep referenced records stable across updates.
+- [ ] Protect referenced profiles/resources from destructive deletion while permitting ordinary editing and removal of unused records.
+
+### Done when
+
+- Operators can create and reopen reusable profiles and prepare resources without any provider connection.
+- Uploads work across the intended LAN address, and invalid uploads or unsafe paths are rejected.
+- Catalogue refreshes preserve referenced IDs/assets instead of silently changing event setup.
+
+### Focused proof
+
+Check upload validation, reference-preserving deletion, and resource-refresh behavior. Exercise one team/player/resource CRUD browser journey with realistic placeholder assets.
+
+## Phase 3 — Complete tournament, match, game, and lineup management
+
+### Work
+
+- [ ] Add tournaments with unique URL-safe slugs, participating teams, plain tournament player lists, and editable tournament map pools. Do not add main/substitute roles.
+- [ ] Add matches with two distinct tournament entries, match text, and BO1/2/3/5 rules. Store/derive completion and result consistently, including a completed BO2 draw.
+- [ ] Add the match-wide ordered veto editor. Validate maps against the event pool and allow operator changes to the action sequence and acting team, including consecutive same-team picks and game-number assignments before games exist.
+- [ ] Add games individually with unique match-relative numbers, editable names, maps, starting sides, team-attached scores, and results. Prepare the reusable Info → Lineup → Map Veto workspace; its veto view edits the match record.
+- [ ] Add five ordered lineup slots per team per game. Validate membership, duplicate players, and cross-team conflicts; preserve historical lineups during roster edits. Surface stale saves and edits that would invalidate completed data.
+
+### Done when — first management milestone
+
+- An operator can prepare a tournament, rosters, maps, matches, and games; save; restart; and reopen the complete setup without graphics or telemetry.
+- BO2 supports 2–0, 1–1, and 0–2. A winner-bracket team can pick two maps consecutively. A substitute can appear in a later game's lineup without changing the earlier lineup or introducing roster roles.
+- Side swaps do not move scores between teams, and result corrections produce the correct series score.
+
+### Focused proof
+
+Use small, realistic fixtures: two tournaments with different map pools, teams with more than five available players, a BO2 draw, and a BO5 veto with consecutive picks. Test duplicate slots/players, wrong-tournament references, invalid maps, concurrent game creation, stale updates, and save/reopen behavior. Use transactions and database constraints where they own the invariant.
+
+## Phase 4 — Make manual post-game statistics and all scopes usable
+
+### Work
+
+- [ ] Add saved per-game player statistics and minimal provenance fields. Distinguish unknown values, explicit zero, imported values, and operator edits.
+- [ ] Build the manual post-game editor, allowing incomplete saves, corrections, agent selection, and basic scoreboard entry without detailed kill/round events.
+- [ ] Define the initial metric set used by test templates. Support the specification's basic inputs; add optional advanced fields only when a graphic consumes them.
+- [ ] Implement game, series, and tournament views over the same saved records. Sum counts and calculate rates from appropriate totals/denominators, tracking incomplete coverage and rounded manual inputs.
+- [ ] Add operator MVP selection and its statistics scope. Do not implement automatic MVP scoring or recommendations.
+
+### Done when
+
+- Operators can prepare post-game, player-stat, and MVP data with no live provider or imported report.
+- Correcting a game updates its series/tournament views without separate manual aggregate maintenance.
+- Missing metrics and approximate aggregates are visibly distinguished from exact zero and complete data.
+
+### Focused proof
+
+Test aggregation with unequal round/hit counts, zero denominators, partial manual records, rounded ACS input, corrections, and unfinished games. Verify that a manually selected MVP is not replaced by a computed ranking. Exercise a manual entry → save → scope selection browser flow.
+
+## Phase 5 — Build shared broadcast controls and seven test graphics
+
+### Work
+
+- [ ] Add the single persistent live-game selection with a revision/version check. Build the shared Tournament → Match → Game selector; partial dropdown changes retain the prior on-air game, while a complete valid selection updates the broadcast.
+- [ ] Add a server-owned broadcast snapshot/update path, initially using the specification's SSE default with ordinary authenticated control actions. Reconnecting clients obtain the latest snapshot. Expose only explicit broadcast fields.
+- [ ] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
+- [ ] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Agent preparation and the native-HUD fallback must work manually.
+- [ ] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Validate the transparent canvas and native spectator-HUD composition in OBS.
+
+### Done when
+
+- Changing the shared selector updates open controller pages and OBS outputs without replacing browser-source URLs. Ordinary management browsing does not switch the live game.
+- All seven test templates render with saved/manual data. Data/control behavior is independent of the final supplied layout.
+- Two operators and multiple browser outputs reconnect correctly, and anonymous output clients cannot invoke mutations or read credentials.
+
+### Focused proof
+
+Run a browser scenario with two controller sessions and at least one output: select, edit, reconnect, and recover from a stale selection write. Verify a production build, an unknown custom slug falling back to a test template, incomplete lineups, and outputs without operator cookies. Record an actual OBS visual check separately from browser-test results.
+
+## Phase 6 — Integrate live providers and the HUD recovery rules
+
+### Work
+
+- [ ] Define the small shared live-data shape required by the In-Game and Agent Select templates, including missing-field and identity-mapping behavior. Keep provider control-panel/veto data from overwriting operator-owned local records.
+- [ ] Implement ValoSpectra connection and mapping using its actual Socket.IO protocol. A compatible Socket.IO client dependency is justified by this contract; do not try to substitute a raw WebSocket client for that protocol.
+- [ ] Implement GStack's documented read path and normalize string/blank values and left/right slots. Choose the suitable documented HTTP or WebSocket transport without building multiple modes unnecessarily. Confirm round-history encoding before interpreting it as facts.
+- [ ] Implement one server-owned retry/failover state machine: waits of 1/2/4/8 seconds, fallback after four failed attempts, bounded background recovery, and a ready indication that never restores live without operator action. Keep manual mode choice separate from source health.
+- [ ] Handle provider reconfiguration, active-game changes, stale/malformed/wrong-game data, and obsolete asynchronous callbacks. Validate source-health detection and native-HUD fallback composition against actual captures when available.
+
+### Done when
+
+- Fixture-driven integration tests demonstrate the full live → retries → fallback → recovered-but-still-fallback → operator-enables-live sequence.
+- Provider connections and retries are not multiplied by the number of open OBS/control pages. Source changes cannot publish another game's stale data.
+- Each provider has a separately recorded real-session verification result before it is declared broadcast-ready. Missing hardware/matches remains an external validation limit, not a claimed pass.
+
+### Focused proof
+
+Use controlled timers and connection fixtures to prove exactly four pre-fallback attempts and manual-only restoration. Cover malformed values, missing stats, wrong group/match identities, team-side changes, valid pauses, and disconnects. Do not invent a reliable freshness signal merely because stats stop changing. Run a real provider drop/reconnect rehearsal once a session is available.
+
+## Phase 7 — Add Spectra post-game import with manual protection
+
+### Work
+
+- [ ] Read the current supported stats-service contract and configure the separate Spectra post-game source. Do not assume a self-hosted live server supplies the hosted statistics backend.
+- [ ] Fetch a report by group code with bounded pending/error behavior. Keep this polling separate from the live-HUD retry state machine.
+- [ ] Validate the returned match identity, participants, teams, and statistic formats against the intended local game. When identity cannot be confirmed automatically, provide an explicit operator mapping/review step.
+- [ ] Import into the same records used by manual entry. Make repeat imports idempotent and surface conflicts with manual corrections before any explicit replacement. Do not switch the live game, enable the live HUD, or auto-select an MVP on import.
+- [ ] Validate one real completed-game report for the intended Spectra setup when available. Preserve the full manual workflow if the service is unavailable, inaccessible, late, or incomplete.
+
+### Done when
+
+- A fixture report and a manual scoreboard feed the same game/series/tournament views and graphics.
+- A reused group code, duplicate import, late response, or operator correction cannot corrupt another game's records or silently replace edited data.
+- Real endpoint availability is either verified with evidence or clearly listed as an unresolved release dependency; the import feature is not falsely declared proven from types alone.
+
+### Focused proof
+
+Test identity mismatch, duplicate requests, pending reports, partial payloads, transaction failure, manual-edit conflict, and a late response after broadcast selection changes. Verify that advanced metrics are unavailable when their required event data is missing.
+
+## Phase 8 — Integrate design-team layouts and assets
+
+### Work
+
+- [ ] Receive the layouts, asset variants, dimensions, safe areas, fonts, and any animation requirements for each of the seven graphics.
+- [ ] Implement the tournament-specific visual templates using the existing data/control contracts and slug resolution. Keep generic test templates available for development and tournaments without a supplied custom layout.
+- [ ] Connect the live and native-HUD fallback designs to the same mode control. Confirm the fallback's placement against the real spectator feed rather than only a blank browser canvas.
+- [ ] Check long names, missing portraits/logos, both team sides, varied maps, incomplete statistics, and all supported statistic scopes.
+- [ ] Obtain visual acceptance from the design/broadcast team through the user's normal review process. Do not assume approval or send external messages automatically.
+
+### Done when
+
+- Supplied designs render correctly in OBS at the intended output size without changing management or provider ownership.
+- Operators can run every graphic and both HUD modes from the same controls used for the test templates.
+
+### Focused proof
+
+Use deterministic saved data for browser screenshots and compare against supplied layouts. Run an actual OBS check for alpha, scaling, clipping, animation, and native-HUD compatibility. Final artwork delivery is an external dependency; test-template completion is not final visual acceptance.
+
+## Phase 9 — Prepare deployment, recovery, and the November rehearsal
+
+### Work
+
+- [ ] Package the production Node application with persistent database and asset locations, documented environment variables, and a reachable LAN bind/origin. Ensure browser URLs use the server's LAN address when OBS runs on another PC.
+- [ ] Document installation/startup, initial administrator setup, user recovery, database migrations, backup/restore, and restart behavior. Add HTTPS and deployment-specific protections before any online exposure.
+- [ ] Verify migration and rollback/restore procedures against disposable copies before touching event data. Back up both the database and assets together; do not rely on a development schema-push command for event upgrades.
+- [ ] Rehearse a complete event flow: preparation, veto, individual game creation, lineup changes, all graphics, scores/results, manual statistics, any available imports, BO2 draw, and operator-selected MVP.
+- [ ] Rehearse provider loss/recovery, app/client restart, stale operator saves, missing assets, unavailable statistics service, and an entirely manual/native-HUD broadcast. Record remaining limitations and operational workarounds before release.
+
+### Done when
+
+- A fresh production install and a restored backup both reproduce the prepared event and assets.
+- The production build passes the applicable automated checks and actual LAN/OBS rehearsal. Every claimed provider has real-session evidence.
+- The operator runbook is usable, final visual assets are accepted or explicitly scheduled, and the exact November event date is reflected in the release checklist.
+
+## Verification commands and boundaries
+
+Use the existing tooling and the smallest checks that prove the changed slice. Do not rerun every suite after every documentation or cosmetic edit.
+
+| Check                           | Existing command                                                                              |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| Type/Svelte checks              | `pnpm check`                                                                                  |
+| Focused server logic            | `pnpm exec vitest run --project server <test-file>`                                           |
+| Focused components / end-to-end | `pnpm exec vitest run --project client <test-file>` / `pnpm exec playwright test <test-file>` |
+| Formatting / lint               | `pnpm exec prettier --check <changed-files>` / `pnpm lint`                                    |
+| Production output               | `pnpm build`, followed by preview/Node-runtime and OBS verification as appropriate            |
+
+Playwright's current configuration builds and previews the app and discovers `*.e2e.ts`/`*.e2e.js` files. Install browser dependencies when required by the test environment; do not treat their absence as a product failure. Current package scripts also expose `pnpm test:unit`, `pnpm test:e2e`, and the Drizzle migration commands.
+
+When implementing Svelte components, follow `AGENTS.md`: consult the relevant Svelte documentation and use the Svelte autofixer before handing off component changes. These two planning files contain no Svelte implementation.
+
+## Release evidence checklist
+
+- [ ] Management and permissions: save/reopen, correct relationships, protected writes, and session revocation.
+- [ ] Competition and statistics: all BO formats, veto overrides, per-game lineups, identity-safe scores, manual corrections, and all three statistic scopes.
+- [ ] Broadcast: seven graphics, stable URLs, shared selection, correct custom/test templates, production rendering, and multiple clients/operators.
+- [ ] Providers and fallback: separately labelled fixture and real-session results, four retries, manual-only restoration, and complete native-HUD/manual operation.
+- [ ] Operations and visuals: persistent assets, migration/restore proof, LAN/OBS rehearsal, design acceptance, and a usable operator runbook.
+
+## Deferred work
+
+Our own OCR client, direct Riot API/RSO integration, automated brackets, multiple independent broadcast channels, and a generic plugin architecture are not hidden prerequisites for this plan. Revisit only through a concrete new requirement. Player-branding history snapshots and additional advanced metrics likewise need a demonstrated use before expanding the model.
+
+## Next execution step
+
+Once application implementation is explicitly requested, start with **Phase 1**. The first user-testable milestone is the completed management workflow at the end of **Phase 3**. Real match captures are not required to begin those phases.

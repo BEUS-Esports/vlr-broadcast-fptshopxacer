@@ -1,0 +1,307 @@
+# FPT Shop x Acer — Valorant Broadcast Controller
+
+## Document status
+
+- Recorded: 2026-09-27. Target: the November 2026 broadcast; the exact event date is not fixed here.
+- This specification records the approved planning baseline. It does not authorize application implementation.
+- [PLAN.md](./PLAN.md) describes the implementation sequence and acceptance checks.
+- The requirements below supersede older README suggestions where they differ, particularly direct Riot API integration and roster roles.
+- Technical defaults and unresolved integration checks are identified explicitly. No real Spectra post-game response or GStack game capture has been tested for this project yet.
+
+## 1. Overall goal
+
+Build one application for preparing and operating FPT Shop x Acer Valorant broadcasts. Operators must be able to manage event data, prepare matches and games, control graphics, and supply OBS browser sources across a LAN. Online hosting is also supported, but must not be required for local management or manual graphics operation.
+
+The complete November scope includes management, individual accounts, game resources, all seven graphics, live-provider integration, post-game statistics, and manual fallbacks. The first implementation milestone is a usable management foundation, independently of graphics or live data.
+
+The design team supplies final layouts and assets. Development initially supplies functional test templates that exercise the same data and controls as the final graphics.
+
+### First milestone acceptance
+
+An operator can create teams and players, prepare a tournament and its rosters/map pool, create matches, add games individually, save the setup, and reopen it after an application restart. This must work without an OBS page or a live-provider connection.
+
+### Out of scope
+
+- Direct Riot API integration, RSO, and player account-linking flows.
+- Automatic tournament brackets, seeding, advancement, or standings engines. Match preparation is operator-driven.
+   - Reason: This app just adds the matches into the server, not doing everyhing like Seeding, Matching, Advancement Rules, etc...
+- Automatic MVP selection or a new player-rating algorithm.
+   - Technically, automatic MVP can be selected by picking the player in the winning team with highest Combat Score.
+- Our own OCR client. Retain this as a future possibility if provider limitations or manual workload justify it.
+- Creating the final broadcast visual identity, or building a general plugin system, distributed backend, or multiple independent broadcast channels for the initial release.
+
+Public/static game-asset catalogues are separate from the excluded Riot match-data integration. Their suitability must be verified before choosing an import source.
+
+## 2. Users and permissions
+
+| Actor              | Access                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Administrator      | All operational features plus User Management.                                                                         |
+| Operator           | All team/player, tournament, match/game, resource, integration, statistics, and graphics features. No User Management. |
+| OBS/browser output | Read-only broadcast data and rendering. No management or mutation access.                                              |
+
+User Management includes creating individual accounts, changing roles, resetting passwords, and disabling accounts. There is no public player-registration or player-login flow in this scope.
+
+Implementation defaults: administrator-created accounts, database-backed sessions, established password-hashing primitives, and no email-service dependency for account setup/reset. Disabling an account or resetting its password invalidates its existing sessions. Prevent accidental removal of the last usable administrator.
+
+Authorization must be enforced on the server for every protected read/write, not only by hiding navigation. Credentials and provider secrets must never reach OBS URLs or broadcast responses. Cookie/session protection and CSRF handling must work with the selected deployment; online hosting requires HTTPS.
+
+## 3. Terminology and ownership
+
+| Term                      | Meaning and responsibility                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Player / Team             | Reusable profiles and branding, identified by stable application IDs.                                        |
+| Tournament entry / roster | A team's participation in one tournament and its plain list of available players.                            |
+| Match                     | A series between two tournament entries, including its best-of format and series-wide map veto.              |
+| Game / lineup             | One played map within a match, with its own selected five players per team, sides, scores, and result.       |
+| Broadcast selection       | The shared game currently selected for graphics. Its match and tournament follow from the game relationship. |
+
+Tournament rosters have **no main/substitute classification**. A player's inclusion in a game's five-player lineup does not change tournament membership or another game's lineup.
+
+Saved rosters, lineups, results, and statistics must not disappear through cascading deletion of a reused profile. Archive or restrict deletion of referenced records; permit removal of unused records. Full historical snapshots of every name, portrait, and logo are not an initial requirement: reusable profile edits can affect their presentation in older views.
+
+## 4. Management requirements
+
+### 4.1 Teams and players
+
+Baseline profile fields for implementation are:
+
+| Record            | Fields                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Team              | Name, short tag, and normal/white/black logo assets.                                                                                    |
+| Player            | In-game/display name, optional full name, portrait, and optional manually entered Riot ID.                                              |
+| External identity | Provider identifiers discovered or mapped during integration, associated with the existing player/game. No account-linking requirement. |
+
+Profiles are reusable across tournaments. Tournament membership is stored separately; do not make a player's single current `teamId` the source of historical event rosters.
+
+Asset uploads need validated file types/sizes and safe generated storage paths. Missing portraits or logos must have usable test-template placeholders.
+
+### 4.2 Tournaments, rosters, and map pools
+
+- A tournament has a name and a unique, URL-safe slug. The slug participates in custom graphics resolution.
+- Add participating teams, then maintain each entry's available players as a plain list.
+- Choose the tournament's editable map pool from Game Resources. Catalogue updates must not silently replace this selection.
+- Roster changes preserve already saved game lineups. Existing references remain readable when a player is no longer available for a new lineup.
+- Reject or explicitly resolve edits that invalidate existing match, veto, or game references. Do not silently rewrite the competition setup.
+
+### 4.3 Matches and vetoes
+
+A match contains its tournament, two distinct participating teams, match text/label, and one of **BO1, BO2, BO3, or BO5**.
+
+| Format | Completion rule                                                               |
+| ------ | ----------------------------------------------------------------------------- |
+| BO1    | One completed game determines the winner.                                     |
+| BO2    | Both games are played. Results are 2–0, 1–1, or 0–2; 1–1 is a completed draw. |
+| BO3    | First team to two game wins.                                                  |
+| BO5    | First team to three game wins.                                                |
+
+Incomplete games do not contribute a winner to the series score. Correcting a completed game's result updates the series result consistently. Do not reuse a generic `ceil(bestOf / 2)` winner calculation for BO2.
+
+The map veto belongs to the **entire match**, not an individual game. Store ordered ban/pick/decider information, the map, the acting team when applicable, and the target game number for a selected map.
+
+Operators can change action order and which team acts. Consecutive picks by the same team must be supported, including the winner-bracket advantage described for a grand final. No bracket engine is needed to express that choice. Side-choice information may be recorded with the selected map and applied when its game is prepared.
+
+Veto selections use the tournament's map pool and cannot accidentally use a map twice in the same sequence. Corrections are supported, with conflicts against already prepared/played games surfaced explicitly. A picked map can be assigned to Game 1, Game 2, and so on **before those game records exist**.
+
+### 4.4 Games and lineups
+
+Operators create games **one at a time as needed**, under the selected match. Do not generate all possible BO games automatically. Game numbers are unique within a match and are distinct from the editable display name, such as `Game 1`.
+
+Game information includes map, starting attacker and defender, each team's round score, and winner/result state. The two starting sides must refer to the match's two teams. Store scores against stable team identities; halftime or overtime side swaps must not transfer scores between teams.
+
+Each game has an ordered selection of five distinct players per team, drawn from that team's tournament roster. A player cannot occupy multiple slots or both teams' lineups in the same game. Draft preparation can be incomplete; a ready lineup requires all five selections. Test graphics must render incomplete preparation gracefully rather than crash or invent players.
+
+The game setup flow is **Info → Lineup → Map Veto**. The Map Veto view edits the parent match's shared veto. Lineup controls edit the game's saved lineup, not a second graphics-only roster. Management can link to the same editor without creating another copy of its state.
+
+## 5. Graphics and broadcast control
+
+### 5.1 Graphics inventory
+
+| Graphic       | Data and operator controls                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Player Lineup | Selected game's ordered five-player lineups, names, portraits, and team branding.                                  |
+| Player Stats  | Operator-selected player and game/series/tournament scope, using saved statistics.                                 |
+| Map Veto      | Selected match's ordered bans/picks/decider, acting teams, and map assets.                                         |
+| Agent Select  | Selected game's players and agent selections; provider updates where supported, with manual preparation available. |
+| In-Game       | Provider-backed live HUD or the native-spectator-HUD fallback.                                                     |
+| Post-Game     | Saved game result and statistics, imported or manually entered.                                                    |
+| MVP           | Operator-selected player and relevant statistics for the chosen scope. No automatic candidate selection.           |
+
+Each graphic receives an authenticated control page and a separate read-only OBS output. Only expose controls needed by that graphic, including content selection and visibility where applicable. Operator control of a graphic must not require editing source code.
+
+### 5.2 Shared live selection
+
+Every graphics control page has the same **Tournament → Match → Game** selector. There is one shared broadcast selection for the initial application, visible across operator accounts, tabs, and OBS clients.
+
+Persist the selected game ID and derive its match/tournament, rather than persisting an inconsistent independent triple. While an operator is changing the parent dropdowns, clear invalid child choices locally and retain the previous on-air selection. Commit the change when a valid complete selection is made. Selecting a game changes the live OBS graphics; ordinary navigation through management records does not.
+
+Broadcast updates must be persisted and published consistently. Handle concurrent operator edits with transactions and a revision/version check so stale forms cannot silently overwrite newer selections or data. After switching games, ignore late live updates from the previous game's connection. A delayed post-game import remains associated with the game it was requested for.
+
+### 5.3 URLs, templates, and assets
+
+Use stable OBS live URLs, for example `/gfx/live/<graphic>`. The output resolves the active game's tournament slug and chooses the corresponding custom layout, falling back to the functional test template when no custom layout exists. The exact route spelling is an implementation detail; operators must not replace every OBS URL between games.
+
+The existing MLBB example demonstrates slug-based graphics routing, but its game-specific links are a reference, not the complete shared-live-selection design required here.
+
+The current scaffold uses a transparent 1920×1080 graphics canvas; retain that as the initial template default. Final layout dimensions, safe areas, typography, animation, and assets come from the design team. Separate data/control behavior from visual templates so supplied designs can replace presentation without rewriting management or integrations.
+
+### 5.4 Live and fallback HUD behavior
+
+The fallback retains **Valorant's native spectator HUD** for health, weapons, abilities, and other live details. Our fallback overlay supplies team names/logos, series score, and tournament branding. It does not attempt manual reconstruction of every live player value.
+
+Provider health and on-air HUD mode are separate state. A healthy recovered connection does not imply permission to restore the live HUD.
+
+| Event                                     | Required behavior                                                                                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Provider failure while using the live HUD | Start one server-owned retry sequence with waits of **1s, 2s, 4s, and 8s**, each followed by an attempt. Show connection state in the controller; allow immediate manual fallback. |
+| Fourth reconnect attempt fails            | Switch to fallback. The waits total 15 seconds; network attempt timeouts add to elapsed time.                                                                                      |
+| Already in fallback                       | Keep bounded background recovery attempts. Proposed initial delay cap: 8 seconds. This does not reset the manual fallback choice.                                                  |
+| Valid data for the intended game returns  | Show **Live feed ready**. Remain in fallback until an operator explicitly enables the live HUD.                                                                                    |
+| Operator changes mode                     | Manual fallback is immediate and remains selected after recovery. Enabling live requires usable data for the selected game.                                                        |
+
+The four-attempt rule applies to the active upstream provider connection, not independently to every open browser. App-to-browser reconnect behavior is a separate transport concern. New source selections invalidate obsolete retry timers and callbacks.
+
+Do not equate unchanged statistics with a dead source: pauses, buy phases, and lobbies can legitimately have little activity. Final source-health rules and request timeouts must be checked against real provider behavior. Starting without a provider must still offer a usable fallback.
+
+During rehearsal, verify that the captured native spectator HUD is actually available beneath/alongside the fallback. A browser overlay cannot itself enable an in-game spectator setting or change an OBS capture source.
+
+## 6. Data providers and statistics
+
+### 6.1 Ownership boundary
+
+Our saved tournament entries, match participants, game lineups, vetoes, and operator decisions are authoritative. Providers supply observations and statistics; they do not silently replace those records.
+
+Use small provider-specific readers/mappers feeding shared application data shapes. A general plugin framework is not required. Match provider IDs/slots to existing application teams and players using explicit identifiers or operator-confirmed mappings. GStack left/right positions must not become permanent team identities.
+
+### 6.2 Provider contracts and verification status
+
+| Source            | Source-code/documentation evidence                                                                                                                                                                                     | What remains unverified                                                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| ValoSpectra live  | The public server exposes Socket.IO output, `logon` with a group code, and `match_data`.                                                                                                                               | A working connection and actual supported fields for our observer setup.                                  |
+| GStack live       | VHUD documents HTTP and WebSocket access on port 57780, including `/livenow`. Samples contain numbered left/right slots, many string values, and pipe-separated round history.                                         | Actual payload formats, cadence, disconnect behavior, side changes, and field availability during a game. |
+| Spectra post-game | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint. | Hosted-service availability/access for the chosen setup and a successful completed-game response.         |
+
+Spectra's post-game response types include match identity, player identities, combat score, K/D/A, damage, hit counts, economy, rounds, and kill events. Its frontend derives additional values such as ACS. The public server contains integration calls to a separately configured statistics backend; running the public server alone does not establish that this service is available.
+
+Use the group code to locate a candidate report, then verify returned match identity and player/team mappings against the intended game. A reused group code must not import another map's result into the selected game. If an expected external match ID is not yet available, require explicit operator verification before associating the report.
+
+Spectra post-game polling is distinct from live-HUD reconnect/backoff. A report that is still pending must not change the current on-air HUD mode. Retrieval timeouts or unavailable reports leave manual entry usable.
+
+No direct Riot API or RSO work is reintroduced through these provider adapters. Do not assume the separate Spectra backend's implementation or ultimate data source from the frontend contract alone.
+
+### 6.3 Manual entry, import, and correction
+
+Manual post-game entry is a required feature even when imports work. Both paths populate the same saved per-player, per-game records. Operators can save incomplete work and correct mistakes.
+
+Baseline statistic inputs should support agent, rounds played, kills, deaths, assists, and combat score/ACS. Damage, hit counts, opening kills/deaths, and economy can be stored when available and needed by the graphics. The exact displayed metric shortlist is finalized with the templates/design handoff; do not require detailed event data just to save a basic manual scoreboard.
+
+Retain source identity, external match ID when known, import time, and enough provenance to distinguish manual corrections from imported values. Reimporting the same report must not duplicate records. When a reimport conflicts with operator-edited data, preview the conflict and require an explicit replacement action; do not silently clobber the edit.
+
+Keep missing values nullable. An absent OCR/provider field is not zero. Invalid numbers, incomplete identities, or unsupported fields should be reported or omitted, not guessed. Only publish the statistics needed by the graphic, not the provider's entire raw response.
+
+### 6.4 Statistical scopes
+
+Support **individual game, complete series, and tournament-wide** views. Broader views derive from saved game records rather than independently editable aggregate copies. Draft games and duplicate imports must not inflate totals.
+
+| Metric family                        | Aggregation rule                                                                                                                                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Counts, such as kills/deaths/assists | Sum the relevant recorded values. Report incomplete coverage when contributing games are missing data.                                                         |
+| ACS / ADR                            | Use total combat score / rounds and total damage / rounds respectively when those inputs exist. Do not take an unweighted mean of displayed per-game averages. |
+| Hit-based headshot percentage        | Divide total headshots by total recorded hits, using a consistent definition. Do not average game percentages.                                                 |
+| Only a rounded manual average exists | Preserve its reported precision. Any round-weighted aggregate derived from rounded values must be marked approximate; do not invent exact raw totals.          |
+| Event-derived metrics                | Require the necessary round/kill events or explicit manual values. Do not infer clutches, trades, or retakes from aggregate K/D/A.                             |
+
+Zero denominators and unavailable inputs produce an unavailable/empty metric rather than a division error or fabricated value. MVP remains an operator's selection regardless of any statistical ranking displayed elsewhere.
+
+### 6.5 Future OCR client
+
+An independently developed OCR client is a deferred option. Decide between post-game screenshot extraction and live capture only when a concrete need exists. Its future output should use the same validation, mapping, and saved-data path; do not build OCR scaffolding in the initial app.
+
+## 7. Game resources
+
+Maintain the reference data and assets needed by the templates, initially maps and agents plus live-HUD equipment assets as required. Allow operators to inspect/manage available resources and identify missing assets.
+
+Use existing catalogues or imports where suitable; verify Valorant coverage before choosing a source merely because it appears in the README. Resource refreshes are deliberate operator actions, with locally available assets for rehearsal/LAN use. Updating a catalogue must not erase referenced resources or replace tournament map pools.
+
+Custom tournament branding and design-team assets remain separate from provider telemetry and game-resource data.
+
+## 8. Application architecture and screen map
+
+### Existing foundation and proposed defaults
+
+| Layer           | Direction                                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Application     | Existing TypeScript, SvelteKit 3, Svelte 5, pnpm, Skeleton UI, and Tailwind setup.                                                                                                                     |
+| Persistence     | Existing Drizzle and SQLite/libSQL client. Use a persistent local database for the initial single-host deployment; do not require a cloud database.                                                    |
+| Server          | Existing Node adapter. One application process owns persistence, provider connections, and shared broadcast updates. No Redis or separate job service by default.                                      |
+| Browser updates | Proposed: server-sent events for shared live state, with ordinary authenticated HTTP actions for controls. Reconnect loads a current snapshot/revision. Use the provider's required protocol upstream. |
+| Assets          | Durable uploads/resource storage served through controlled asset routes. Include it in backup/restore alongside the database.                                                                          |
+
+Broadcast state is intentionally shared. User authentication/session state is not. Avoid creating provider connections in each graphics component or using account-specific mutable globals during rendering.
+
+Persist configuration, operational decisions, and saved results. Keep high-frequency provider snapshots in the server runtime rather than writing every telemetry tick to SQLite. Transactions and version checks protect multi-record changes and stale operator saves.
+
+```text
+Management
+├─ Teams and Players
+├─ Tournaments
+│  └─ Tournament
+│     ├─ Participants and rosters
+│     ├─ Map pool
+│     └─ Matches
+│        └─ Match: details, series veto, games
+├─ Game Resources
+└─ Users — administrators only
+
+Graphics Controls
+├─ Shared Tournament → Match → Game selector
+├─ Provider status and Live / Fallback controls
+├─ Game setup: Info → Lineup → Map Veto
+│  └─ Map Veto edits the parent match's veto
+└─ Player Lineup / Player Stats / Map Veto / Agent Select /
+   In-Game / Post-Game / MVP
+
+OBS Outputs
+└─ Stable live URLs → selected tournament layout or test template
+```
+
+Use accessible labels, keyboard navigation, visible validation errors, and text status alongside colour indicators on controller pages. Do not render internal connection errors or operator-only UI on the broadcast output.
+
+## 9. Reliability, security, and release acceptance
+
+### Data and access
+
+- Validate IDs and ownership at every write: tournament entry, match, game, lineup, map pool, and provider mapping must agree.
+- Enforce uniqueness and references in the database where possible; use transactions for lineup replacement, result updates, imports, and broadcast changes.
+- Reject stale edits with a useful reload/review path. Concurrent operators must not silently lose each other's work.
+- Protect sessions, uploads, secrets, and provider configuration. Provider requests go only to deliberately configured destinations; OBS routes must not become an arbitrary URL-fetch proxy.
+- Broadcast responses use explicit field allowlists and read-only routes, not unrestricted database/provider serialization.
+
+### Operational acceptance
+
+- All seven test templates operate with local saved/manual data. Production design handoff changes presentation without changing ownership or control behavior.
+- A BO2 draw, consecutive same-team map picks, lineup substitutions between games, and side swaps all preserve correct results and identities.
+- Multiple controllers and OBS clients follow one valid selection. Restart/reconnect recovers context without leaking another game's old data or bypassing the fallback recovery rule.
+- A real provider outage exercises the four retries, fallback rendering, background recovery, and explicit operator return to live. Lobby/paused/unchanged data is not falsely treated as disconnect evidence.
+- Backup/restore, persistent assets, a production build, and the actual LAN/OBS/native-HUD capture setup pass rehearsal before the November broadcast.
+
+Synthetic fixtures prove application behavior, not provider availability. Keep fixture checks, production-build checks, and real provider/OBS rehearsal results distinct in release reporting. Exact provider health thresholds, runtime access, design assets, and the event date remain validation inputs, not reasons to block source-independent implementation planning.
+
+## 10. References
+
+### Project and framework
+
+- [README](./README.md), [repository instructions](./AGENTS.md), and [implementation plan](./PLAN.md).
+- [Local MLBB reference project](./examples/mlbb-hud-road-to-asiad-2026/): management flow, game lineups, and slug-based graphics links. Reuse fitting patterns, not game-specific assumptions.
+- [SvelteKit 3 documentation](https://next.svelte.dev) and [migration notes](https://next.svelte.dev/docs/kit/migrating-to-sveltekit-3).
+- [Skeleton UI documentation](https://www.skeleton.dev/docs/svelte/get-started/introduction).
+
+### Provider evidence inspected during planning
+
+- [Spectra live output](https://github.com/ValoSpectra/Spectra-Server/blob/main/src/connector/websocketOutgoing.ts).
+- [GStack VHUD API documentation](https://gstack.app/API/VHUD.html).
+- [Spectra map breakdown](https://github.com/ValoSpectra/Spectra-Frontend/blob/main/src/app/overlays/map-breakdown/map-breakdown.ts) and [VAL26 variant](https://github.com/nobiiVAL/Spectra-Frontend-VAL26/blob/master/src/app/overlays/map-breakdown/map-breakdown.ts).
+- [Spectra endpoint configuration](https://github.com/ValoSpectra/Spectra-Frontend/blob/main/src/app/shared/config.ts) and [post-game response types](https://github.com/ValoSpectra/Spectra-Frontend/blob/main/src/app/components/breakdown/StatsApiMapping.ts).
+- [Spectra backend connector](https://github.com/ValoSpectra/Spectra-Server/blob/main/src/connector/databaseConnector.ts) and [match lifecycle](https://github.com/ValoSpectra/Spectra-Server/blob/main/src/model/Match.ts).
+
+External links describe the source inspected during planning and can change. Confirm the supported contracts when integrating; the project has not yet validated them against a real match.
