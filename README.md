@@ -8,6 +8,8 @@
 
 Upcoming project for the FPT Shop x Acer Valorant Broadcast Graphics Controller.
 
+Fully built in SvelteKit 3 and Svelte 5, with Admin UI from Skeleton UI.
+
 ## Expected features includes
 
 - CRUD tasks and management features for:
@@ -25,7 +27,8 @@ Upcoming project for the FPT Shop x Acer Valorant Broadcast Graphics Controller.
 
 ## Inspiration
 
-- Valorant Champions Tour broadcast graphics
+- Valorant Champions Tour broadcast graphics.
+- Post Match from <stats.bumpfull.com> or <https://github.com/ranamerp/val-image-generator> etc...
 - [Barracks.gg](https://barracks.gg) Graphics Controller, works well with Riot Games' Partner Tournaments as it has live data.
 - [Previous work with TFT for the FPT Shop Uni Tour 2026](https://github.com/Rookie001MC/tft-broadcast)
   - Features CRUD actions, Winner GFX, Post-Game GFX, Ranking GFX.

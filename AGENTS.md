@@ -4,6 +4,12 @@
 - **Package Manager**: pnpm
 - **Add-ons**: prettier, eslint, vitest, playwright, tailwindcss, sveltekit-adapter, drizzle, ai-tools
 
+Documentation for SvelteKit 3 is at <https://next.svelte.dev>, for differences from v2 to v3 see <https://next.svelte.dev/docs/kit/migrating-to-sveltekit-3>.
+
+UI Library from Skeleton UI, docs here: <https://www.skeleton.dev/docs/svelte/get-started/introduction>, LLM-readable documentation is at: <https://www.skeleton.dev/llms.txt>
+
+Expected data from external data providers are provided in the @README.md file.
+
 ---
 
 You are able to use the Svelte MCP server, where you have access to comprehensive Svelte 5 and SvelteKit documentation. Here's how to use the available tools effectively:
