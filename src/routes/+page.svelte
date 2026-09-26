@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {redirect} from "@sveltejs/kit";
+	import { redirect } from '@sveltejs/kit';
 
-    redirect(301, "/admin")
+	redirect(301, '/admin');
 </script>
