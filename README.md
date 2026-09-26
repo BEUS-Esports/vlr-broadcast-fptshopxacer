@@ -29,6 +29,8 @@ Upcoming project for the FPT Shop x Acer Valorant Broadcast Graphics Controller.
 - [Barracks.gg](https://barracks.gg) Graphics Controller, works well with Riot Games' Partner Tournaments as it has live data.
 - [Previous work with TFT for the FPT Shop Uni Tour 2026](https://github.com/Rookie001MC/tft-broadcast)
   - Features CRUD actions, Winner GFX, Post-Game GFX, Ranking GFX.
+- [Previous work with the MLBB Road to Asiad 2026 Aichi-Nagoya](https://github.com/BEUS-Esports/mlbb-hud-road-to-asiad-2026) (GitHub is private, source code [here](./examples/mlbb-hud-road-to-asiad-2026/))
+
 
 ## Expected integrations
 
