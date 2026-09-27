@@ -58,6 +58,10 @@ export const matches = sqliteTable(
 			foreignColumns: [tournamentEntries.id, tournamentEntries.tournamentId]
 		}).onDelete('restrict'),
 		check('matches_distinct_teams_check', sql`${table.teamAEntryId} <> ${table.teamBEntryId}`),
+		check(
+			'matches_winner_participant_check',
+			sql`${table.winnerEntryId} is null or ${table.winnerEntryId} = ${table.teamAEntryId} or ${table.winnerEntryId} = ${table.teamBEntryId}`
+		),
 		check('matches_best_of_check', sql`${table.bestOf} in (1, 2, 3, 5)`),
 		check(
 			'matches_result_type_check',

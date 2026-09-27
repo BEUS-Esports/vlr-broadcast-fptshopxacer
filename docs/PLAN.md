@@ -83,9 +83,9 @@ Check upload validation, reference-preserving deletion, and resource-refresh beh
 ### Work
 
 - [ ] Add tournaments with unique URL-safe slugs, participating teams, plain tournament player lists, and editable tournament map pools. Do not add main/substitute roles.
-- [ ] Add matches with two distinct tournament entries, match text, and BO1/2/3/5 rules. Store/derive completion and result consistently, including a completed BO2 draw.
+- [ ] Add matches with two distinct tournament entries, match text, and BO1/2/3/5 rules. A stored winner must be one of those two entries. Store/derive completion and result consistently, including a completed BO2 draw.
 - [ ] Add the match-wide ordered veto editor. Validate maps against the event pool and allow operator changes to the action sequence and acting team, including consecutive same-team picks and game-number assignments before games exist.
-- [ ] Add games individually with unique match-relative numbers, editable names, maps, starting sides, team-attached scores, and results. Prepare the reusable Info → Lineup → Map Veto workspace; its veto view edits the match record.
+- [ ] Add games individually with unique match-relative numbers, editable names, maps, starting sides, team-attached scores, and results. Once a match has games, veto actions, or a stored match result, changing its Team A/B entries is blocked until that dependent data is explicitly cleared/reset so existing scores and actions cannot change team identity. Prepare the reusable Info → Lineup → Map Veto workspace; its veto view edits the match record.
 - [ ] Add five ordered lineup slots per team per game. Validate membership, duplicate players, and cross-team conflicts; preserve historical lineups during roster edits. Surface stale saves and edits that would invalidate completed data.
 
 ### Done when — first management milestone
@@ -96,7 +96,7 @@ Check upload validation, reference-preserving deletion, and resource-refresh beh
 
 ### Focused proof
 
-Use small, realistic fixtures: two tournaments with different map pools, teams with more than five available players, a BO2 draw, and a BO5 veto with consecutive picks. Test duplicate slots/players, wrong-tournament references, invalid maps, concurrent game creation, stale updates, and save/reopen behavior. Use transactions and database constraints where they own the invariant.
+Use small, realistic fixtures: two tournaments with different map pools, teams with more than five available players, a BO2 draw, and a BO5 veto with consecutive picks. Test duplicate slots/players, wrong-tournament references, a winner outside the match participants, invalid maps, blocked participant changes after dependent data exists, concurrent game creation, stale updates, and save/reopen behavior. Use transactions and database constraints where they own the invariant.
 
 ## Phase 4 — Make manual post-game statistics and all scopes usable
 
