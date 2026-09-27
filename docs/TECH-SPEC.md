@@ -24,9 +24,9 @@ An operator can create teams and players, prepare a tournament and its rosters/m
 
 - Direct Riot API integration, RSO, and player account-linking flows.
 - Automatic tournament brackets, seeding, advancement, or standings engines. Match preparation is operator-driven.
-   - Reason: This app just adds the matches into the server, not doing everyhing like Seeding, Matching, Advancement Rules, etc...
+  - Reason: This app just adds the matches into the server, not doing everyhing like Seeding, Matching, Advancement Rules, etc...
 - Automatic MVP selection or a new player-rating algorithm.
-   - Technically, automatic MVP can be selected by picking the player in the winning team with highest Combat Score.
+  - Technically, automatic MVP can be selected by picking the player in the winning team with highest Combat Score.
 - Our own OCR client. Retain this as a future possibility if provider limitations or manual workload justify it.
 - Creating the final broadcast visual identity, or building a general plugin system, distributed backend, or multiple independent broadcast channels for the initial release.
 

@@ -1,29 +1,12 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
-import { games, matches, matchVetoActions } from '#lib/server/db/schema/index.ts';
-
-export class MatchNotFoundError extends Error {
-	constructor() {
-		super('Match not found.');
-		this.name = 'MatchNotFoundError';
-	}
-}
-
-export class MatchParticipantChangeBlockedError extends Error {
-	constructor() {
-		super(
-			'Match participants cannot change after games, veto actions, or a match result exist. Clear/reset that dependent data first.'
-		);
-		this.name = 'MatchParticipantChangeBlockedError';
-	}
-}
-
-export class StaleMatchWriteError extends Error {
-	constructor() {
-		super('The match changed since it was loaded. Reload it before saving again.');
-		this.name = 'StaleMatchWriteError';
-	}
-}
+import {
+	games,
+	matches,
+	matchVetoActions,
+	tournamentEntries
+} from '#lib/server/db/schema/index.ts';
+import { SaveError } from './save-error';
 
 type UpdateMatchParticipantsInput = {
 	matchId: string;
@@ -45,13 +28,17 @@ export async function updateMatchParticipants({
 	teamAEntryId,
 	teamBEntryId
 }: UpdateMatchParticipantsInput) {
+	if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
+		throw new SaveError('invalid', 'A valid match revision is required.');
+	}
 	if (teamAEntryId === teamBEntryId) {
-		throw new Error('Team A and Team B must be different tournament entries.');
+		throw new SaveError('invalid', 'Team A and Team B must be different tournament entries.');
 	}
 
 	return db.transaction(async (tx) => {
 		const [current] = await tx
 			.select({
+				tournamentId: matches.tournamentId,
 				teamAEntryId: matches.teamAEntryId,
 				teamBEntryId: matches.teamBEntryId,
 				revision: matches.revision
@@ -60,11 +47,29 @@ export async function updateMatchParticipants({
 			.where(eq(matches.id, matchId))
 			.limit(1);
 
-		if (!current) throw new MatchNotFoundError();
-		if (current.revision !== expectedRevision) throw new StaleMatchWriteError();
+		if (!current) throw new SaveError('not-found', 'Match not found.');
+		if (current.revision !== expectedRevision) {
+			throw new SaveError(
+				'stale',
+				'The match changed since it was loaded. Reload it before saving again.'
+			);
+		}
 
 		if (current.teamAEntryId === teamAEntryId && current.teamBEntryId === teamBEntryId) {
 			return current;
+		}
+
+		const entries = await tx
+			.select({ id: tournamentEntries.id })
+			.from(tournamentEntries)
+			.where(
+				and(
+					eq(tournamentEntries.tournamentId, current.tournamentId),
+					inArray(tournamentEntries.id, [teamAEntryId, teamBEntryId])
+				)
+			);
+		if (entries.length !== 2) {
+			throw new SaveError('invalid', 'Both teams must participate in this tournament.');
 		}
 
 		const [updated] = await tx
@@ -98,9 +103,17 @@ export async function updateMatchParticipants({
 			.where(eq(matches.id, matchId))
 			.limit(1);
 
-		if (!latest) throw new MatchNotFoundError();
-		if (latest.revision !== expectedRevision) throw new StaleMatchWriteError();
+		if (!latest) throw new SaveError('not-found', 'Match not found.');
+		if (latest.revision !== expectedRevision) {
+			throw new SaveError(
+				'stale',
+				'The match changed since it was loaded. Reload it before saving again.'
+			);
+		}
 
-		throw new MatchParticipantChangeBlockedError();
+		throw new SaveError(
+			'blocked',
+			'Match participants cannot change after games, veto actions, or a match result exist. Clear/reset that dependent data first.'
+		);
 	});
 }

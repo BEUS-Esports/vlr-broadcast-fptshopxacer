@@ -8,7 +8,11 @@
 
 Upcoming project for the FPT Shop x Acer Valorant Broadcast Graphics Controller.
 
-Fully built in SvelteKit 3 and Svelte 5, with Admin UI from Skeleton UI.
+Built with SvelteKit 3 and Svelte 5, with admin UI from Skeleton UI.
+
+## Local development
+
+Copy `.env.example` to `.env`, install dependencies with `pnpm install`, then run `pnpm db:migrate` and `pnpm dev`. The default `file:local.db` database is persistent and ignored by Git. Use migrations for schema changes; keep `db:push` away from event data.
 
 ## Expected features includes
 
