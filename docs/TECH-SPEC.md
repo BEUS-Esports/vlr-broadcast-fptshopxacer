@@ -3,7 +3,7 @@
 ## Document status
 
 - Recorded: 2026-09-27. Target: the November 2026 broadcast; the exact event date is not fixed here.
-- This specification records the approved planning baseline. It does not authorize application implementation.
+- This specification records the approved planning baseline. Implementation began after a separate explicit request on 2026-09-27.
 - [PLAN.md](./PLAN.md) describes the implementation sequence and acceptance checks.
 - The requirements below supersede older README suggestions where they differ, particularly direct Riot API integration and roster roles.
 - Technical defaults and unresolved integration checks are identified explicitly. No real Spectra post-game response or GStack game capture has been tested for this project yet.
@@ -236,6 +236,8 @@ Custom tournament branding and design-team assets remain separate from provider 
 | Server          | Existing Node adapter. One application process owns persistence, provider connections, and shared broadcast updates. No Redis or separate job service by default.                                      |
 | Browser updates | Proposed: server-sent events for shared live state, with ordinary authenticated HTTP actions for controls. Reconnect loads a current snapshot/revision. Use the provider's required protocol upstream. |
 | Assets          | Durable uploads/resource storage served through controlled asset routes. Include it in backup/restore alongside the database.                                                                          |
+
+Management and graphics-control screens use the established TFT Broadcast application layout as their primary UI reference: a Skeleton AppBar, grouped sidebar navigation, scrollable content, and token-styled cards, forms, and status messages. Use Skeleton's Cerberus theme and styling tokens rather than hard-coded colors or radii. OBS graphic outputs keep their separate broadcast templates and design-team artwork.
 
 Broadcast state is intentionally shared. User authentication/session state is not. Avoid creating provider connections in each graphics component or using account-specific mutable globals during rendering.
 

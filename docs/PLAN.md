@@ -4,7 +4,7 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**This is a planning deliverable. Application implementation has not started and is not authorized by the request to write these documents.** All implementation checkboxes below remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27 after an explicit request to start Phase 1.** Phase 1 is in progress; later phases remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
@@ -14,7 +14,7 @@ The specification owns product behavior. This file owns build order, concrete wo
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.       |
 | Database               | Drizzle with the libSQL client and SQLite dialect. The application schema is split by domain under `src/lib/server/db/schema/`; reviewed migrations are still pending.                         |
-| Routes                 | `/admin` and `/gfx` have basic layouts. Administration is still placeholder content. The graphics canvas is transparent 1920×1080.                                                           |
+| Routes                 | `/admin` uses the TFT Broadcast-style Skeleton shell but has no CRUD screens yet. `/gfx` remains a transparent 1920×1080 canvas.                                                             |
 | Production graphics    | `src/routes/gfx/+layout.js` currently sets `ssr = false` and `csr = dev`, disabling client rendering in production. Resolve this when building actual outputs and verify a production build. |
 | Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.           |
 
@@ -44,7 +44,7 @@ Phase 8 can proceed once Phase 5's data/control contracts are stable and design 
 - [ ] Add the initial reviewed Drizzle migrations and persistent local database setup. Keep schema ownership in `src/lib/server/db/schema/` and preserve the domain split.
 - [ ] Establish optimistic stale-write handling with integer revisions on editable aggregate roots. Collection edits must bump their owning aggregate revision in the same transaction.
 - [ ] Establish server validation/error conventions and transaction boundaries that later CRUD slices can reuse. Cross-record tournament/match/game relationships are validated during saves rather than encoded as a tournament rules engine.
-- [ ] Establish the Skeleton management shell and accessible form behavior needed by the first CRUD screens.
+- [ ] Establish the Skeleton management shell and accessible form behavior needed by the first CRUD screens. The TFT Broadcast-style AppBar, sidebar, Cerberus theme, and token-styled dashboard are present; form behavior awaits the first CRUD screen.
 
 ### Done when
 
@@ -243,4 +243,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Once application implementation is explicitly requested, start with **Phase 1**. The first user-testable milestone is the completed management workflow at the end of **Phase 3**. Real match captures are not required to begin those phases.
+Continue Phase 1 with database migrations and save boundaries, then build the first Team/Player CRUD screen. The first user-testable milestone is the completed management workflow at the end of **Phase 3**. Real match captures are not required to begin those phases.
