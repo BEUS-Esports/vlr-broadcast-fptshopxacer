@@ -13,7 +13,7 @@ The specification owns product behavior. This file owns build order, concrete wo
 | Existing item          | Current state / implication                                                                                                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.       |
-| Database               | Drizzle with the libSQL client and SQLite dialect. `src/lib/server/db/schema.ts` contains a scaffold `task` table, not the planned application schema.                                       |
+| Database               | Drizzle with the libSQL client and SQLite dialect. The application schema is split by domain under `src/lib/server/db/schema/`; reviewed migrations are still pending.                         |
 | Routes                 | `/admin` and `/gfx` have basic layouts. Administration is still placeholder content. The graphics canvas is transparent 1920×1080.                                                           |
 | Production graphics    | `src/routes/gfx/+layout.js` currently sets `ssr = false` and `csr = dev`, disabling client rendering in production. Resolve this when building actual outputs and verify a production build. |
 | Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.           |
@@ -23,7 +23,7 @@ Real GStack game payloads and successful Spectra hosted post-game reports are no
 ## Build sequence
 
 ```text
-1. Secure foundation
+1. Persistent foundation
    → 2. Profiles and resources
    → 3. Tournament/match/game management  [first usable milestone]
    → 4. Manual statistics
@@ -36,25 +36,27 @@ Real GStack game payloads and successful Spectra hosted post-game reports are no
 
 Phase 8 can proceed once Phase 5's data/control contracts are stable and design assets arrive. Provider validation can happen as soon as a test match is available. Neither is a dependency of the first management milestone.
 
-## Phase 1 — Establish a secure, persistent application foundation
+## Phase 1 - Establish a persistent application foundation
 
 ### Work
 
 - [ ] Inspect the current scaffold, scripts, environment configuration, and local database before changing anything. Record the baseline check/build results; distinguish existing issues from new work.
-- [ ] Add the initial reviewed Drizzle migrations and persistent local database setup. Keep schema ownership in `src/lib/server/db`; retire demo records/code only after checking usage and data.
-- [ ] Implement individual login/logout, password hashing, and database-backed sessions using established runtime/library primitives. Keep session tokens and provider secrets out of client-visible data.
-- [ ] Add Administrator/Operator authorization and User Management: create account, change role, reset password, disable account, and invalidate sessions. Provide a local first-administrator bootstrap without public signup or an email dependency.
-- [ ] Establish the Skeleton management shell, server validation/error conventions, accessible form behavior, and stale-write handling that later slices can reuse. Keep helpers tied to actual shared behavior.
+- [ ] Add the initial reviewed Drizzle migrations and persistent local database setup. Keep schema ownership in `src/lib/server/db/schema/` and preserve the domain split.
+- [ ] Establish optimistic stale-write handling with integer revisions on editable aggregate roots. Collection edits must bump their owning aggregate revision in the same transaction.
+- [ ] Establish server validation/error conventions and transaction boundaries that later CRUD slices can reuse. Cross-record tournament/match/game relationships are validated during saves rather than encoded as a tournament rules engine.
+- [ ] Establish the Skeleton management shell and accessible form behavior needed by the first CRUD screens.
 
 ### Done when
 
-- Two individual users can sign in. Operators can enter operational areas but cannot invoke User Management, including through direct requests.
-- Disabled accounts and reset passwords invalidate prior sessions; the last usable administrator cannot be accidentally removed.
-- Database/session state survives restart, and the first-administrator setup has a documented recovery path.
+- Database state survives restart and the initial schema can be recreated from reviewed migrations.
+- A stale update using an old revision is rejected rather than silently overwriting newer data.
+- A multi-row aggregate edit either commits completely or rolls back completely.
 
 ### Focused proof
 
-Test authorization through server endpoints, session invalidation, and last-administrator protection. Add a login/role browser flow. Run `pnpm check` and the relevant tests; use a disposable database for migration proof.
+Test migration recreation, optimistic concurrency, and one transactional aggregate update using a disposable database. Run `pnpm check` and the relevant tests.
+
+Authentication, sessions, and Administrator/Operator authorization are intentionally deferred from the current feature path. Revisit them before exposing the management application to an untrusted network; they are not part of the current domain-schema milestone.
 
 ## Phase 2 — Add reusable profiles, assets, and game resources
 
