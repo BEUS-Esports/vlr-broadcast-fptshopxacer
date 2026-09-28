@@ -59,7 +59,7 @@ test('operator can save and reopen team, player, and resource profiles', async (
 		.getByRole('textbox', { name: 'Stable key' })
 		.fill('training-map');
 	await page.getByRole('button', { name: 'Save map' }).click();
-	await expect(page).toHaveURL(/\/admin\/resources\?map=/);
+	await expect(page).toHaveURL(/\/admin\/resources\?tab=maps&map=/);
 	await page.reload();
 	await expect(
 		page.getByRole('region', { name: 'Maps' }).getByRole('textbox', { name: 'Name' })
@@ -83,7 +83,7 @@ test('operator can save and reopen team, player, and resource profiles', async (
 		.getByRole('textbox', { name: 'Stable key' })
 		.fill('practice-agent');
 	await page.getByRole('button', { name: 'Save agent' }).click();
-	await expect(page).toHaveURL(/\/admin\/resources\?agent=/);
+	await expect(page).toHaveURL(/\/admin\/resources\?tab=agents&agent=/);
 	await page.reload();
 	await expect(
 		page.getByRole('region', { name: 'Agents' }).getByRole('textbox', { name: 'Name' })
