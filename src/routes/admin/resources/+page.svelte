@@ -54,7 +54,7 @@
 			rows={data.maps}
 			label="Maps"
 			searchText={(item) => `${item.displayName} ${item.key}`}
-			columns={['Map', 'Stable key', 'Status', 'Actions']}
+			columns={['Map', 'Splash Image', 'Status', 'Actions']}
 		>
 			{#snippet actions()}
 				<a class="btn preset-filled-primary-500" href="/admin/resources?new=map#map-editor"
@@ -152,7 +152,13 @@
 						<span class="font-semibold">{item.displayName}</span>
 					</div></td
 				>
-				<td class="text-surface-600-400">{item.key}</td>
+				<td>
+					<img
+						src={item.splashPath}
+						class="scale-50"
+						alt="Splash image for map {item.displayName}"
+					/>
+				</td>
 
 				<td
 					><span class="badge {item.isActive ? 'preset-tonal-success' : 'preset-tonal-surface'}"
@@ -178,7 +184,7 @@
 			rows={data.agents}
 			label="Agents"
 			searchText={(item) => `${item.displayName} ${item.key} ${item.roleName ?? ''}`}
-			columns={['Agent', 'Stable key', 'Role', 'Status', 'Actions']}
+			columns={['Agent', 'Portrait', 'Role', 'Status', 'Actions']}
 		>
 			{#snippet actions()}
 				<a class="btn preset-filled-primary-500" href="/admin/resources?new=agent#agent-editor"
@@ -286,8 +292,28 @@
 						<span class="font-semibold">{item.displayName}</span>
 					</div></td
 				>
-				<td class="text-surface-600-400">{item.key}</td>
-				<td>{item.roleName ?? '—'}</td>
+				<td class="text-surface-600-400">
+					<img
+						src={item.fullPortraitPath}
+						class="scale-50"
+						alt="Portrait Image for agent {item.displayName} "
+					/>
+				</td>
+				<td>
+					<div class="flex items-center gap-3">
+						{#if item.roleIconPath}
+							<img
+								class="size-12 shrink-0 rounded-base"
+								src={item.roleIconPath}
+								alt=""
+								width="48"
+								height="48"
+								loading="lazy"
+							/>
+						{/if}
+						{item.roleName ?? '—'}
+					</div>
+				</td>
 				<td
 					><span class="badge {item.isActive ? 'preset-tonal-success' : 'preset-tonal-surface'}"
 						>{item.isActive ? 'Active' : 'Inactive'}</span
