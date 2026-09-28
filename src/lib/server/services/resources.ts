@@ -87,7 +87,7 @@ type CatalogueRecord = {
 	mapUrl?: string | null;
 	splash?: string | null;
 	fullPortrait?: string | null;
-	role?: { displayName?: string } | null;
+	role?: { displayName?: string, displayIcon?: string } | null;
 	isPlayableCharacter?: boolean;
 };
 
@@ -180,6 +180,7 @@ export async function refreshCatalogue() {
 				key: old?.key ?? `catalog-${row.uuid}`,
 				displayName: row.displayName.trim(),
 				roleName: row.role?.displayName?.trim() || null,
+				roleIconPath: row.role?.displayIcon?.trim() || null,
 				displayIconPath: await local(row.displayIcon, old?.displayIconPath),
 				fullPortraitPath: await local(row.fullPortrait, old?.fullPortraitPath),
 				isActive: old?.isActive ?? true
