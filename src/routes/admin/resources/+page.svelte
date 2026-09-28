@@ -170,7 +170,7 @@
 		{/if}
 	</section>
 
-	<Tabs {tab} value={tab} onValueChange={(details) => (tab = details.value as TabValue)}>
+	<Tabs value={tab} onValueChange={(details) => (tab = details.value as TabValue)}>
 		<Tabs.List class="w-full overflow-x-auto border-b border-surface-200-800">
 			<Tabs.Trigger value="maps" class="min-w-max">
 				Maps <span class="badge ml-2 preset-tonal-primary">{data.maps.length}</span>
