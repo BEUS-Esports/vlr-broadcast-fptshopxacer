@@ -62,6 +62,7 @@ it('validates uploads, protects references, and refreshes resources without chan
 
 		const mapUuid = '7eaecc1b-4337-bbf6-6ab9-04b8f06b3319';
 		const agentUuid = 'e370fa57-4757-3604-3648-499e1f642d3f';
+		const weaponUuid = '9c82e19d-4575-0200-1a81-3eacf00cf872';
 		const imageUrl = 'https://media.valorant-api.com/test.png';
 		let mapName = 'Ascent';
 		let invalidCatalogue = false;
@@ -102,12 +103,24 @@ it('validates uploads, protects references, and refreshes resources without chan
 							}
 						]
 					});
+				if (url.includes('/v1/weapons'))
+					return Response.json({
+						data: [
+							{
+								uuid: weaponUuid,
+								displayName: 'Vandal',
+								displayIcon: imageUrl,
+								killStreamIcon: imageUrl,
+								category: 'EEquippableCategory::Rifle'
+							}
+						]
+					});
 				if (url === imageUrl)
 					return new Response(png, { headers: { 'content-type': 'image/png' } });
 				throw new Error(`Unexpected URL ${url}`);
 			})
 		);
-		await expect(refreshCatalogue()).resolves.toEqual({ maps: 1, agents: 1 });
+		await expect(refreshCatalogue()).resolves.toEqual({ maps: 1, agents: 1, weapons: 1 });
 		const [first] = await database
 			.select()
 			.from(schema.maps)
@@ -147,6 +160,13 @@ it('validates uploads, protects references, and refreshes resources without chan
 			.from(schema.agents)
 			.where(eq(schema.agents.valorantApiUuid, agentUuid));
 		expect(agent.fullPortraitPath).toMatch(/^\/assets\//);
+		const [weapon] = await database
+			.select()
+			.from(schema.weapons)
+			.where(eq(schema.weapons.valorantApiUuid, weaponUuid));
+		expect(weapon).toMatchObject({ displayName: 'Vandal', category: 'Rifle' });
+		expect(weapon.displayIconPath).toMatch(/^\/assets\//);
+		expect(weapon.killStreamIconPath).toMatch(/^\/assets\//);
 		invalidCatalogue = true;
 		await expect(refreshCatalogue()).rejects.toMatchObject({ code: 'invalid' });
 		expect(await database.select().from(schema.maps)).toHaveLength(1);

@@ -16,7 +16,7 @@ Copy `.env.example` to `.env`, install dependencies with `pnpm install`, then ru
 
 `/admin/teams`, `/admin/players`, and `/admin/resources` provide the current preparation screens. `ASSET_DIR` stores uploaded logos/portraits and imported game art outside the build; back it up together with the database. Asset URLs are relative to the app origin, so the same images load from another PC through the server's LAN address. Set `BODY_SIZE_LIMIT=32M` for three team logos of up to 10 MB each when using the Node adapter.
 
-The Game Resources page refreshes tactical maps and playable agents from [VALORANT-API](https://valorant-api.com/). The server needs internet access only during refresh; saved records and downloaded images remain available locally afterward. The management routes currently have no sign-in gate, so keep the app on a trusted network until the planned account and session work is implemented.
+The Game Resources page syncs tactical maps, playable agents, and weapons from [VALORANT-API](https://valorant-api.com/). The server needs internet access only during refresh; saved records and downloaded images remain available locally afterward. The management routes currently have no sign-in gate, so keep the app on a trusted network until the planned account and session work is implemented.
 
 ## Expected features includes
 
@@ -52,4 +52,4 @@ The Game Resources page refreshes tactical maps and playable agents from [VALORA
 
 ### Game Resources
 
-- [VALORANT-API](https://valorant-api.com/) supplies the implemented map and agent catalogue. Its images are downloaded locally during a deliberate refresh.
+- [VALORANT-API](https://valorant-api.com/) supplies the implemented map, agent, and weapon catalogues. Images are downloaded locally during deliberate per-resource syncs.

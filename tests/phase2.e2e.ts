@@ -59,7 +59,7 @@ test('operator can save and reopen team, player, and resource profiles', async (
 		.getByRole('textbox', { name: 'Stable key' })
 		.fill('training-map');
 	await page.getByRole('button', { name: 'Save map' }).click();
-	await expect(page).toHaveURL(/\/admin\/resources\?map=/);
+	await expect(page).toHaveURL(/\/admin\/resources\?tab=maps&map=/);
 	await page.reload();
 	await expect(
 		page.getByRole('region', { name: 'Maps' }).getByRole('textbox', { name: 'Name' })
@@ -72,6 +72,7 @@ test('operator can save and reopen team, player, and resource profiles', async (
 	await expect(
 		page.getByRole('region', { name: 'Maps' }).getByRole('textbox', { name: 'Name' })
 	).toHaveValue('Training Ground');
+	await page.getByRole('tab', { name: /Agents/ }).click();
 	await page.getByRole('link', { name: 'Add agent', exact: true }).click();
 	await page
 		.getByRole('region', { name: 'Agents' })
@@ -82,9 +83,29 @@ test('operator can save and reopen team, player, and resource profiles', async (
 		.getByRole('textbox', { name: 'Stable key' })
 		.fill('practice-agent');
 	await page.getByRole('button', { name: 'Save agent' }).click();
-	await expect(page).toHaveURL(/\/admin\/resources\?agent=/);
+	await expect(page).toHaveURL(/\/admin\/resources\?tab=agents&agent=/);
 	await page.reload();
 	await expect(
 		page.getByRole('region', { name: 'Agents' }).getByRole('textbox', { name: 'Name' })
 	).toHaveValue('Practice Agent');
+
+	await page.getByRole('tab', { name: /Weapons/ }).click();
+	await page.getByRole('link', { name: 'Add weapon', exact: true }).click();
+	await page
+		.getByRole('region', { name: 'Weapons' })
+		.getByRole('textbox', { name: 'Name' })
+		.fill('Practice Rifle');
+	await page
+		.getByRole('region', { name: 'Weapons' })
+		.getByRole('textbox', { name: 'Stable key' })
+		.fill('practice-rifle');
+	await page
+		.getByRole('region', { name: 'Weapons' })
+		.getByRole('textbox', { name: 'Category' })
+		.fill('Rifle');
+	await page.getByRole('button', { name: 'Save weapon' }).click();
+	await expect(page).toHaveURL(/\/admin\/resources\?tab=weapons&weapon=/);
+	await expect(
+		page.getByRole('region', { name: 'Weapons' }).getByRole('textbox', { name: 'Name' })
+	).toHaveValue('Practice Rifle');
 });
