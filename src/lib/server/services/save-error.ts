@@ -7,3 +7,11 @@ export class SaveError extends Error {
 		this.name = 'SaveError';
 	}
 }
+
+export function hasDatabaseError(cause: unknown, text: string) {
+	while (cause instanceof Error) {
+		if (cause.message.includes(text)) return true;
+		cause = cause.cause;
+	}
+	return false;
+}

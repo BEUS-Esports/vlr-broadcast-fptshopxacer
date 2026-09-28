@@ -4,3 +4,14 @@
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton-svelte';
 @import '@skeletonlabs/skeleton/themes/cerberus';
+
+@layer components {
+	.admin-page {
+		@apply mx-auto w-full max-w-[96rem] min-w-0 space-y-6 pb-16;
+	}
+
+	.admin-editor {
+		@apply space-y-4 card border border-surface-200-800 border-t-primary-400-600 bg-surface-100-900 p-5;
+		scroll-margin-top: 1rem;
+	}
+}

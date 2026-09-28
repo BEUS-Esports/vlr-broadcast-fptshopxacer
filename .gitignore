@@ -25,5 +25,6 @@ vite.config.ts.timestamp-*
 test-results
 # SQLite
 *.db
+/data/assets/
 
-./examples/mlbb-hud-road-to-asiad-2026/
+/examples/mlbb-hud-road-to-asiad-2026/

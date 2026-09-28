@@ -14,10 +14,14 @@ Built with SvelteKit 3 and Svelte 5, with admin UI from Skeleton UI.
 
 Copy `.env.example` to `.env`, install dependencies with `pnpm install`, then run `pnpm db:migrate` and `pnpm dev`. The default `file:local.db` database is persistent and ignored by Git. Use migrations for schema changes; keep `db:push` away from event data.
 
+`/admin/teams`, `/admin/players`, and `/admin/resources` provide the current preparation screens. `ASSET_DIR` stores uploaded logos/portraits and imported game art outside the build; back it up together with the database. Asset URLs are relative to the app origin, so the same images load from another PC through the server's LAN address. Set `BODY_SIZE_LIMIT=32M` for three team logos of up to 10 MB each when using the Node adapter.
+
+The Game Resources page refreshes tactical maps and playable agents from [VALORANT-API](https://valorant-api.com/). The server needs internet access only during refresh; saved records and downloaded images remain available locally afterward. The management routes currently have no sign-in gate, so keep the app on a trusted network until the planned account and session work is implemented.
+
 ## Expected features includes
 
 - CRUD tasks and management features for:
-  - Teams -> Players
+  - Reusable teams and players
   - Tournaments -> Matches -> Games
   - Game Resources
 - Graphics:
@@ -44,9 +48,8 @@ Copy `.env.example` to `.env`, install dependencies with `pnpm install`, then ru
 
 - [ValoSpectra](https://www.valospectra.com/), server here: <https://github.com/ValoSpectra/Spectra-Server>, uses Overwolf under the hood.
 - [GStack](https://gstack.app), GStack-Client API schema here: <https://gstack.app/API/VHUD.html>, uses OCR and Machine Vision.
-- [Riot Games' API](https://developer.riotgames.com), includes actual game data, and game resources via Data Dragon.
+- Direct Riot match-data and account integrations are outside the current scope; see [the specification](./docs/TECH-SPEC.md).
 
 ### Game Resources
 
-- [Riot Games' Data Dragon](https://developer.riotgames.com). Only mirror for Valorant here: <https://github.com/noxelisdev/Valorant_DDragon>
-- [CommunityDragon](https://communitydragon.org), does what Data Dragon do, with more resources and more proper structure.
+- [VALORANT-API](https://valorant-api.com/) supplies the implemented map and agent catalogue. Its images are downloaded locally during a deliberate refresh.

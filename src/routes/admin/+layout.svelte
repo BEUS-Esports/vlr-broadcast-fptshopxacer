@@ -1,10 +1,15 @@
 <script lang="ts">
 	import './layout.css';
 	import { page } from '$app/state';
-	import { AppBar, Navigation } from '@skeletonlabs/skeleton-svelte';
+	import { AppBar, Navigation, Toast } from '@skeletonlabs/skeleton-svelte';
+	import { LayoutDashboard, Users, UserRound, Map } from '@lucide/svelte';
+	import { toaster } from '#lib/toaster.ts';
 
 	let { children } = $props();
 	const dashboardActive = $derived(page.url.pathname === '/admin');
+	const teamsActive = $derived(page.url.pathname === '/admin/teams');
+	const playersActive = $derived(page.url.pathname === '/admin/players');
+	const resourcesActive = $derived(page.url.pathname === '/admin/resources');
 </script>
 
 <div class="flex h-dvh flex-col overflow-hidden bg-surface-50-950 text-surface-950-50">
@@ -20,7 +25,7 @@
 				<a href="/admin" class="font-bold tracking-wide no-underline">FPT Shop × Acer</a>
 			</AppBar.Lead>
 			<AppBar.Trail>
-				<span class="badge preset-tonal-surface">Broadcast controller</span>
+				<span class="badge hidden preset-tonal-surface sm:inline-flex">Broadcast controller</span>
 			</AppBar.Trail>
 		</AppBar.Toolbar>
 	</AppBar>
@@ -28,25 +33,44 @@
 	<div class="flex min-h-0 flex-1 flex-col md:flex-row">
 		<Navigation
 			layout="sidebar"
+			role="navigation"
 			aria-label="Management"
-			class="h-auto w-full shrink-0 border-b border-surface-200-800 preset-filled-surface-50-950 md:h-full md:w-56 md:border-r md:border-b-0"
+			class="h-auto w-full shrink-0 border-b border-surface-200-800 preset-filled-surface-50-950 p-0 md:h-full md:w-56 md:border-r md:border-b-0"
 		>
-			<Navigation.Content class="px-3 py-3 md:py-4">
-				<Navigation.Group>
+			<Navigation.Content
+				class="flex w-full flex-row flex-wrap gap-1 px-3 py-2 md:flex-col md:gap-4 md:py-4"
+			>
+				<Navigation.Group class="contents md:flex md:w-full md:flex-col">
 					<Navigation.Label
-						class="mb-1 px-2 text-xs font-semibold tracking-wider text-surface-400-600 uppercase"
+						class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"
 					>
 						Main
 					</Navigation.Label>
 					<Navigation.TriggerAnchor
 						href="/admin"
 						aria-current={dashboardActive ? 'page' : undefined}
-						class="flex items-center rounded-base px-3 py-2 text-sm font-medium transition-colors {dashboardActive
+						class="flex w-auto items-center gap-2 rounded-base px-3 py-2 text-sm font-medium transition-colors md:w-full {dashboardActive
 							? 'preset-filled-primary-500'
 							: 'text-surface-700-300 hover:preset-tonal-primary'}"
 					>
-						Dashboard
+						<LayoutDashboard size={18} aria-hidden="true" /> Dashboard
 					</Navigation.TriggerAnchor>
+				</Navigation.Group>
+				<Navigation.Group class="contents md:flex md:w-full md:flex-col md:gap-1">
+					<Navigation.Label
+						class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"
+						>Preparation</Navigation.Label
+					>
+					{#each [{ href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game resources', active: resourcesActive, icon: Map }] as item (item.href)}
+						<Navigation.TriggerAnchor
+							href={item.href}
+							aria-current={item.active ? 'page' : undefined}
+							class="flex w-auto items-center gap-2 rounded-base px-3 py-2 text-sm font-medium transition-colors md:w-full {item.active
+								? 'preset-filled-primary-500'
+								: 'text-surface-700-300 hover:preset-tonal-primary'}"
+							><item.icon size={18} aria-hidden="true" />{item.label}</Navigation.TriggerAnchor
+						>
+					{/each}
 				</Navigation.Group>
 			</Navigation.Content>
 		</Navigation>
@@ -54,6 +78,17 @@
 			{@render children()}
 		</main>
 	</div>
+	<Toast.Group {toaster}>
+		{#snippet children(toast)}
+			<Toast {toast}>
+				<Toast.Message>
+					<Toast.Title>{toast.title}</Toast.Title>
+					<Toast.Description>{toast.description}</Toast.Description>
+				</Toast.Message>
+				<Toast.CloseTrigger />
+			</Toast>
+		{/snippet}
+	</Toast.Group>
 </div>
 
 <style>

@@ -4,7 +4,7 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**Implementation began on 2026-09-27 after an explicit request to start Phase 1.** Phase 1 is in progress; later phases remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27.** Phases 1 and 2 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Later phases remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
@@ -14,7 +14,7 @@ The specification owns product behavior. This file owns build order, concrete wo
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.       |
 | Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; migrations `0000` and `0001` now recreate it.                            |
-| Routes                 | `/admin` uses the TFT Broadcast-style Skeleton shell but has no CRUD screens yet. `/gfx` remains a transparent 1920×1080 canvas.                                                             |
+| Routes                 | `/admin` has Team, Player, and Game Resources CRUD screens. `/gfx` remains a transparent 1920×1080 canvas.                                                                                   |
 | Production graphics    | `src/routes/gfx/+layout.js` currently sets `ssr = false` and `csr = dev`, disabling client rendering in production. Resolve this when building actual outputs and verify a production build. |
 | Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.           |
 
@@ -44,7 +44,7 @@ Phase 8 can proceed once Phase 5's data/control contracts are stable and design 
 - [x] Add the initial reviewed Drizzle migrations and persistent local database setup. Keep schema ownership in `src/lib/server/db/schema/` and preserve the domain split.
 - [x] Establish optimistic stale-write handling with integer revisions on editable aggregate roots. Collection edits must bump their owning aggregate revision in the same transaction.
 - [x] Establish server validation/error conventions and transaction boundaries that later CRUD slices can reuse. Cross-record tournament/match/game relationships are validated during saves rather than encoded as a tournament rules engine.
-- [ ] Establish the Skeleton management shell and accessible form behavior needed by the first CRUD screens. The TFT Broadcast-style AppBar, sidebar, Cerberus theme, and token-styled dashboard are present; form behavior awaits the first CRUD screen.
+- [x] Establish the Skeleton management shell and accessible form behavior needed by the first CRUD screens. Team, Player, and Game Resources forms use labelled native controls, visible errors, and stale-save feedback.
 
 ### Done when
 
@@ -64,11 +64,11 @@ Authentication, sessions, and Administrator/Operator authorization are intention
 
 ### Work
 
-- [ ] Add Team and Player records and CRUD screens. Start with the profile fields in the specification; keep tournament membership out of a player's single global team field.
-- [ ] Implement safe logo/portrait upload and storage, with normal/white/black team-logo variants and missing-asset placeholders.
-- [ ] Add the maps and agents needed by game preparation and the templates. Add equipment assets when the live HUD consumes them; do not build unused catalogue editors.
-- [ ] Choose and verify a suitable resource-catalogue import source. Support deliberate refreshes and local asset availability; keep referenced records stable across updates.
-- [ ] Protect referenced profiles/resources from destructive deletion while permitting ordinary editing and removal of unused records.
+- [x] Add Team and Player records and CRUD screens. Start with the profile fields in the specification; keep tournament membership out of a player's single global team field.
+- [x] Implement safe logo/portrait upload and storage, with normal/white/black team-logo variants and missing-asset placeholders.
+- [x] Add the maps and agents needed by game preparation and the templates. Add equipment assets when the live HUD consumes them; do not build unused catalogue editors.
+- [x] Choose and verify a suitable resource-catalogue import source. Support deliberate refreshes and local asset availability; keep referenced records stable across updates.
+- [x] Protect referenced profiles/resources from destructive deletion while permitting ordinary editing and removal of unused records.
 
 ### Done when
 
@@ -79,6 +79,8 @@ Authentication, sessions, and Administrator/Operator authorization are intention
 ### Focused proof
 
 Check upload validation, reference-preserving deletion, and resource-refresh behavior. Exercise one team/player/resource CRUD browser journey with realistic placeholder assets.
+
+Progress, 2026-09-28: Team and Player forms save revisions and normal/white/black logos or portraits; assets are served from `ASSET_DIR` with generated paths. Map and Agent forms support local manual preparation. Operator-triggered VALORANT-API refresh imports tactical maps and playable agents, copies their required images locally, and updates provider UUID matches without changing application IDs, selected map-pool references, existing image paths, or operator availability choices. The public catalogue response was inspected live; the app's refresh path was proved with a fixture because this shell cannot resolve external DNS. A browser session against a disposable database saved and reopened one team with a served logo, one player, and one map. Focused tests cover invalid uploads/paths, referenced deletion, and repeat/invalid refresh. A separate-machine LAN check remains for deployment rehearsal.
 
 ## Phase 3 — Complete tournament, match, game, and lineup management
 
@@ -245,4 +247,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, finish accessible form behavior in the first Team/Player CRUD screen, then continue Phase 2. The first user-testable milestone is the completed management workflow at the end of **Phase 3**. Real match captures are not required to begin those phases.
+Next, build Phase 3 tournament, roster, match, veto, game, and lineup management. The first complete management milestone is at the end of **Phase 3**. Real match captures are not required to begin it.
