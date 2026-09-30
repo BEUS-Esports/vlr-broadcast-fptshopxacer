@@ -219,6 +219,23 @@ export async function saveGameResult(input: GameWrite & { result: GameResult }) 
 			scoreB = parseScore(result.scoreB);
 			if ((scoreA === null) !== (scoreB === null))
 				throw new SaveError('invalid', 'Enter both scores or leave both unknown.');
+			if (scoreA !== null && scoreB !== null) {
+				const high = Math.max(scoreA, scoreB);
+				const low = Math.min(scoreA, scoreB);
+				if (high > 13 && high - low > 2)
+					throw new SaveError(
+						'invalid',
+						'Scores cannot continue past a regulation win at 13 or a two-round overtime lead.'
+					);
+				if (
+					result.mode === 'normal' &&
+					!((high === 13 && low <= 11) || (low >= 12 && high - low === 2))
+				)
+					throw new SaveError(
+						'invalid',
+						'A final score must be 13–0 through 13–11, or an overtime win by exactly two (14–12, 15–13, and so on). Save unfinished scores as a draft.'
+					);
+			}
 			if (result.mode === 'draft') {
 				if (game.resultType)
 					throw new SaveError('blocked', 'Reopen this game before saving a draft result.');
@@ -229,8 +246,8 @@ export async function saveGameResult(input: GameWrite & { result: GameResult }) 
 						'Choose a tournament map before finalizing a normal result.'
 					);
 				await validateMap(tx, match, game.mapId);
-				if (scoreA === null || scoreB === null || scoreA === scoreB)
-					throw new SaveError('invalid', 'A normal final result requires two unequal scores.');
+				if (scoreA === null || scoreB === null)
+					throw new SaveError('invalid', 'A normal final result requires both scores.');
 				winnerEntryId = scoreA > scoreB ? match.teamAEntryId : match.teamBEntryId;
 				resultType = 'normal';
 			}

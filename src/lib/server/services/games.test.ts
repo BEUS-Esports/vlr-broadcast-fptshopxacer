@@ -288,3 +288,138 @@ it('rejects malformed scores while preserving blank versus zero', async () => {
 			expect(() => parseScore(value)).toThrow();
 	});
 });
+
+it('enforces MR12 and unlimited win-by-two overtime on finalization and corrections', async () => {
+	await withManagementFixture(async ({ db }) => {
+		const { saveGameResult } = await import('./games');
+		await db.update(schema.matches).set({ bestOf: 1 }).where(eq(schema.matches.id, 'match'));
+		await db.insert(schema.games).values({
+			id: 'g',
+			matchId: 'match',
+			number: 1,
+			name: 'Final',
+			mapId: 'map-1'
+		});
+		let key = { gameId: 'g', expectedGameRevision: 1, expectedMatchRevision: 1 };
+		for (const [high, low] of [
+			[0, 0],
+			[12, 0],
+			[12, 11],
+			[12, 12],
+			[13, 12],
+			[13, 13],
+			[14, 13],
+			[14, 0],
+			[14, 11],
+			[15, 12],
+			[16, 12]
+		]) {
+			for (const [scoreA, scoreB] of [
+				[high, low],
+				[low, high]
+			])
+				await expect(
+					saveGameResult({ ...key, result: { mode: 'normal', scoreA, scoreB } })
+				).rejects.toMatchObject({ code: 'invalid' });
+		}
+		expect((await db.select().from(schema.games))[0]).toMatchObject({
+			revision: 1,
+			scoreA: null,
+			scoreB: null,
+			resultType: null,
+			winnerEntryId: null
+		});
+		expect((await db.select().from(schema.matches))[0].revision).toBe(1);
+
+		for (const [high, low] of [
+			[13, 0],
+			[13, 11],
+			[14, 12],
+			[15, 13],
+			[26, 24],
+			[102, 100]
+		]) {
+			for (const [scoreA, scoreB] of [
+				[high, low],
+				[low, high]
+			]) {
+				const saved = await saveGameResult({ ...key, result: { mode: 'normal', scoreA, scoreB } });
+				const winnerEntryId = scoreA > scoreB ? 'entry-a' : 'entry-b';
+				expect(saved.series).toMatchObject({ state: 'completed', winnerEntryId });
+				expect((await db.select().from(schema.games))[0]).toMatchObject({
+					scoreA,
+					scoreB,
+					resultType: 'normal',
+					winnerEntryId
+				});
+				key = {
+					gameId: 'g',
+					expectedGameRevision: saved.gameRevision,
+					expectedMatchRevision: saved.matchRevision
+				};
+			}
+		}
+		const beforeGame = await db.select().from(schema.games);
+		const beforeMatch = await db.select().from(schema.matches);
+		await expect(
+			saveGameResult({ ...key, result: { mode: 'normal', scoreA: 13, scoreB: 12 } })
+		).rejects.toMatchObject({ code: 'invalid' });
+		expect(await db.select().from(schema.games)).toEqual(beforeGame);
+		expect(await db.select().from(schema.matches)).toEqual(beforeMatch);
+	});
+});
+
+it('allows unfinished or unknown draft scores but rejects scores played beyond a win', async () => {
+	await withManagementFixture(async ({ db }) => {
+		const { saveGameResult } = await import('./games');
+		await db.insert(schema.games).values({ id: 'g', matchId: 'match', number: 1, name: 'Draft' });
+		let key = { gameId: 'g', expectedGameRevision: 1, expectedMatchRevision: 1 };
+		for (const [high, low] of [
+			[14, 0],
+			[14, 11],
+			[15, 12],
+			[16, 12],
+			[100, 0]
+		]) {
+			for (const [scoreA, scoreB] of [
+				[high, low],
+				[low, high]
+			])
+				await expect(
+					saveGameResult({ ...key, result: { mode: 'draft', scoreA, scoreB } })
+				).rejects.toMatchObject({ code: 'invalid' });
+		}
+		for (const [high, low] of [
+			[null, null],
+			[0, 0],
+			[12, 0],
+			[12, 12],
+			[13, 12],
+			[13, 13],
+			[14, 13],
+			[14, 14],
+			[30, 29],
+			[13, 0],
+			[14, 12]
+		]) {
+			for (const [scoreA, scoreB] of [
+				[high, low],
+				[low, high]
+			]) {
+				const saved = await saveGameResult({ ...key, result: { mode: 'draft', scoreA, scoreB } });
+				expect(saved.series).toMatchObject({ winsA: 0, winsB: 0, state: 'incomplete' });
+				expect((await db.select().from(schema.games))[0]).toMatchObject({
+					scoreA,
+					scoreB,
+					resultType: null,
+					winnerEntryId: null
+				});
+				key = {
+					gameId: 'g',
+					expectedGameRevision: saved.gameRevision,
+					expectedMatchRevision: saved.matchRevision
+				};
+			}
+		}
+	});
+});
