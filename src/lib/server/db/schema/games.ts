@@ -55,7 +55,7 @@ export const games = sqliteTable(
 		),
 		check(
 			'games_starting_sides_check',
-			sql`${table.startingAttackersEntryId} is null or ${table.startingDefendersEntryId} is null or ${table.startingAttackersEntryId} <> ${table.startingDefendersEntryId}`
+			sql`(${table.startingAttackersEntryId} is null and ${table.startingDefendersEntryId} is null) or (${table.startingAttackersEntryId} is not null and ${table.startingDefendersEntryId} is not null and ${table.startingAttackersEntryId} <> ${table.startingDefendersEntryId})`
 		),
 		check(
 			'games_result_type_check',

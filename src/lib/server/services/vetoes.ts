@@ -107,7 +107,8 @@ export async function replaceMatchVeto(input: {
 			}
 			if (
 				!(action.sideChooserEntryId === null && action.sideChoice === null) &&
-				(!participants.includes(action.sideChooserEntryId!) ||
+				(action.gameNumber === null ||
+					!participants.includes(action.sideChooserEntryId!) ||
 					!['attack', 'defense'].includes(action.sideChoice!))
 			)
 				throw new SaveError(

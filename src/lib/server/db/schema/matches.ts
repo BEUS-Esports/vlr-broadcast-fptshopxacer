@@ -117,6 +117,10 @@ export const matchVetoActions = sqliteTable(
 		check(
 			'match_veto_actions_side_choice_check',
 			sql`${table.sideChoice} is null or ${table.sideChoice} in ('attack', 'defense')`
+		),
+		check(
+			'match_veto_actions_side_assignment_check',
+			sql`(${table.sideChooserEntryId} is null and ${table.sideChoice} is null) or (${table.sideChooserEntryId} is not null and ${table.sideChoice} is not null and ${table.gameNumber} is not null)`
 		)
 	]
 );

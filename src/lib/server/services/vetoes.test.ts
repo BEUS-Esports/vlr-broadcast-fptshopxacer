@@ -55,7 +55,51 @@ it('supports arbitrary ordered same-team picks, stable IDs, future games, and ne
 				replaceMatchVeto({ matchId: 'match', expectedMatchRevision: 3, actions })
 			).rejects.toMatchObject({ code: 'invalid' });
 		}
+		await expect(
+			replaceMatchVeto({
+				matchId: 'match',
+				expectedMatchRevision: 3,
+				actions: [{ ...pick('map-1', null), sideChooserEntryId: 'entry-a', sideChoice: 'attack' }]
+			})
+		).rejects.toMatchObject({ code: 'invalid' });
 		expect((await db.select().from(schema.matches))[0].revision).toBe(3);
+	});
+});
+
+it('database rejects incomplete game and veto starting-side pairs', async () => {
+	await withManagementFixture(async ({ db }) => {
+		await expect(
+			db.insert(schema.games).values({
+				id: 'half-sides',
+				matchId: 'match',
+				number: 1,
+				name: 'Half sides',
+				startingAttackersEntryId: 'entry-a'
+			})
+		).rejects.toThrow();
+		await expect(
+			db.insert(schema.matchVetoActions).values({
+				id: 'half-veto-sides',
+				matchId: 'match',
+				sequence: 1,
+				action: 'pick',
+				mapId: 'map-1',
+				actingEntryId: 'entry-a',
+				sideChooserEntryId: 'entry-a'
+			})
+		).rejects.toThrow();
+		await expect(
+			db.insert(schema.matchVetoActions).values({
+				id: 'orphan-veto-sides',
+				matchId: 'match',
+				sequence: 1,
+				action: 'pick',
+				mapId: 'map-1',
+				actingEntryId: 'entry-a',
+				sideChooserEntryId: 'entry-a',
+				sideChoice: 'attack'
+			})
+		).rejects.toThrow();
 	});
 });
 
