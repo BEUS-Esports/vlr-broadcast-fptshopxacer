@@ -182,12 +182,329 @@ Use small provider-specific readers/mappers feeding shared application data shap
 | ValoSpectra live  | The public server exposes Socket.IO output, `logon` with a group code, and `match_data`.                                                                                                                               | A working connection and actual supported fields for our observer setup.                                  |
 | GStack live       | VHUD documents HTTP and WebSocket access on port 57780, including `/livenow`. Samples contain numbered left/right slots, many string values, and pipe-separated round history.                                         | Actual payload formats, cadence, disconnect behavior, side changes, and field availability during a game. |
 | Spectra post-game | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint. | Hosted-service availability/access for the chosen setup and a successful completed-game response.         |
+|HenrikDev System's Third Party API| Includes: Get MMR, MMR History, *Live and Cached Match List*, *Live and Historical Match Detail (positions, round detail, etc...)*, etc..., fit for Post-Match, generous Free Tier (30 req/s), requires API Key. | Nothing yet |
+
+#### ValoSpectra's Post-Match
 
 Spectra's post-game response types include match identity, player identities, combat score, K/D/A, damage, hit counts, economy, rounds, and kill events. Its frontend derives additional values such as ACS. The public server contains integration calls to a separately configured statistics backend; running the public server alone does not establish that this service is available.
 
 Use the group code to locate a candidate report, then verify returned match identity and player/team mappings against the intended game. A reused group code must not import another map's result into the selected game. If an expected external match ID is not yet available, require explicit operator verification before associating the report.
 
 Spectra post-game polling is distinct from live-HUD reconnect/backoff. A report that is still pending must not change the current on-air HUD mode. Retrieval timeouts or unavailable reports leave manual entry usable.
+
+**NOTE**: Free Tier or Self-Hosted instances are required to display Spectra's Watermark on the HUD and other places in the HUD routes and others. Refer to [ValoSpectra Frontend](https://github.com/ValoSpectra/Spectra-Frontend) for exact placements. If Spectra's datasource is used, watermarks must show, no matter what.
+
+There are a few ways to verify Spectra Plus state:
+
+1. `GET /getOrgForKey?key=<ACCESS_KEY>`, service port 5101, returns:
+
+```json
+{
+  "id": "organization-id",
+  "name": "Organization Name",
+  "isSupporter": true
+}
+```
+
+1. When getting the live match data via WebSockets, service port 5200:
+   - Emit a login to the ValoSpectra server of choice with this:
+
+```js
+socket.emit(
+  "logon",
+  JSON.stringify({
+    groupCode,
+  }),
+);
+```
+  
+  - It should emit `logon_success`, with the group code and a success banner.
+  - From now on, on listening to the `match_data` event, it should contain this payload:
+
+```json
+{
+  "groupCode": "EXAMPLE",
+  "organizationId": "organization-id",
+  "orgIsSupporter": true
+}
+```
+
+#### HenriksDev Third Party Valorant API
+
+Serves as ***almost*** a replacement for the Riot's Official APIs. Provides a lot of match data. Example schema (`https://api.henrikdev.xyz/valorant/v4/match/{region}/{matchUuid}`), fetched from my own game data:
+
+```typescript
+export interface JSONSchema {
+    status: number;
+    data:   Data;
+}
+
+export interface Data {
+    metadata:  Metadata;
+    players:   Player[];
+    observers: any[];
+    coaches:   any[];
+    teams:     Team[];
+    rounds:    Round[];
+    kills:     Kill[];
+}
+
+export interface Kill {
+    time_in_round_in_ms: number;
+    time_in_match_in_ms: number;
+    round:               number;
+    killer:              Killer;
+    victim:              Killer;
+    assistants:          Killer[];
+    location:            Location;
+    weapon:              Weapon;
+    secondary_fire_mode: boolean;
+    player_locations:    PlayerLocation[];
+}
+
+export interface Killer {
+    puuid: string;
+    name:  Name;
+    tag:   string;
+    team:  TeamID;
+}
+
+export enum Name {
+    REDACTED1 = "Player1Redacted",
+    REDACTED2 = "Player2Redacted",
+    REDACTED3 = "Player3Redacted",
+    REDACTED4 = "Player4Redacted",
+    REDACTED5 = "Player5Redacted",
+    REDACTED6 = "Player6Redacted",
+    REDACTED7 = "Player7Redacted",
+    REDACTED8 = "Player8Redacted",
+    REDACTED9 = "Player9Redacted",
+    USECRookieNguyen = "USECRookieNguyen",
+}
+
+export enum TeamID {
+    Blue = "Blue",
+    Red = "Red",
+}
+
+export interface Location {
+    x: number;
+    y: number;
+}
+
+export interface PlayerLocation {
+    player:       Killer;
+    view_radians: number;
+    location:     Location;
+}
+
+export interface Weapon {
+    id:   string;
+    name: null | string;
+    type: Type;
+}
+
+export enum Type {
+    Ability = "Ability",
+    Bomb = "Bomb",
+    Weapon = "Weapon",
+}
+
+export interface Metadata {
+    match_id:          string;
+    map:               Map;
+    game_version:      string;
+    game_length_in_ms: number;
+    started_at:        Date;
+    is_completed:      boolean;
+    queue:             Queue;
+    season:            Season;
+    platform:          Platform;
+    premier:           null;
+    party_rr_penaltys: PartyRrPenalty[];
+    region:            string;
+    cluster:           string;
+}
+
+export interface Map {
+    id:   string;
+    name: string;
+}
+
+export interface PartyRrPenalty {
+    party_id: string;
+    penalty:  number;
+}
+
+export enum Platform {
+    PC = "pc",
+}
+
+export interface Queue {
+    id:        string;
+    name:      string;
+    mode_type: string;
+}
+
+export interface Season {
+    id:    string;
+    short: string;
+}
+
+export interface Player {
+    puuid:                  string;
+    name:                   Name;
+    tag:                    string;
+    team_id:                TeamID;
+    platform:               Platform;
+    party_id:               string;
+    agent:                  Map;
+    stats:                  PlayerStats;
+    ability_casts:          PlayerAbilityCasts;
+    tier:                   Tier;
+    customization:          Customization;
+    account_level:          number;
+    session_playtime_in_ms: number;
+    behavior:               Behavior;
+    economy:                PlayerEconomy;
+}
+
+export interface PlayerAbilityCasts {
+    grenade:  number;
+    ability1: number;
+    ability2: number;
+    ultimate: number;
+}
+
+export interface Behavior {
+    afk_rounds:      number;
+    friendly_fire:   FriendlyFire;
+    rounds_in_spawn: number;
+}
+
+export interface FriendlyFire {
+    incoming: number;
+    outgoing: number;
+}
+
+export interface Customization {
+    card:                   string;
+    title:                  string;
+    preferred_level_border: null | string;
+}
+
+export interface PlayerEconomy {
+    spent:         LoadoutValue;
+    loadout_value: LoadoutValue;
+}
+
+export interface LoadoutValue {
+    overall: number;
+    average: number;
+}
+
+export interface PlayerStats {
+    score:     number;
+    kills:     number;
+    deaths:    number;
+    assists:   number;
+    headshots: number;
+    bodyshots: number;
+    legshots:  number;
+    damage:    Damage;
+}
+
+export interface Damage {
+    dealt:    number;
+    received: number;
+}
+
+export interface Tier {
+    id:   number;
+    name: string;
+}
+
+export interface Round {
+    id:           number;
+    result:       Result;
+    ceremony:     string;
+    winning_team: TeamID;
+    plant:        Defuse | null;
+    defuse:       Defuse | null;
+    stats:        Stat[];
+}
+
+export interface Defuse {
+    round_time_in_ms: number;
+    location:         Location;
+    player:           Killer;
+    player_locations: PlayerLocation[];
+    site?:            string;
+}
+
+export enum Result {
+    Defuse = "Defuse",
+    Detonate = "Detonate",
+    Elimination = "Elimination",
+    Surrendered = "Surrendered",
+}
+
+export interface Stat {
+    player:           Killer;
+    ability_casts:    StatAbilityCasts;
+    damage_events:    DamageEvent[];
+    stats:            StatStats;
+    economy:          StatEconomy;
+    was_afk:          boolean;
+    received_penalty: boolean;
+    stayed_in_spawn:  boolean;
+}
+
+export interface StatAbilityCasts {
+    grenade:   null;
+    ability_1: null;
+    ability_2: null;
+    ultimate:  null;
+}
+
+export interface DamageEvent {
+    player:    Killer;
+    bodyshots: number;
+    headshots: number;
+    legshots:  number;
+    damage:    number;
+}
+
+export interface StatEconomy {
+    loadout_value: number;
+    remaining:     number;
+    weapon:        Weapon | null;
+    armor:         Map | null;
+}
+
+export interface StatStats {
+    score:     number;
+    kills:     number;
+    headshots: number;
+    bodyshots: number;
+    legshots:  number;
+}
+
+export interface Team {
+    team_id:        TeamID;
+    rounds:         Rounds;
+    won:            boolean;
+    premier_roster: null;
+}
+
+export interface Rounds {
+    won:  number;
+    lost: number;
+}
+
+```
+
+#### General Notes
 
 No direct Riot API or RSO work is reintroduced through these provider adapters. Do not assume the separate Spectra backend's implementation or ultimate data source from the frontend contract alone.
 
