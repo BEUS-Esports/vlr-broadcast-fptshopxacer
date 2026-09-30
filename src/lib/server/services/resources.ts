@@ -61,10 +61,16 @@ export async function saveResource(input: {
 				return row;
 			}
 			if (input.kind === 'agent') {
-				const [row] = await db.insert(agents).values({ ...values, roleName }).returning();
+				const [row] = await db
+					.insert(agents)
+					.values({ ...values, roleName })
+					.returning();
 				return row;
 			}
-			const [row] = await db.insert(weapons).values({ ...values, category }).returning();
+			const [row] = await db
+				.insert(weapons)
+				.values({ ...values, category })
+				.returning();
 			return row;
 		}
 
@@ -251,7 +257,11 @@ async function assetLocalizer(options: {
 	};
 }
 
-function addMissingUrl(set: Set<string>, url: string | null | undefined, old: string | null | undefined) {
+function addMissingUrl(
+	set: Set<string>,
+	url: string | null | undefined,
+	old: string | null | undefined
+) {
 	if (url && !isLocalAsset(old)) set.add(url);
 }
 
@@ -271,7 +281,9 @@ async function syncMaps(onProgress?: ProgressReporter) {
 		throw new SaveError('invalid', 'Catalogue returned an invalid or empty map list.');
 
 	const existing = await db.select().from(maps);
-	const oldByUuid = new Map(existing.filter((r) => r.valorantApiUuid).map((r) => [r.valorantApiUuid!, r]));
+	const oldByUuid = new Map(
+		existing.filter((r) => r.valorantApiUuid).map((r) => [r.valorantApiUuid!, r])
+	);
 	const missingUrls = new Set<string>();
 	for (const row of rows) {
 		const old = oldByUuid.get(row.uuid);
@@ -289,7 +301,11 @@ async function syncMaps(onProgress?: ProgressReporter) {
 				valorantApiUuid: row.uuid,
 				key: old?.key ?? `catalog-${row.uuid}`,
 				displayName: row.displayName.trim(),
-				displayIconPath: await local(row.displayIcon, old?.displayIconPath, `${row.displayName} icon`),
+				displayIconPath: await local(
+					row.displayIcon,
+					old?.displayIconPath,
+					`${row.displayName} icon`
+				),
 				splashPath: await local(row.splash, old?.splashPath, `${row.displayName} splash`),
 				isActive: old?.isActive ?? true
 			});
@@ -332,7 +348,9 @@ async function syncAgents(onProgress?: ProgressReporter) {
 		throw new SaveError('invalid', 'Catalogue returned an invalid or empty agent list.');
 
 	const existing = await db.select().from(agents);
-	const oldByUuid = new Map(existing.filter((r) => r.valorantApiUuid).map((r) => [r.valorantApiUuid!, r]));
+	const oldByUuid = new Map(
+		existing.filter((r) => r.valorantApiUuid).map((r) => [r.valorantApiUuid!, r])
+	);
 	const missingUrls = new Set<string>();
 	for (const row of rows) {
 		const old = oldByUuid.get(row.uuid);
@@ -407,7 +425,9 @@ async function syncWeapons(onProgress?: ProgressReporter) {
 		throw new SaveError('invalid', 'Catalogue returned an invalid or empty weapon list.');
 
 	const existing = await db.select().from(weapons);
-	const oldByUuid = new Map(existing.filter((r) => r.valorantApiUuid).map((r) => [r.valorantApiUuid!, r]));
+	const oldByUuid = new Map(
+		existing.filter((r) => r.valorantApiUuid).map((r) => [r.valorantApiUuid!, r])
+	);
 	const missingUrls = new Set<string>();
 	for (const row of rows) {
 		const old = oldByUuid.get(row.uuid);
@@ -471,11 +491,9 @@ export async function syncResourceKind(kind: ResourceKind, onProgress?: Progress
 }
 
 export async function refreshCatalogue() {
-	const [mapResult, agentResult, weaponResult] = await Promise.all([
-		syncResourceKind('map'),
-		syncResourceKind('agent'),
-		syncResourceKind('weapon')
-	]);
+	const mapResult = await syncResourceKind('map');
+	const agentResult = await syncResourceKind('agent');
+	const weaponResult = await syncResourceKind('weapon');
 	return {
 		maps: mapResult.count,
 		agents: agentResult.count,

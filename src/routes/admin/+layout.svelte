@@ -2,7 +2,7 @@
 	import './layout.css';
 	import { page } from '$app/state';
 	import { AppBar, Navigation, Toast } from '@skeletonlabs/skeleton-svelte';
-	import { LayoutDashboard, Users, UserRound, Map } from '@lucide/svelte';
+	import { LayoutDashboard, Users, UserRound, Map, Trophy } from '@lucide/svelte';
 	import { toaster } from '#lib/toaster.ts';
 
 	let { children } = $props();
@@ -10,6 +10,8 @@
 	const teamsActive = $derived(page.url.pathname === '/admin/teams');
 	const playersActive = $derived(page.url.pathname === '/admin/players');
 	const resourcesActive = $derived(page.url.pathname === '/admin/resources');
+	const tournamentsActive = $derived(page.url.pathname.startsWith('/admin/tournaments/'));
+	const tournamentsListActive = $derived(page.url.pathname === '/admin/tournaments');
 </script>
 
 <div class="flex h-dvh flex-col overflow-hidden bg-surface-50-950 text-surface-950-50">
@@ -61,7 +63,7 @@
 						class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"
 						>Preparation</Navigation.Label
 					>
-					{#each [{ href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game resources', active: resourcesActive, icon: Map }] as item (item.href)}
+					{#each [{ href: '/admin/tournaments', label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }, { href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game resources', active: resourcesActive, icon: Map }] as item (item.href)}
 						<Navigation.TriggerAnchor
 							href={item.href}
 							aria-current={item.active ? 'page' : undefined}

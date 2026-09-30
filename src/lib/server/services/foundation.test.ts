@@ -2,11 +2,12 @@ import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { eq } from 'drizzle-orm';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, vi } from 'vitest';
 import * as schema from '#lib/server/db/schema/index.ts';
+import { removeTestDatabase } from '#lib/server/testing/management-fixture.ts';
 
 it('recreates persistent tables and makes aggregate edits atomic and revision checked', async () => {
 	const directory = await mkdtemp(join(tmpdir(), 'vlr-foundation-'));
@@ -95,8 +96,7 @@ it('recreates persistent tables and makes aggregate edits atomic and revision ch
 		}
 	} finally {
 		vi.doUnmock('#lib/server/db/index.ts');
-		client.close();
-		await rm(directory, { recursive: true, force: true });
+		await removeTestDatabase(directory, client);
 	}
 });
 
@@ -150,7 +150,6 @@ it('upgrades a populated database without losing match and game references', asy
 			database.update(schema.matches).set({ resultType: 'normal', winnerEntryId: 'ec' })
 		).rejects.toThrow();
 	} finally {
-		client.close();
-		await rm(directory, { recursive: true, force: true });
+		await removeTestDatabase(directory, client);
 	}
 });

@@ -2,11 +2,12 @@ import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { eq } from 'drizzle-orm';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it, vi } from 'vitest';
 import * as schema from '#lib/server/db/schema/index.ts';
+import { removeTestDatabase } from '#lib/server/testing/management-fixture.ts';
 
 it('validates uploads, protects references, and refreshes resources without changing IDs or local images', async () => {
 	const directory = await mkdtemp(join(tmpdir(), 'vlr-phase2-'));
@@ -176,6 +177,6 @@ it('validates uploads, protects references, and refreshes resources without chan
 		client.close();
 		if (previousAssetDir === undefined) delete process.env.ASSET_DIR;
 		else process.env.ASSET_DIR = previousAssetDir;
-		await rm(directory, { recursive: true, force: true });
+		await removeTestDatabase(directory, client);
 	}
 });

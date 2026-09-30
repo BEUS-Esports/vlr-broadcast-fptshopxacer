@@ -23,8 +23,11 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 # Playwright
 test-results
+.playwright-mcp
 # SQLite
 *.db
 /data/assets/
 
 /examples/mlbb-hud-road-to-asiad-2026/
+
+.superpowers

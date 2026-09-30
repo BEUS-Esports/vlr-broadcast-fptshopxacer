@@ -1,10 +1,19 @@
 import { fail } from '@sveltejs/kit';
-import { SaveError } from './save-error';
+import { hasDatabaseError, SaveError } from './save-error';
 
-export function formError(cause: unknown, form?: FormData) {
+export function formError(cause: unknown, form?: FormData, draft?: Record<string, unknown>) {
+	if (hasDatabaseError(cause, 'SQLITE_BUSY') || hasDatabaseError(cause, 'SQLITE_LOCKED')) {
+		cause = new SaveError(
+			'stale',
+			'Another operator is saving related data. Reload and review before saving again.'
+		);
+	}
 	if (cause instanceof SaveError)
 		return fail(cause.code === 'stale' ? 409 : cause.code === 'blocked' ? 409 : 400, {
 			error: cause.message,
+			code: cause.code,
+			...(cause.details && { details: cause.details }),
+			...(draft && { draft }),
 			values: Object.fromEntries(
 				[...(form?.entries() ?? [])].filter(
 					(entry): entry is [string, string] => typeof entry[1] === 'string'
@@ -12,6 +21,17 @@ export function formError(cause: unknown, form?: FormData) {
 			)
 		});
 	throw cause;
+}
+
+export function readPayload(form: FormData): Record<string, unknown> {
+	try {
+		const value: unknown = JSON.parse(field(form, 'payload'));
+		if (value && typeof value === 'object' && !Array.isArray(value))
+			return value as Record<string, unknown>;
+	} catch {
+		/* Invalid form input is handled below. */
+	}
+	throw new SaveError('invalid', 'The submitted form is invalid. Reload and try again.');
 }
 
 export function field(form: FormData, name: string) {

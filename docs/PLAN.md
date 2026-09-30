@@ -4,7 +4,7 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**Implementation began on 2026-09-27.** Phases 1 and 2 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Later phases remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27.** Phases 1–3 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phases 4 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
@@ -86,11 +86,11 @@ Progress, 2026-09-28: Team and Player forms save revisions and normal/white/blac
 
 ### Work
 
-- [ ] Add tournaments with unique URL-safe slugs, participating teams, plain tournament player lists, and editable tournament map pools. Do not add main/substitute roles.
-- [ ] Add matches with two distinct tournament entries, match text, and BO1/2/3/5 rules. A stored winner must be one of those two entries. Store/derive completion and result consistently, including a completed BO2 draw.
-- [ ] Add the match-wide ordered veto editor. Validate maps against the event pool and allow operator changes to the action sequence and acting team, including consecutive same-team picks and game-number assignments before games exist.
-- [ ] Add games individually with unique match-relative numbers, editable names, maps, starting sides, team-attached scores, and results. Once a match has games, veto actions, or a stored match result, changing its Team A/B entries is blocked until that dependent data is explicitly cleared/reset so existing scores and actions cannot change team identity. Prepare the reusable Info → Lineup → Map Veto workspace; its veto view edits the match record.
-- [ ] Add five ordered lineup slots per team per game. Validate membership, duplicate players, and cross-team conflicts; preserve historical lineups during roster edits. Surface stale saves and edits that would invalidate completed data.
+- [x] Add tournaments with unique URL-safe slugs, participating teams, plain tournament player lists, and editable tournament map pools. Do not add main/substitute roles.
+- [x] Add matches with two distinct tournament entries, match text, and BO1/2/3/5 rules. A stored winner must be one of those two entries. Store/derive completion and result consistently, including a completed BO2 draw.
+- [x] Add the match-wide ordered veto editor. Validate maps against the event pool and allow operator changes to the action sequence and acting team, including consecutive same-team picks and game-number assignments before games exist.
+- [x] Add games individually with unique match-relative numbers, editable names, maps, starting sides, team-attached scores, and results. Once a match has games, veto actions, or a stored match result, changing its Team A/B entries is blocked until that dependent data is explicitly cleared/reset so existing scores and actions cannot change team identity. Prepare the reusable Info → Lineup → Map Veto workspace; its veto view edits the match record.
+- [x] Add five ordered lineup slots per team per game. Validate membership, duplicate players, and cross-team conflicts; preserve historical lineups during roster edits. Surface stale saves and edits that would invalidate completed data.
 
 ### Done when — first management milestone
 
@@ -101,6 +101,8 @@ Progress, 2026-09-28: Team and Player forms save revisions and normal/white/blac
 ### Focused proof
 
 Use small, realistic fixtures: two tournaments with different map pools, teams with more than five available players, a BO2 draw, and a BO5 veto with consecutive picks. Test duplicate slots/players, wrong-tournament references, a winner outside the match participants, invalid maps, blocked participant changes after dependent data exists, concurrent game creation, stale updates, and save/reopen behavior. Use transactions and database constraints where they own the invariant.
+
+Progress, 2026-09-30: Tournament, roster, pool, match, individual game, historical lineup, and shared veto management use the existing schema. Skeleton tabs retain drafts and support deep links, keyboard navigation, and history. Five isolated browser tests cover the acceptance workflow, losing drafts from two operators, sibling-section revisions, and malformed inputs. Separate database connections exercise related-record races; a writer process exits before a fresh reader validates saved setup and foreign keys. Normal score corrections, explicit reopen, exceptional outcomes, and explicit veto propagation are covered. Final verification details are recorded in the Phase 3 implementation plan. No event-data migration was required.
 
 ## Phase 4 — Make manual post-game statistics and all scopes usable
 

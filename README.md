@@ -14,7 +14,13 @@ Built with SvelteKit 3 and Svelte 5, with admin UI from Skeleton UI.
 
 Copy `.env.example` to `.env`, install dependencies with `pnpm install`, then run `pnpm db:migrate` and `pnpm dev`. The default `file:local.db` database is persistent and ignored by Git. Use migrations for schema changes; keep `db:push` away from event data.
 
-`/admin/teams`, `/admin/players`, and `/admin/resources` provide the current preparation screens. `ASSET_DIR` stores uploaded logos/portraits and imported game art outside the build; back it up together with the database. Asset URLs are relative to the app origin, so the same images load from another PC through the server's LAN address. Set `BODY_SIZE_LIMIT=32M` for three team logos of up to 10 MB each when using the Node adapter.
+Run `pnpm db:seed` after migration to add three fictional teams and 18 players for local preparation. Re-running it preserves existing records and edits. The player profiles are not assigned to tournament rosters; those are managed separately.
+
+`/admin/tournaments` manages event details, team entries, player availability, map pools, matches, individual games, lineups, and match-wide vetoes. Reusable profiles and resources live at `/admin/teams`, `/admin/players`, and `/admin/resources`. `ASSET_DIR` stores uploaded logos/portraits and imported game art outside the build; back it up together with the database. Asset URLs are relative to the app origin, so the same images load from another PC through the server's LAN address. Set `BODY_SIZE_LIMIT=32M` for three team logos of up to 10 MB each when using the Node adapter.
+
+Management tabs support deep links and retain unsaved drafts. Each section saves separately; stale saves keep the submitted draft until you explicitly reload it. Editing requires JavaScript. Reopen terminal games before changing their map, sides, or lineup; normal score corrections recalculate the series directly. Removing a player from a current roster preserves their saved historical lineups.
+
+Run the management browser journeys with `pnpm exec playwright test tests/phase3-management.e2e.ts tests/phase3-conflicts.e2e.ts`. The runner migrates a temporary database, uses a temporary asset directory, builds and starts its own app, and removes the test data after shutdown. For installed Google Chrome, set `PLAYWRIGHT_CHANNEL=chrome` before running Playwright or client Vitest tests. Rebuild with your normal environment before running the app after a browser test build.
 
 The Game Resources page syncs tactical maps, playable agents, and weapons from [VALORANT-API](https://valorant-api.com/). The server needs internet access only during refresh; saved records and downloaded images remain available locally afterward. The management routes currently have no sign-in gate, so keep the app on a trusted network until the planned account and session work is implemented.
 
