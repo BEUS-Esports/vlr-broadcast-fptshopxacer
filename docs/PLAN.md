@@ -4,7 +4,7 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**Implementation began on 2026-09-27.** Phases 1–3 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phases 4 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5 onward remains open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
@@ -13,7 +13,7 @@ The specification owns product behavior. This file owns build order, concrete wo
 | Existing item          | Current state / implication                                                                                                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.       |
-| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; migrations `0000` and `0001` now recreate it.                            |
+| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; reviewed forward migrations through `0003` recreate the current schema.                 |
 | Routes                 | `/admin` has Team, Player, and Game Resources CRUD screens. `/gfx` remains a transparent 1920×1080 canvas.                                                                                   |
 | Production graphics    | `src/routes/gfx/+layout.js` currently sets `ssr = false` and `csr = dev`, disabling client rendering in production. Resolve this when building actual outputs and verify a production build. |
 | Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.           |
@@ -108,21 +108,23 @@ Progress, 2026-09-30: Tournament, roster, pool, match, individual game, historic
 
 ### Work
 
-- [ ] Add saved per-game player statistics and minimal provenance fields. Distinguish unknown values, explicit zero, imported values, and operator edits.
-- [ ] Build the manual post-game editor, allowing incomplete saves, corrections, agent selection, and basic scoreboard entry without detailed kill/round events.
-- [ ] Define the initial metric set used by test templates. Support the specification's basic inputs; add optional advanced fields only when a graphic consumes them.
-- [ ] Implement game, series, and tournament views over the same saved records. Sum counts and calculate rates from appropriate totals/denominators, tracking incomplete coverage and rounded manual inputs.
-- [ ] Add operator MVP selection and its statistics scope. Do not implement automatic MVP scoring or recommendations.
+- [x] Add saved per-game player statistics and minimal provenance fields. Distinguish unknown values, explicit zero, future imported values, and operator edits.
+- [x] Build the manual post-game editor, allowing incomplete saves, corrections, agent selection, and basic scoreboard entry without detailed kill/round events.
+- [x] Define the initial manual metric set as Agent, K/D/A, Performance Score, Trades, First Bloods, Plants, and Defuses. Keep richer provider-derived fields deferred until a graphic or import requirement consumes them.
+- [x] Implement game, series, and tournament views over the same saved records. Sum count metrics with field-specific coverage, exclude unfinished/exceptional games from broader totals, and keep Performance Score game-scoped until an authoritative aggregation rule exists.
+- [x] Add operator MVP selection and its statistics scope. Do not implement automatic MVP scoring or recommendations.
 
 ### Done when
 
 - Operators can prepare post-game, player-stat, and MVP data with no live provider or imported report.
 - Correcting a game updates its series/tournament views without separate manual aggregate maintenance.
-- Missing metrics and approximate aggregates are visibly distinguished from exact zero and complete data.
+- Missing metrics and unsupported broader-scope metrics are visibly distinguished from exact zero and complete data.
 
 ### Focused proof
 
-Test aggregation with unequal round/hit counts, zero denominators, partial manual records, rounded ACS input, corrections, and unfinished games. Verify that a manually selected MVP is not replaced by a computed ranking. Exercise a manual entry → save → scope selection browser flow.
+Test null-vs-zero handling, partial manual records, corrections, substitutions, unfinished/exceptional games, stale writers, and completed-game-only aggregation. Verify that Performance Score stays game-scoped and a manually selected MVP is not replaced by statistical corrections. Exercise a manual entry → save → match/tournament scope browser flow.
+
+Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, manual Post-Game entry, field-specific coverage, game/match/tournament derived views, operator-selected MVPs, provenance seams for future imports, and focused server/Playwright coverage. Performance Score is intentionally stored as its own game-level field rather than treated as ACS.
 
 ## Phase 5 — Build shared broadcast controls and seven test graphics
 
@@ -172,6 +174,7 @@ Use controlled timers and connection fixtures to prove exactly four pre-fallback
 - [ ] Fetch a report by group code with bounded pending/error behavior. Keep this polling separate from the live-HUD retry state machine.
 - [ ] Validate the returned match identity, participants, teams, and statistic formats against the intended local game. When identity cannot be confirmed automatically, provide an explicit operator mapping/review step.
 - [ ] Import into the same records used by manual entry. Make repeat imports idempotent and surface conflicts with manual corrections before any explicit replacement. Do not switch the live game, enable the live HUD, or auto-select an MVP on import.
+- [ ] Resolve the Phase 4 provenance edge cases before enabling reimport: an imported row manually cleared to all-null needs an explicit resolution path before lineup identity changes, and agent-only manual corrections need player-level conflict provenance.
 - [ ] Validate one real completed-game report for the intended Spectra setup when available. Preserve the full manual workflow if the service is unavailable, inaccessible, late, or incomplete.
 
 ### Done when
@@ -249,4 +252,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, build Phase 3 tournament, roster, match, veto, game, and lineup management. The first complete management milestone is at the end of **Phase 3**. Real match captures are not required to begin it.
+Next, build **Phase 5: shared broadcast controls and the seven functional test graphics**. Reuse the Phase 3 management records and Phase 4 statistics/MVP read models rather than creating graphics-only copies. Real provider captures are not required to begin Phase 5.

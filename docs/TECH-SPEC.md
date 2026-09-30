@@ -513,7 +513,7 @@ No direct Riot API or RSO work is reintroduced through these provider adapters. 
 
 Manual post-game entry is a required feature even when imports work. Both paths populate the same saved per-player, per-game records. Operators can save incomplete work and correct mistakes.
 
-Baseline statistic inputs should support agent, rounds played, kills, deaths, assists, and combat score/ACS. Damage, hit counts, opening kills/deaths, and economy can be stored when available and needed by the graphics. The exact displayed metric shortlist is finalized with the templates/design handoff; do not require detailed event data just to save a basic manual scoreboard.
+The baseline manual scoreboard supports agent, kills, deaths, assists, Performance Score, trades, first bloods, plants, and defuses — the fields intended for convenient entry from the spectator end-game screen. Performance Score is an opaque Riot-facing value: do not calculate it locally, alias it to ACS, or map HenrikDev `players[].stats.score` to it unless that relationship is explicitly verified. Rounds played, combat score/ACS, damage, hit counts, economy, and detailed events are provider-enhanced or future inputs to add only when a graphic or approved import requirement consumes them.
 
 Retain source identity, external match ID when known, import time, and enough provenance to distinguish manual corrections from imported values. Reimporting the same report must not duplicate records. When a reimport conflicts with operator-edited data, preview the conflict and require an explicit replacement action; do not silently clobber the edit.
 
@@ -525,11 +525,12 @@ Support **individual game, complete series, and tournament-wide** views. Broader
 
 | Metric family                        | Aggregation rule                                                                                                                                               |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Counts, such as kills/deaths/assists | Sum the relevant recorded values. Report incomplete coverage when contributing games are missing data.                                                         |
-| ACS / ADR                            | Use total combat score / rounds and total damage / rounds respectively when those inputs exist. Do not take an unweighted mean of displayed per-game averages. |
-| Hit-based headshot percentage        | Divide total headshots by total recorded hits, using a consistent definition. Do not average game percentages.                                                 |
-| Only a rounded manual average exists | Preserve its reported precision. Any round-weighted aggregate derived from rounded values must be marked approximate; do not invent exact raw totals.          |
-| Event-derived metrics                | Require the necessary round/kill events or explicit manual values. Do not infer clutches, trades, or retakes from aggregate K/D/A.                             |
+| Counts, such as K/D/A, trades, first bloods, plants, and defuses | Sum the relevant recorded values. Report incomplete coverage when contributing games are missing data. |
+| Performance Score                    | Display the saved value directly for game scope. Leave it unavailable for series/tournament scope until an authoritative aggregation rule is approved. |
+| Future ACS / ADR                     | If added later, use total combat score / rounds and total damage / rounds respectively when those inputs exist. Do not take an unweighted mean of displayed per-game averages. |
+| Future hit-based headshot percentage | If added later, divide total headshots by total recorded hits using a consistent definition. Do not average game percentages. |
+| Only a rounded manual average exists | Preserve its reported precision. Any aggregate derived from rounded values must be marked approximate; do not invent exact raw totals. |
+| Event-derived metrics                | Require the necessary round/kill events or explicit manual values. Do not infer clutches, trades, or retakes from aggregate K/D/A. |
 
 Zero denominators and unavailable inputs produce an unavailable/empty metric rather than a division error or fabricated value. MVP remains an operator's selection regardless of any statistical ranking displayed elsewhere.
 

@@ -10,7 +10,9 @@
 
 **Spec:** `docs/TECH-SPEC.md`, especially sections 3, 4.4, 5.1, 6.3, 6.4, and 9; build scope from Phase 4 of `docs/PLAN.md`.
 
-**Status:** Planned on 2026-09-30. Phase 3 is implemented and is the foundation for this work.
+**Status:** Implemented on 2026-09-30 in `4d93124c` and reviewed against current `main` on 2026-10-01. Phase 4 is complete; Phase 5 is the next build phase.
+
+The detailed checklists below are retained as the implementation design record. Current phase status is owned by `docs/PLAN.md`.
 
 ---
 
@@ -53,11 +55,11 @@
 3. **Corrections:** edits to a game's statistics must immediately affect derived match/tournament views without manual aggregate maintenance.
 4. **Substitutions:** a player absent from a game is not "missing statistics" for that game. Coverage is measured only across games in which the player actually appeared.
 5. **Incomplete coverage:** a player can appear in a completed game while some fields remain unknown; broader views must identify partial coverage instead of silently treating missing values as zero.
-6. **Rounded averages:** a manually entered ACS is not equivalent to an exact combat-score total. Aggregates based only on rounded ACS must be marked approximate.
+6. **Unsupported aggregation:** Performance Score is stored exactly as reported for an individual game and remains unavailable at series/tournament scope until an authoritative aggregation rule is approved.
 7. **Concurrency:** two operators editing the same game statistics must not silently overwrite one another.
 8. **Lineup corrections:** player identity changes must not orphan saved statistics. Agent corrections may remain possible without changing player identity.
 9. **Future imports:** the model needs enough provenance to tell later import logic that an operator changed a row after import, without implementing provider fetching now.
-10. **MVP independence:** sorting or later corrections to ACS/K/D/A must never auto-change the saved MVP.
+10. **MVP independence:** sorting or later corrections to Performance Score, K/D/A, or other visible statistics must never auto-change the saved MVP.
 
 ---
 
@@ -364,7 +366,7 @@ Requirements:
 - stale-save conflict retains submitted draft
 - section-local Save button and pending state
 - agent can be corrected without replacing player identity
-- show whether ACS is exact or reported/rounded where relevant
+- label Performance Score explicitly, keep it game-scoped, and do not present it as ACS
 - terminal game result is not required to begin entering draft stats, but broader aggregates exclude unfinished games
 
 Match workspace:
@@ -384,9 +386,9 @@ These are derived/read-oriented tables. They do not edit aggregate totals.
 Show status such as:
 
 ```text
-3 / 5 player appearances have ACS coverage
-ACS approximate
-Damage unavailable
+3 / 5 player appearances have Kills coverage
+Performance Score unavailable at series scope
+Defuses unavailable
 Series still incomplete
 ```
 
@@ -674,7 +676,7 @@ Corrections to a game's rows should be reflected on reload/navigation without an
 - [ ] tournament with multiple matches aggregates correctly
 - [ ] substitutions preserve correct appearance denominator
 - [ ] zeros and unavailable values render differently
-- [ ] approximate metric indicator renders when expected
+- [ ] unsupported broader-scope Performance Score renders as unavailable rather than as an invented aggregate
 
 ### Commit checkpoint
 
@@ -708,7 +710,7 @@ or one typed scope service if clarity remains high.
 - [ ] Preserve historical archived players already selected.
 - [ ] Use revisions/stale handling appropriate to the owning aggregate.
 - [ ] Do not mutate selection when statistics change.
-- [ ] Do not auto-select highest ACS or another ranking.
+- [ ] Do not auto-select from Performance Score, K/D/A, or another ranking.
 - [ ] Return the selected player's matching game/series/tournament statistics read model for later Phase 5 reuse.
 
 ### Important test
@@ -882,6 +884,8 @@ Phase 4 is complete when:
 - import-vs-manual conflict preview/replacement
 - real report validation
 - any provider-specific normalization
+- an explicit resolution path for imported all-null manual-clear rows before lineup identity changes
+- player-level provenance for agent-only manual corrections before reimport can replace agent data
 - detailed round/kill-event persistence **only if later requirements explicitly justify it**
 
 The Phase 4 model is the canonical destination for those future normalized imports.
