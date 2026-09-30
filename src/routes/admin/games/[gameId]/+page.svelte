@@ -95,9 +95,18 @@
 									>Map<select
 										class="select mt-1 w-full"
 										bind:value={draft.mapId}
-										disabled={!!data.game.resultType}
-										><option value="">Unknown</option>{#each data.maps as map (map.id)}<option
-												value={map.id}>{map.displayName}</option
+										disabled={!!data.game.resultType || !!data.vetoPreparation.mapId}
+										>{#if !data.vetoPreparation.mapId || !draft.mapId}<option value=""
+												>Unknown</option
+											>{/if}
+										{#if draft.mapId && !data.preparationMaps.some((map) => map.id === draft.mapId)}
+											<option value={draft.mapId} disabled>
+												{data.maps.find((map) => map.id === draft.mapId)?.displayName ??
+													draft.mapId} (no longer available)
+											</option>
+										{/if}
+										{#each data.preparationMaps as map (map.id)}<option value={map.id}
+												>{map.displayName}</option
 											>{/each}</select
 									></label
 								>
@@ -105,7 +114,8 @@
 									>Starting attackers<select
 										class="select mt-1 w-full"
 										bind:value={draft.startingAttackersEntryId}
-										disabled={!!data.game.resultType}
+										disabled={!!data.game.resultType ||
+											!!data.vetoPreparation.startingAttackersEntryId}
 										><option value="">Unknown</option
 										>{#each data.entries as entry (entry.id)}<option value={entry.id}
 												>{entry.name}</option
@@ -116,7 +126,8 @@
 									>Starting defenders<select
 										class="select mt-1 w-full"
 										bind:value={draft.startingDefendersEntryId}
-										disabled={!!data.game.resultType}
+										disabled={!!data.game.resultType ||
+											!!data.vetoPreparation.startingDefendersEntryId}
 										><option value="">Unknown</option
 										>{#each data.entries as entry (entry.id)}<option value={entry.id}
 												>{entry.name}</option
@@ -124,6 +135,14 @@
 									></label
 								>
 							</fieldset>
+							{#if data.vetoPreparation.mapId}<p class="text-sm text-surface-600-400">
+									This game's map is assigned in Map Veto. Change the assignment there.
+								</p>{/if}
+							{#if data.vetoPreparation.startingAttackersEntryId}<p
+									class="text-sm text-surface-600-400"
+								>
+									Starting sides are assigned in Map Veto. Change the side choice there.
+								</p>{/if}
 							<p class="text-sm text-surface-600-400">
 								Scores stay attached to {teamA.name} and {teamB.name} when sides change. Resolve veto
 								conflicts in the match-wide Map Veto tab.

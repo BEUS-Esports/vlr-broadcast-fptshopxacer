@@ -8,6 +8,108 @@ import {
 	vetoPick
 } from './management-helpers';
 
+test('game preparation follows assigned veto maps and sides while unassigned choices remain editable', async ({
+	page
+}) => {
+	test.setTimeout(120_000);
+	const tournament = await prepareTournament(page, 'Preparation choices', [1, 2, 3, 4, 5]);
+	const match = await createMatch(page, tournament, 'Preparation BO3', 3);
+	const first = await createGame(page, match);
+	const map = page.getByRole('combobox', { name: 'Map', exact: true });
+	const attackers = page.getByRole('combobox', { name: 'Starting attackers', exact: true });
+	const defenders = page.getByRole('combobox', { name: 'Starting defenders', exact: true });
+	await expect(map.locator('option')).toHaveText([
+		'Unknown',
+		'Map 1',
+		'Map 2',
+		'Map 3',
+		'Map 4',
+		'Map 5'
+	]);
+	await map.selectOption('map-1');
+	await attackers.selectOption({ label: 'Bravo' });
+	await defenders.selectOption({ label: 'Alpha' });
+	await save(page, 'Save game info');
+
+	await page.getByRole('tab', { name: 'Map Veto', exact: true }).click();
+	await vetoPick(page, 1, 1, 1);
+	await page
+		.getByRole('combobox', { name: 'Action 1 side chooser', exact: true })
+		.selectOption({ label: 'Alpha' });
+	await page
+		.getByRole('combobox', { name: 'Action 1 starting side', exact: true })
+		.selectOption('attack');
+	await page.getByRole('button', { name: 'Add veto action', exact: true }).click();
+	await page.getByRole('combobox', { name: 'Action 2 type', exact: true }).selectOption('ban');
+	await page.getByRole('combobox', { name: 'Action 2 map', exact: true }).selectOption('map-5');
+	await page.getByRole('button', { name: 'Save match veto', exact: true }).click();
+	await page.getByLabel('Apply to affected draft games', { exact: true }).check();
+	await save(page, 'Save match veto');
+	await page.getByRole('tab', { name: 'Info', exact: true }).click();
+	await expect(map.locator('option')).toHaveText(['Map 1']);
+	await expect(map).toBeDisabled();
+	await expect(attackers).toBeDisabled();
+	await expect(defenders).toBeDisabled();
+	await expect(attackers.locator('option:checked')).toHaveText('Alpha');
+	await expect(defenders.locator('option:checked')).toHaveText('Bravo');
+	await page.getByLabel('Game name', { exact: true }).fill('Veto-prepared opener');
+	await save(page, 'Save game info');
+	await page.reload();
+	await expect(page.getByLabel('Game name', { exact: true })).toHaveValue('Veto-prepared opener');
+	await expect(map).toHaveValue('map-1');
+
+	const second = await createGame(page, match);
+	await expect(map.locator('option')).toHaveText(['Unknown', 'Map 2', 'Map 3', 'Map 4']);
+	await expect(map).toBeEnabled();
+	await expect(attackers).toBeEnabled();
+	await expect(defenders).toBeEnabled();
+	await map.selectOption('map-2');
+	await attackers.selectOption({ label: 'Bravo' });
+	await defenders.selectOption({ label: 'Alpha' });
+	await save(page, 'Save game info');
+
+	await page.getByRole('tab', { name: 'Map Veto', exact: true }).click();
+	await vetoPick(page, 3, 2, 2);
+	await vetoPick(page, 4, 3, 3);
+	await page.getByRole('combobox', { name: 'Action 4 type', exact: true }).selectOption('decider');
+	await page
+		.getByRole('combobox', { name: 'Action 4 side chooser', exact: true })
+		.selectOption({ label: 'Alpha' });
+	await page
+		.getByRole('combobox', { name: 'Action 4 starting side', exact: true })
+		.selectOption('defense');
+	await save(page, 'Save match veto');
+	await page.getByRole('tab', { name: 'Info', exact: true }).click();
+	await expect(map.locator('option')).toHaveText(['Map 2']);
+	await expect(map).toBeDisabled();
+	await expect(attackers).toBeEnabled();
+	await expect(defenders).toBeEnabled();
+	await expect(attackers.locator('option:checked')).toHaveText('Bravo');
+	await expect(defenders.locator('option:checked')).toHaveText('Alpha');
+
+	await createGame(page, match);
+	await expect(map.locator('option')).toHaveText(['Map 3']);
+	await expect(map).toBeDisabled();
+	await expect(attackers).toBeDisabled();
+	await expect(defenders).toBeDisabled();
+	await expect(attackers.locator('option:checked')).toHaveText('Bravo');
+	await expect(defenders.locator('option:checked')).toHaveText('Alpha');
+	await page.getByRole('tab', { name: 'Map Veto', exact: true }).click();
+	await page.getByRole('button', { name: 'Remove action 4', exact: true }).click();
+	await save(page, 'Save match veto');
+	await page.getByRole('tab', { name: 'Info', exact: true }).click();
+	await expect(map.locator('option')).toHaveText(['Unknown', 'Map 3', 'Map 4']);
+	await expect(map).toBeEnabled();
+	await expect(attackers).toBeEnabled();
+	await expect(defenders).toBeEnabled();
+	await map.selectOption('map-4');
+	await save(page, 'Save game info');
+	await page.goto(first);
+	await expect(map).toHaveValue('map-1');
+	await page.goto(second);
+	await expect(map).toHaveValue('map-2');
+});
+
 test('workspace tabs switch immediately and retain drafts across keyboard and history navigation', async ({
 	page
 }) => {

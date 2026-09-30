@@ -27,6 +27,7 @@ import {
 import { deriveSeriesResult, type SeriesInput } from '#lib/server/services/series-results.ts';
 import type { Actions, PageServerLoad } from './$types';
 import { replaceGameLineups } from '#lib/server/services/lineups.ts';
+import { findVetoGameConflicts, projectVetoGame } from '#lib/server/services/game-preparation.ts';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const [game] = await db.select().from(games).where(eq(games.id, params.gameId));
@@ -72,6 +73,14 @@ export const load: PageServerLoad = async ({ params }) => {
 		tournament,
 		entries,
 		maps: pool,
+		preparationMaps: pool.filter((map) =>
+			findVetoGameConflicts({
+				...match,
+				actions: vetoActions,
+				games: [{ ...game, mapId: map.id }]
+			}).every((conflict) => !conflict.fields.includes('map'))
+		),
+		vetoPreparation: projectVetoGame({ ...match, number: game.number, actions: vetoActions }),
 		lineup,
 		roster,
 		players: playerRows,

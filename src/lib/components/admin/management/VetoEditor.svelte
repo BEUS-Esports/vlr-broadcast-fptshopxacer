@@ -113,7 +113,14 @@
 								class="select mt-1 w-full"
 								required
 								bind:value={row.mapId}
-								><option value="">Choose map</option>{#each maps as map (map.id)}<option
+								onchange={(event) => {
+									for (const later of draft.actions.slice(index + 1)) {
+										if (later.mapId === event.currentTarget.value) later.mapId = '';
+									}
+								}}
+								><option value="">Choose map</option>{#each maps.filter((map) => !draft.actions
+											.slice(0, index)
+											.some((earlier) => earlier.mapId === map.id)) as map (map.id)}<option
 										value={map.id}>{map.displayName}</option
 									>{/each}</select
 							></label
