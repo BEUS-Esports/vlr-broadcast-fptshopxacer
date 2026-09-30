@@ -136,9 +136,27 @@ The Graphics Controller can be the faster operational entry point, but it must n
 
 ---
 
-## Task 3 — Define broadcast snapshots and SSE distribution
+## Task 3 — Define broadcast snapshots, the shared broadcast library, and SSE distribution
 
-Add a server-owned broadcast read model and snapshot publisher.
+Add a server-owned broadcast read model and snapshot publisher **plus one reusable typed broadcast library that every graphics implementation imports**.
+
+The seven Phase 5 outputs must not each open and manage their own ad-hoc `EventSource`, parse their own payload shape, or implement their own revision/reconnect logic. Future tournament-specific templates in Phase 8 must be able to consume the same library without copying the test-template transport code.
+
+Keep server-only publication code separate from browser-safe client code. A suitable internal shape is:
+
+```text
+src/lib/broadcast/
+├─ types.ts          # graphics-safe snapshot/control types
+├─ client.ts         # shared SSE client, reconnect, revision ordering
+├─ selectors.ts      # framework-neutral snapshot/read helpers
+└─ store.svelte.ts   # optional Svelte reactive wrapper
+
+src/lib/server/broadcast/
+├─ snapshot.ts       # canonical snapshot builder
+└─ publisher.ts      # server-owned current snapshot + SSE publication
+```
+
+Exact filenames may change, but the architectural boundary may not: **one importable broadcast client API for all current and future graphics**.
 
 The snapshot should expose only graphics-safe, explicit fields, for example:
 
@@ -156,14 +174,36 @@ The snapshot should expose only graphics-safe, explicit fields, for example:
 
 Do not serialize database rows wholesale.
 
+### Shared library behavior
+
+The browser-side library owns:
+
+- opening/closing the SSE connection;
+- connection/reconnection state exposed to graphics and controllers;
+- decoding/validating the shared snapshot envelope;
+- retaining the newest accepted snapshot;
+- ignoring duplicate or older revisions;
+- resynchronizing from a complete snapshot after reconnect;
+- a small typed API/store that graphics import rather than touching raw SSE events;
+- framework-neutral selectors/helpers where possible so test templates and later custom templates share data interpretation.
+
+A graphic should be able to do the conceptual equivalent of:
+
+```ts
+import { createBroadcastClient } from '$lib/broadcast/client';
+```
+
+and then consume typed broadcast state. It should not need to know the SSE wire protocol.
+
 ### SSE behavior
 
 - one shared server-owned publication path;
 - new/reconnecting client receives the latest complete snapshot immediately;
 - subsequent mutations publish a new revision;
-- clients ignore older revisions;
+- clients ignore older revisions through the shared library;
 - browser reconnect is separate from Phase 6 provider reconnect;
-- multiple OBS pages must not create multiple upstream provider connections later.
+- multiple OBS pages may each consume the app-level SSE stream, but must not create multiple upstream provider connections later;
+- transport errors must not cause each graphic to invent its own retry/backoff implementation.
 
 Use SSE for app -> browser updates; ordinary protected HTTP actions remain the mutation path.
 
@@ -185,10 +225,13 @@ Exact spelling may change, but URLs must not include the currently selected game
 
 For each output:
 
-1. receive the shared broadcast snapshot;
-2. derive the selected tournament slug;
-3. resolve a matching tournament-specific template if it exists;
-4. fall back to the generic functional `test` template.
+1. import and consume the shared broadcast client/library from Task 3;
+2. receive the typed shared broadcast snapshot through that API;
+3. derive the selected tournament slug;
+4. resolve a matching tournament-specific template if it exists;
+5. fall back to the generic functional `test` template.
+
+Neither generic nor tournament-specific templates should create their own raw `EventSource` implementation.
 
 Correct the existing graphics production options so client rendering works in a production build; the current `csr = dev` scaffold cannot remain.
 
@@ -465,7 +508,8 @@ Browser screenshots alone do not prove OBS composition.
 - Team A/B veto-order correction is complete and tested.
 - A single persisted selected game drives all controllers and outputs.
 - Partial selector navigation does not switch the live game.
-- SSE reconnect returns the newest complete snapshot.
+- SSE reconnect returns the newest complete snapshot through one shared typed broadcast library.
+- All seven generic outputs use that library rather than separate transport implementations, and the API is reusable by future tournament-specific templates.
 - Seven stable read-only OBS routes render generic test templates.
 - Player Stats supports Single and Head-to-Head from one control/read model.
 - A-left/B-right is the default presentation and explicit Swap Left/Right does not mutate competition data.

@@ -145,6 +145,8 @@ Persist the selected game ID and derive its match/tournament, rather than persis
 
 Broadcast updates must be persisted and published consistently. Handle concurrent operator edits with transactions and a revision/version check so stale forms cannot silently overwrite newer selections or data. After switching games, ignore late live updates from the previous game's connection. A delayed post-game import remains associated with the game it was requested for.
 
+All graphics must consume broadcast updates through one **shared, importable, typed broadcast client library**. That library owns the app-level SSE connection contract, snapshot decoding, newest-revision handling, reconnect/resynchronization behavior, and shared read helpers. Individual graphics and later tournament-specific templates must not duplicate raw `EventSource`, payload parsing, or revision logic. Keep the browser-safe client library separate from server-only snapshot construction/publication code.
+
 Presentation order is independent from match identity and gameplay side. Test graphics default to Team A on the left and Team B on the right, with an explicit **Swap Left/Right** broadcast override for stage/camera presentation mistakes. This override must never rewrite Match Team A/B, veto actors, scores, results, or lineup ownership. Across the graphics system, **Attacker is blue and Defender is red**. When teams switch gameplay sides, their colors change while their left/right positions remain fixed unless the operator explicitly changes the presentation-order override.
 
 ### 5.3 URLs, templates, and assets
