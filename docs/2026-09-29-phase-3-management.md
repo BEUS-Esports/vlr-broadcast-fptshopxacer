@@ -105,12 +105,12 @@ Scores A/B always belong to the match's stable A/B entries. Starting attack/defe
 
 | Game state       | Scores                                     | Winner                              | Series contribution                              |
 | ---------------- | ------------------------------------------ | ----------------------------------- | ------------------------------------------------ |
-| Draft/incomplete | Both unknown, or two non-negative integers | None                                | No game win, even if the draft score is unequal. |
-| Normal final     | Two unequal non-negative integers          | Derived server-side from A/B scores | One win.                                         |
+| Draft/incomplete | Both unknown, or a reachable MR12 score    | None                                | No game win, even if the draft score is unequal. |
+| Normal final     | 13–0 through 13–11, or overtime win by two | Derived server-side from A/B scores | One win.                                         |
 | Forfeit/walkover | Both unknown                               | Operator selects A or B             | One win; no invented round score.                |
 | Cancelled        | Both unknown                               | None                                | No win.                                          |
 
-For normal finalization, require an identified map from the tournament pool. Do not require a complete lineup before recording a result; preparation readiness and result validity are separate. Starting sides are either both unknown or the two distinct match entries. Do not impose a hardcoded 13-round or win-by-two validator in this phase.
+For normal finalization, require an identified map from the tournament pool. Do not require a complete lineup before recording a result; preparation readiness and result validity are separate. Starting sides are either both unknown or the two distinct match entries. Regulation uses MR12 per half and ends at 13 unless the score reaches 12–12. Overtime uses MR1 per half, repeating without a cap until a team wins both rounds: 14–12, 15–13, and so on. Validate both finalization and corrections. Drafts may be unfinished or hold a completed score before explicit finalization, but cannot contain rounds played after the game would have ended.
 
 Ordinary match results derive from games: BO1 needs one win; BO2 needs two decisive game results and permits 1-1; BO3 needs two wins; BO5 needs three. Game-level normal/forfeit/walkover results count; drafts and cancellations do not.
 
