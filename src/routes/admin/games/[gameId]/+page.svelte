@@ -8,8 +8,8 @@
 	let { data }: PageProps = $props();
 	const tabs = [
 		{ value: 'info', label: 'Info' },
-		{ value: 'lineup', label: 'Lineup' },
-		{ value: 'veto', label: 'Map Veto' }
+		{ value: 'veto', label: 'Map Veto' },
+		{ value: 'lineup', label: 'Lineup' }
 	];
 	const revisions = $derived({
 		expectedGameRevision: data.game.revision,
