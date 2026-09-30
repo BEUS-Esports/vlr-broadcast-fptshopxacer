@@ -48,12 +48,15 @@ Authorization must be enforced on the server for every protected read/write, not
 
 ## 3. Terminology and ownership
 
-| Term                      | Meaning and responsibility                                                                                   |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Player / Team             | Reusable profiles and branding, identified by stable application IDs.                                        |
-| Tournament entry / roster | A team's participation in one tournament and its plain list of available players.                            |
-| Match                     | A series between two tournament entries, including its best-of format and series-wide map veto.              |
-| Game / lineup             | One played map within a match, with its own selected five players per team, sides, scores, and result.       |
+| Term                      | Meaning and responsibility |
+| ------------------------- | -------------------------- |
+| Player / Team             | Reusable profiles and branding, identified by stable application IDs. |
+| Tournament entry / roster | A team's participation in one tournament and its plain list of available players. |
+| Match                     | A series between two tournament entries, including its best-of format and series-wide map veto. |
+| Match Team A / Team B     | Competition-order slots. Team A is the first veto actor; Team B is the other match participant. These identities are not attacker/defender colors and are not a broadcast left/right override. |
+| Game / lineup             | One played map within a match, with its own selected five players per team, sides, scores, and result. |
+| Broadcast left / right    | Presentation order. Default A-left/B-right; an operator may swap presentation without changing Match A/B identity, veto ownership, scores, or lineups. |
+| Attacker / Defender       | Current gameplay side. Attacker is always blue and Defender is always red in broadcast graphics; color changes do not move a team between left and right. |
 | Broadcast selection       | The shared game currently selected for graphics. Its match and tournament follow from the game relationship. |
 
 Tournament rosters have **no main/substitute classification**. A player's inclusion in a game's five-player lineup does not change tournament membership or another game's lineup.
@@ -100,7 +103,9 @@ Incomplete games do not contribute a winner to the series score. Correcting a co
 
 The map veto belongs to the **entire match**, not an individual game. Store ordered ban/pick/decider information, the map, the acting team when applicable, and the target game number for a selected map.
 
-Operators can change action order and which team acts. Consecutive picks by the same team must be supported, including the winner-bracket advantage described for a grand final. No bracket engine is needed to express that choice. Side-choice information may be recorded with the selected map and applied when its game is prepared.
+**Team A / Team B is semantically meaningful. Team A is the team that takes the first acting veto action.** If tournament procedure requires the other team to act first, assign/swap that team into the Team A slot before veto actions, games, or stored match results lock participant identity. The Match editor must explain this meaning and provide an obvious way to correct A/B while the participants are still mutable. The first non-neutral acting veto action must belong to Team A; changing later action order/acting teams remains supported for tournament-specific sequences, including consecutive same-team picks and winner-bracket advantages.
+
+Do not use Team A/B to encode attack/defense or broadcast screen position. Side-choice information may be recorded with the selected map and applied when its game is prepared.
 
 Veto selections use the tournament's map pool and cannot accidentally use a map twice in the same sequence. Corrections are supported, with conflicts against already prepared/played games surfaced explicitly. A picked map can be assigned to Game 1, Game 2, and so on **before those game records exist**.
 
@@ -123,7 +128,7 @@ The game setup flow is **Info → Lineup → Map Veto**. The Map Veto view edits
 | Graphic       | Data and operator controls                                                                                         |
 | ------------- | ------------------------------------------------------------------------------------------------------------------ |
 | Player Lineup | Selected game's ordered five-player lineups, names, portraits, and team branding.                                  |
-| Player Stats  | Operator-selected player and game/series/tournament scope, using saved statistics.                                 |
+| Player Stats  | Operator-selected game/series/tournament scope using saved statistics, with single Player-to-Watch and head-to-head modes sharing one read/control model. |
 | Map Veto      | Selected match's ordered bans/picks/decider, acting teams, and map assets.                                         |
 | Agent Select  | Selected game's players and agent selections; provider updates where supported, with manual preparation available. |
 | In-Game       | Provider-backed live HUD or the native-spectator-HUD fallback.                                                     |
@@ -140,6 +145,8 @@ Persist the selected game ID and derive its match/tournament, rather than persis
 
 Broadcast updates must be persisted and published consistently. Handle concurrent operator edits with transactions and a revision/version check so stale forms cannot silently overwrite newer selections or data. After switching games, ignore late live updates from the previous game's connection. A delayed post-game import remains associated with the game it was requested for.
 
+Presentation order is independent from match identity and gameplay side. Test graphics default to Team A on the left and Team B on the right, with an explicit **Swap Left/Right** broadcast override for stage/camera presentation mistakes. This override must never rewrite Match Team A/B, veto actors, scores, results, or lineup ownership. Across the graphics system, **Attacker is blue and Defender is red**. When teams switch gameplay sides, their colors change while their left/right positions remain fixed unless the operator explicitly changes the presentation-order override.
+
 ### 5.3 URLs, templates, and assets
 
 Use stable OBS live URLs, for example `/gfx/live/<graphic>`. The output resolves the active game's tournament slug and chooses the corresponding custom layout, falling back to the functional test template when no custom layout exists. The exact route spelling is an implementation detail; operators must not replace every OBS URL between games.
@@ -150,7 +157,9 @@ The current scaffold uses a transparent 1920×1080 graphics canvas; retain that 
 
 ### 5.4 Live and fallback HUD behavior
 
-The fallback retains **Valorant's native spectator HUD** for health, weapons, abilities, and other live details. Our fallback overlay supplies team names/logos, series score, and tournament branding. It does not attempt manual reconstruction of every live player value.
+Phase 5 implements the **native-HUD-safe In-Game mode first**. In this mode the application assumes Valorant's full spectator HUD can be visible, so the test overlay must avoid covering critical native elements such as the minimap, timer/score area, killfeed, abilities, weapon/ammo information, and player/economy strips. The application supplies only safe supplementary branding/context that is useful without reconstructing live player values.
+
+The later custom HUD may retain selected native elements such as the timer, killfeed, and skills while replacing other presentation with provider-backed graphics. If custom live data becomes unavailable, fallback restores the native spectator HUD rather than attempting manual reconstruction of health, weapons, abilities, economy, or other live details.
 
 Provider health and on-air HUD mode are separate state. A healthy recovered connection does not imply permission to restore the live HUD.
 

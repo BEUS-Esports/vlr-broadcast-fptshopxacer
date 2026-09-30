@@ -104,6 +104,8 @@ Use small, realistic fixtures: two tournaments with different map pools, teams w
 
 Progress, 2026-09-30: Tournament, roster, pool, match, individual game, historical lineup, and shared veto management use the existing schema. Skeleton tabs retain drafts and support deep links, keyboard navigation, and history. Five isolated browser tests cover the acceptance workflow, losing drafts from two operators, sibling-section revisions, and malformed inputs. Separate database connections exercise related-record races; a writer process exits before a fresh reader validates saved setup and foreign keys. Normal score corrections, explicit reopen, exceptional outcomes, and explicit veto propagation are covered. Final verification details are recorded in the Phase 3 implementation plan. No event-data migration was required.
 
+**Required follow-up before Phase 5 Map Veto output:** Team A / Team B must stop being merely participant labels and become the match's competition-order slots. Team A is the first veto actor; if the other team must act first, the operator must swap A/B before dependent match data exists. This correction is specified in [2026-10-01-team-a-b-veto-order-correction.md](./2026-10-01-team-a-b-veto-order-correction.md).
+
 ## Phase 4 — Make manual post-game statistics and all scopes usable
 
 ### Work
@@ -130,12 +132,13 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 
 ### Work
 
+- [ ] Complete the Team A / Team B veto-order correction before building the Map Veto output: Match Team A is the first veto actor, Match Team B is the second competition-order slot, and broadcast left/right remains a separate presentation concern. See [the corrective note](./2026-10-01-team-a-b-veto-order-correction.md).
 - [ ] Add the single persistent live-game selection with a revision/version check. Build the shared Tournament → Match → Game selector; partial dropdown changes retain the prior on-air game, while a complete valid selection updates the broadcast.
 - [ ] Add a server-owned broadcast snapshot/update path, initially using the specification's SSE default with ordinary authenticated control actions. Reconnecting clients obtain the latest snapshot. Expose only explicit broadcast fields.
 - [ ] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
-- [ ] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Agent preparation and the native-HUD fallback must work manually.
+- [ ] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Player Stats supports both a single Player-to-Watch mode and a head-to-head comparison from one shared control/read model. Agent preparation and the native-HUD fallback must work manually.
   - This allows the Graphics Controller to double as the specific Lineup/Map Veto/Agent Select/Ingame/Post-Game/MVP Control (where possible) just like in the tournaments/matches/games page, making the workflow even faster.
-- [ ] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Validate the transparent canvas and native spectator-HUD composition in OBS.
+- [ ] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Use a 1920×1080 transparent canvas. Default broadcast presentation is Team A left / Team B right with an explicit presentation-only left/right swap; Attacker is always blue and Defender is always red, independent of screen position. Prioritize a native-HUD-safe In-Game test graphic before the provider-backed custom HUD. Validate composition in OBS.
 
 ### Done when
 
@@ -145,7 +148,7 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 
 ### Focused proof
 
-Run a browser scenario with two controller sessions and at least one output: select, edit, reconnect, and recover from a stale selection write. Verify a production build, an unknown custom slug falling back to a test template, incomplete lineups, and outputs without operator cookies. Record an actual OBS visual check separately from browser-test results.
+Run a browser scenario with two controller sessions and at least one output: select, edit, reconnect, recover from a stale selection write, swap presentation left/right without mutating Match A/B, and change attacker/defender colors without moving team positions. Verify Team A is the first veto actor, a production build, an unknown custom slug falling back to a test template, incomplete lineups, and outputs without operator cookies. Record an actual OBS visual check separately from browser-test results.
 
 ## Phase 6 — Integrate live providers and the HUD recovery rules
 
@@ -253,4 +256,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, build **Phase 5: shared broadcast controls and the seven functional test graphics**. Reuse the Phase 3 management records and Phase 4 statistics/MVP read models rather than creating graphics-only copies. Real provider captures are not required to begin Phase 5.
+Next, complete the **Team A / Team B veto-order correction**, then build **Phase 5: shared broadcast controls and the seven functional test graphics** using [the detailed Phase 5 plan](./2026-10-01-phase-5-broadcast-controls-test-graphics.md). Reuse the Phase 3 management records and Phase 4 statistics/MVP read models rather than creating graphics-only copies. Real provider captures are not required to begin Phase 5.
