@@ -36,10 +36,16 @@ export async function prepareTournament(page: Page, name: string, mapNumbers: nu
 			.selectOption(team);
 		await save(page, 'Add team entry');
 		const roster = page.getByRole('region', { name: `${team} roster`, exact: true });
-		for (let i = 1; i <= 6; i++)
+		for (let i = 1; i <= 6; i++) {
 			await roster
-				.getByRole('checkbox', { name: `${team} ${i} (${team}-${i})`, exact: true })
-				.check();
+				.getByRole('combobox', { name: 'Search players', exact: true })
+				.fill(`${team}-${i}`);
+			await roster
+				.getByRole('option')
+				.filter({ hasText: `${team}-${i}` })
+				.click();
+		}
+		await roster.getByRole('combobox', { name: 'Search players', exact: true }).press('Escape');
 		const response = page.waitForResponse((response) => response.request().method() === 'POST');
 		await roster.getByRole('button', { name: 'Save roster', exact: true }).click();
 		expect((await response).ok()).toBe(true);

@@ -60,6 +60,32 @@ const lineup = () =>
 		}))
 	}));
 
+it('serializes two teams claiming the same unassigned tournament player', () =>
+	race(async (a, b, { db }) => {
+		await db.insert(s.players).values({ id: 'free', displayName: 'Free agent' });
+		const results = await settle(
+			a.entries.replaceTournamentRoster({
+				tournamentId: 't',
+				expectedTournamentRevision: 1,
+				entryId: 'entry-a',
+				playerIds: ['free']
+			}),
+			b.entries.replaceTournamentRoster({
+				tournamentId: 't',
+				expectedTournamentRevision: 1,
+				entryId: 'entry-b',
+				playerIds: ['free']
+			})
+		);
+		expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+		expect(
+			await db
+				.select()
+				.from(s.tournamentEntryPlayers)
+				.where(eq(s.tournamentEntryPlayers.playerId, 'free'))
+		).toHaveLength(1);
+	}));
+
 it('serializes two creations of the same game slot', () =>
 	race(async (a, b, { db }) => {
 		await settle(

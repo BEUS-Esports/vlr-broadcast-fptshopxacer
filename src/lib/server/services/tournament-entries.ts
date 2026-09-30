@@ -1,4 +1,4 @@
-import { and, eq, inArray, or } from 'drizzle-orm';
+import { and, eq, inArray, ne, or } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
 	gameLineups,
@@ -95,6 +95,23 @@ export async function replaceTournamentRoster(input: EntryWrite & { playerIds: s
 			.from(tournamentEntryPlayers)
 			.where(eq(tournamentEntryPlayers.entryId, input.entryId));
 		if (input.playerIds.length) {
+			const [assigned] = await tx
+				.select({ playerId: tournamentEntryPlayers.playerId })
+				.from(tournamentEntryPlayers)
+				.innerJoin(tournamentEntries, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+				.where(
+					and(
+						eq(tournamentEntries.tournamentId, input.tournamentId),
+						ne(tournamentEntryPlayers.entryId, input.entryId),
+						inArray(tournamentEntryPlayers.playerId, input.playerIds)
+					)
+				)
+				.limit(1);
+			if (assigned)
+				throw new SaveError(
+					'invalid',
+					'A selected player is already assigned to another team in this tournament. Remove them from that roster and save before adding them here.'
+				);
 			const selected = await tx.select().from(players).where(inArray(players.id, input.playerIds));
 			if (
 				selected.length !== input.playerIds.length ||

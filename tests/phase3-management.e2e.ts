@@ -219,7 +219,7 @@ test('prepares independent tournaments, historical lineups, BO2 corrections and 
 	await save(page, 'Save lineup');
 	await page.goto(`${second}?tab=teams`);
 	const roster = page.getByRole('region', { name: 'Alpha roster', exact: true });
-	await roster.getByRole('checkbox', { name: 'Alpha 5 (Alpha-5)', exact: true }).uncheck();
+	await roster.getByRole('button', { name: 'Remove Alpha 5 (Alpha-5)', exact: true }).click();
 	await roster.getByRole('button', { name: 'Save roster', exact: true }).click();
 	await expect(roster.getByRole('status')).toHaveText('Saved.');
 	await page.goto(`${game}?tab=lineup`);

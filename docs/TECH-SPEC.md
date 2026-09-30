@@ -80,6 +80,7 @@ Asset uploads need validated file types/sizes and safe generated storage paths. 
 
 - A tournament has a name and a unique, URL-safe slug. The slug participates in custom graphics resolution.
 - Add participating teams, then maintain each entry's available players as a plain list.
+- A player can belong to only one team's current roster in a tournament, enforced during roster saves. Profiles remain reusable across tournaments. Use searchable player selection with a selected-player preview; disable players already assigned to another entry in this tournament. To transfer a player, save their removal from the previous roster first; saved game lineups remain unchanged.
 - Choose the tournament's editable map pool from Game Resources. Catalogue updates must not silently replace this selection.
 - Roster changes preserve already saved game lineups. Existing references remain readable when a player is no longer available for a new lineup.
 - Reject or explicitly resolve edits that invalidate existing match, veto, or game references. Do not silently rewrite the competition setup.

@@ -177,6 +177,12 @@
 								.filter((row) => row.entryId === entry.id)
 								.map((row) => row.playerId)}
 							players={data.players}
+							assignments={data.rosters
+								.filter((row) => row.entryId !== entry.id)
+								.map((row) => ({
+									playerId: row.playerId,
+									teamName: data.entries.find((team) => team.id === row.entryId)!.name
+								}))}
 							disabled={!!data.tournament.archivedAt}
 						/>
 						<ManagementForm
