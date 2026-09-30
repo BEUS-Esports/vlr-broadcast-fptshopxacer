@@ -3,13 +3,16 @@
 	import LineupEditor from '#lib/components/admin/management/LineupEditor.svelte';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import ManagementWorkspace from '#lib/components/admin/management/ManagementWorkspace.svelte';
+	import MvpPicker from '#lib/components/admin/management/MvpPicker.svelte';
+	import PostGameEditor from '#lib/components/admin/management/PostGameEditor.svelte';
 	import VetoEditor from '#lib/components/admin/management/VetoEditor.svelte';
 	import type { PageProps } from './$types';
 	let { data }: PageProps = $props();
 	const tabs = [
 		{ value: 'info', label: 'Info' },
+		{ value: 'lineup', label: 'Lineup' },
 		{ value: 'veto', label: 'Map Veto' },
-		{ value: 'lineup', label: 'Lineup' }
+		{ value: 'statistics', label: 'Post-Game' }
 	];
 	const revisions = $derived({
 		expectedGameRevision: data.game.revision,
@@ -254,7 +257,7 @@
 						<ManagementForm
 							action="?/delete"
 							initial={revisions}
-							confirmMessage={`Delete Game ${data.game.number} and all its saved lineup slots? Other game numbers remain unchanged.`}
+							confirmMessage={`Delete Game ${data.game.number}, its lineup, statistics, and game MVP? Other game numbers remain unchanged.`}
 							>{#snippet children(draft, pending)}<button
 									type="submit"
 									class="btn preset-tonal-error"
@@ -289,6 +292,31 @@
 					disabled={!!data.tournament.archivedAt}
 				/></Tabs.Content
 			>
+			<Tabs.Content value="statistics" class="admin-editor" aria-label="Post-game statistics">
+				<h2 class="h3">Post-Game Statistics</h2>
+				<PostGameEditor
+					revision={data.game.revision}
+					entries={[teamA, teamB]}
+					scoreboard={data.statistics.scoreboard}
+					players={data.players}
+					agents={data.agents}
+					provenance={data.statistics.provenance}
+					resultType={data.game.resultType}
+					disabled={!!data.tournament.archivedAt}
+				/>
+				<MvpPicker
+					revision={data.game.revision}
+					selected={data.game.mvpPlayerId}
+					candidates={data.statistics.scoreboard.map((row) => ({
+						id: row.playerId!,
+						displayName:
+							data.players.find((player) => player.id === row.playerId)?.displayName ??
+							row.playerId!
+					}))}
+					scope="Game"
+					disabled={!!data.tournament.archivedAt}
+				/>
+			</Tabs.Content>
 		</ManagementWorkspace>
 	</div>
 {/key}

@@ -35,6 +35,8 @@ it.skipIf(role !== 'writer')(
 			const { replaceMatchVeto } = await import('./vetoes');
 			const { createGame, saveGameResult } = await import('./games');
 			const { replaceGameLineups } = await import('./lineups');
+			const { saveGameStatistics } = await import('./statistics');
+			const { setGameMvp, setMatchMvp, setTournamentMvp } = await import('./mvp');
 
 			const tournament = await saveTournament({
 				name: 'Persistent event',
@@ -126,6 +128,34 @@ it.skipIf(role !== 'writer')(
 				result: { mode: 'normal', scoreA: 13, scoreB: 9 }
 			});
 			expect(final.series).toMatchObject({ state: 'completed', winnerEntryId: entries[0] });
+			await db.insert(s.agents).values({ id: 'agent', key: 'agent', displayName: 'Agent' });
+			await saveGameStatistics({
+				gameId: game.gameId,
+				expectedGameRevision: 3,
+				players: [
+					{
+						playerId: players[0][0].id,
+						entryId: entries[0],
+						agentId: 'agent',
+						kills: 0,
+						deaths: 2,
+						performanceScore: 200,
+						trades: 0
+					},
+					{ playerId: players[1][0].id, entryId: entries[1], agentId: null, kills: 10 }
+				]
+			});
+			await setGameMvp({ gameId: game.gameId, expectedRevision: 4, playerId: players[0][0].id });
+			await setMatchMvp({
+				matchId: match.id,
+				expectedRevision: final.matchRevision,
+				playerId: players[0][0].id
+			});
+			await setTournamentMvp({
+				tournamentId: tournament.id,
+				expectedRevision: 6,
+				playerId: players[0][0].id
+			});
 		} finally {
 			vi.doUnmock('#lib/server/db/index.ts');
 			client.close();
@@ -150,10 +180,17 @@ it.skipIf(role !== 'reader')(
 			const [veto] = await db.select().from(s.matchVetoActions);
 			const [game] = await db.select().from(s.games);
 			const lineups = await db.select().from(s.gameLineups);
+			const statistics = await db.select().from(s.gamePlayerStatistics);
+			const [meta] = await db.select().from(s.gameStatisticsMeta);
+			vi.resetModules();
+			vi.doMock('#lib/server/db/index.ts', () => ({ db }));
+			const { getMatchStatistics, getTournamentStatistics } =
+				await import('./statistics-aggregation');
 			expect(tournament).toMatchObject({
 				name: 'Persistent event',
 				slug: 'persistent-event',
-				revision: 6
+				revision: 7,
+				mvpPlayerId: players[0].id
 			});
 			expect(teams).toHaveLength(2);
 			expect(players).toHaveLength(10);
@@ -165,7 +202,8 @@ it.skipIf(role !== 'reader')(
 				bestOf: 1,
 				resultType: 'normal',
 				winnerEntryId: entries[0].id,
-				revision: 4
+				revision: 5,
+				mvpPlayerId: players[0].id
 			});
 			expect(veto).toMatchObject({
 				matchId: match.id,
@@ -180,13 +218,34 @@ it.skipIf(role !== 'reader')(
 				scoreB: 9,
 				resultType: 'normal',
 				winnerEntryId: entries[0].id,
-				revision: 3
+				revision: 5,
+				mvpPlayerId: players[0].id
 			});
 			expect(game.startingAttackersEntryId).toBe(entries[1].id);
 			expect(lineups).toHaveLength(10);
 			expect(new Set(lineups.map((row) => row.playerId)).size).toBe(10);
+			expect(lineups.find((row) => row.playerId === players[0].id)?.agentId).toBe('agent');
+			expect(statistics).toHaveLength(2);
+			expect(statistics.find((row) => row.playerId === players[0].id)).toMatchObject({
+				kills: 0,
+				deaths: 2,
+				assists: null,
+				performanceScore: 200,
+				trades: 0
+			});
+			expect(meta.lastManualEditAt).toBeInstanceOf(Date);
+			expect(
+				(await getMatchStatistics(match.id)).players.find((row) => row.playerId === players[0].id)
+					?.kills
+			).toEqual({ value: 0, coverage: 'complete' });
+			expect(
+				(await getTournamentStatistics(tournament.id)).players.find(
+					(row) => row.playerId === players[0].id
+				)?.performanceScore.value
+			).toBeNull();
 			expect((await client.execute('PRAGMA foreign_key_check')).rows).toHaveLength(0);
 		} finally {
+			vi.doUnmock('#lib/server/db/index.ts');
 			client.close();
 		}
 	},

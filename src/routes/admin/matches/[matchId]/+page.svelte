@@ -2,13 +2,16 @@
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import ManagementWorkspace from '#lib/components/admin/management/ManagementWorkspace.svelte';
+	import MvpPicker from '#lib/components/admin/management/MvpPicker.svelte';
+	import StatisticsView from '#lib/components/admin/management/StatisticsView.svelte';
 	import VetoEditor from '#lib/components/admin/management/VetoEditor.svelte';
 	import type { PageProps } from './$types';
 	let { data }: PageProps = $props();
 	const tabs = [
 		{ value: 'info', label: 'Info' },
 		{ value: 'games', label: 'Games' },
-		{ value: 'veto', label: 'Map Veto' }
+		{ value: 'veto', label: 'Map Veto' },
+		{ value: 'statistics', label: 'Statistics' }
 	];
 	const teamName = (id: string | null) =>
 		data.entries.find((entry) => entry.id === id)?.name ?? 'Unknown';
@@ -301,6 +304,16 @@
 					disabled={!!data.tournament.archivedAt}
 				/></Tabs.Content
 			>
+			<Tabs.Content value="statistics" aria-label="Match statistics" class="admin-editor">
+				<StatisticsView statistics={data.statistics} entries={data.entries} />
+				<MvpPicker
+					revision={data.match.revision}
+					selected={data.match.mvpPlayerId}
+					candidates={data.mvpCandidates}
+					scope="Match"
+					disabled={!!data.tournament.archivedAt}
+				/>
+			</Tabs.Content>
 		</ManagementWorkspace>
 	</div>
 {/key}

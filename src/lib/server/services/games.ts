@@ -1,10 +1,12 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
 	games,
+	gameLineups,
 	matches,
 	matchVetoActions,
-	tournamentMapPool
+	tournamentMapPool,
+	tournaments
 } from '#lib/server/db/schema/index.ts';
 import { hasDatabaseError, SaveError } from './save-error';
 import { assertOrdinaryMatch, bumpMatchRevision, recomputeMatchResult } from './matches';
@@ -276,9 +278,47 @@ export function reopenGame(input: GameWrite) {
 }
 
 export async function deleteDraftGame(input: GameWrite) {
-	const result = await mutateGame(input, async (tx, game) => {
+	const result = await mutateGame(input, async (tx, game, match) => {
 		if (game.resultType)
 			throw new SaveError('blocked', 'Reopen the game before deleting it and its saved lineup.');
+		const [tournament] = await tx
+			.select({ mvpPlayerId: tournaments.mvpPlayerId })
+			.from(tournaments)
+			.where(eq(tournaments.id, match.tournamentId));
+		const mvpIds = [match.mvpPlayerId, tournament.mvpPlayerId].filter((id): id is string => !!id);
+		if (mvpIds.length) {
+			const otherAppearances = await tx
+				.select({
+					playerId: gameLineups.playerId,
+					matchId: games.matchId,
+					tournamentId: matches.tournamentId
+				})
+				.from(gameLineups)
+				.innerJoin(games, eq(gameLineups.gameId, games.id))
+				.innerJoin(matches, eq(games.matchId, matches.id))
+				.where(and(ne(gameLineups.gameId, game.id), inArray(gameLineups.playerId, mvpIds)));
+			if (
+				match.mvpPlayerId &&
+				!otherAppearances.some(
+					(row) => row.playerId === match.mvpPlayerId && row.matchId === match.id
+				)
+			)
+				throw new SaveError(
+					'blocked',
+					'Clear the match MVP before deleting their last game appearance.'
+				);
+			if (
+				tournament.mvpPlayerId &&
+				!otherAppearances.some(
+					(row) =>
+						row.playerId === tournament.mvpPlayerId && row.tournamentId === match.tournamentId
+				)
+			)
+				throw new SaveError(
+					'blocked',
+					'Clear the tournament MVP before deleting their last game appearance.'
+				);
+		}
 		await tx.delete(games).where(eq(games.id, game.id));
 	});
 	return { matchId: result.matchId, matchRevision: result.matchRevision, series: result.series };

@@ -38,6 +38,7 @@ export const games = sqliteTable(
 		winnerEntryId: text('winner_entry_id').references(() => tournamentEntries.id, {
 			onDelete: 'restrict'
 		}),
+		mvpPlayerId: text('mvp_player_id').references(() => players.id, { onDelete: 'restrict' }),
 		revision: revisionColumn(),
 		createdAt: createdAtColumn(),
 		updatedAt: updatedAtColumn()

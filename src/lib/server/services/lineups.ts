@@ -1,7 +1,9 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
 	gameLineups,
+	gamePlayerStatistics,
+	games,
 	matches,
 	players,
 	tournamentEntryPlayers
@@ -64,7 +66,7 @@ export async function replaceGameLineups(input: {
 		// Acquire the write lock before reading mutable roster and result state.
 		const game = await bumpGameRevision(tx, input.gameId, input.expectedGameRevision);
 		const [match] = await tx.select().from(matches).where(eq(matches.id, game.matchId));
-		await assertTournamentWritable(tx, match.tournamentId);
+		const tournament = await assertTournamentWritable(tx, match.tournamentId);
 		assertOrdinaryMatch(match);
 		if (game.resultType)
 			throw new SaveError('blocked', 'Reopen the game before changing its lineup.');
@@ -83,7 +85,7 @@ export async function replaceGameLineups(input: {
 			.from(tournamentEntryPlayers)
 			.innerJoin(players, eq(players.id, tournamentEntryPlayers.playerId))
 			.where(and(inArray(tournamentEntryPlayers.entryId, entries), isNull(players.archivedAt)));
-		const selected = new Set<string>();
+		const selected = new Map<string, string>();
 		const rows = teams.flatMap((team) =>
 			team.slots.map((slot) => {
 				const retained = slot.playerId
@@ -100,7 +102,7 @@ export async function replaceGameLineups(input: {
 							'invalid',
 							'New selections must be active players on that team’s current roster.'
 						);
-					selected.add(slot.playerId);
+					selected.set(slot.playerId, team.entryId);
 				}
 				return {
 					gameId: game.id,
@@ -111,6 +113,55 @@ export async function replaceGameLineups(input: {
 				};
 			})
 		);
+		const statistics = await tx
+			.select({ playerId: gamePlayerStatistics.playerId, entryId: gamePlayerStatistics.entryId })
+			.from(gamePlayerStatistics)
+			.where(eq(gamePlayerStatistics.gameId, game.id));
+		if (statistics.some((row) => selected.get(row.playerId) !== row.entryId))
+			throw new SaveError(
+				'blocked',
+				'Clear saved statistics before removing or moving a lineup player to another team.'
+			);
+		const removed = saved.filter((row) => row.playerId && !selected.has(row.playerId));
+		if (removed.some((row) => row.playerId === game.mvpPlayerId))
+			throw new SaveError('blocked', 'Clear the game MVP before removing that lineup player.');
+		const affectedMvpIds = [match.mvpPlayerId, tournament.mvpPlayerId].filter(
+			(id): id is string => !!id && removed.some((row) => row.playerId === id)
+		);
+		if (affectedMvpIds.length) {
+			const otherAppearances = await tx
+				.select({
+					playerId: gameLineups.playerId,
+					matchId: games.matchId,
+					tournamentId: matches.tournamentId
+				})
+				.from(gameLineups)
+				.innerJoin(games, eq(gameLineups.gameId, games.id))
+				.innerJoin(matches, eq(games.matchId, matches.id))
+				.where(and(ne(gameLineups.gameId, game.id), inArray(gameLineups.playerId, affectedMvpIds)));
+			if (
+				match.mvpPlayerId &&
+				affectedMvpIds.includes(match.mvpPlayerId) &&
+				!otherAppearances.some(
+					(row) => row.playerId === match.mvpPlayerId && row.matchId === match.id
+				)
+			)
+				throw new SaveError(
+					'blocked',
+					'Clear the match MVP before removing their last match appearance.'
+				);
+			if (
+				tournament.mvpPlayerId &&
+				affectedMvpIds.includes(tournament.mvpPlayerId) &&
+				!otherAppearances.some(
+					(row) => row.playerId === tournament.mvpPlayerId && row.tournamentId === tournament.id
+				)
+			)
+				throw new SaveError(
+					'blocked',
+					'Clear the tournament MVP before removing their last tournament appearance.'
+				);
+		}
 		await tx.delete(gameLineups).where(eq(gameLineups.gameId, game.id));
 		await tx.insert(gameLineups).values(rows);
 		return {

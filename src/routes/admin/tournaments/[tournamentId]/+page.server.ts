@@ -13,6 +13,8 @@ import {
 } from '#lib/server/db/schema/index.ts';
 import { formError, readPayload } from '#lib/server/services/form-error.ts';
 import { createMatch } from '#lib/server/services/matches.ts';
+import { getTournamentStatistics } from '#lib/server/services/statistics-aggregation.ts';
+import { getTournamentMvpCandidates, setTournamentMvp } from '#lib/server/services/mvp.ts';
 import {
 	deleteTournament,
 	replaceTournamentMapPool,
@@ -74,11 +76,28 @@ export const load: PageServerLoad = async ({ params }) => {
 		players: playerRows,
 		maps: mapRows,
 		rosters,
+		statistics: await getTournamentStatistics(tournament.id),
+		mvpCandidates: await getTournamentMvpCandidates(tournament.id),
 		counts: { entries: entries.length, matches: matchRows.length, maps: pool.length }
 	};
 };
 
 export const actions: Actions = {
+	mvp: async ({ request, params }) => {
+		const form = await request.formData();
+		let draft: Record<string, unknown> = {};
+		try {
+			draft = readPayload(form);
+			await setTournamentMvp({
+				tournamentId: params.tournamentId,
+				expectedRevision: draft.expectedRevision as number,
+				playerId: draft.playerId === '' ? null : draft.playerId
+			});
+			return { saved: true };
+		} catch (cause) {
+			return formError(cause, form, draft);
+		}
+	},
 	createMatch: async ({ request, params }) => {
 		const form = await request.formData();
 		let draft: Record<string, unknown> = {};

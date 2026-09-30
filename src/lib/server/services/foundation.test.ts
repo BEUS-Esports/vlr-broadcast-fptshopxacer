@@ -118,7 +118,7 @@ it('upgrades a populated database without losing match and game references', asy
 
 		const database = drizzle(client, { schema });
 		await migrate(database, { migrationsFolder: oldMigrations });
-		await database.insert(schema.tournaments).values({ id: 't', name: 'Event', slug: 'event' });
+		await client.execute("INSERT INTO tournaments (id, name, slug) VALUES ('t', 'Event', 'event')");
 		await database.insert(schema.teams).values([
 			{ id: 'a', name: 'A', tag: 'A' },
 			{ id: 'b', name: 'B', tag: 'B' },
@@ -129,16 +129,12 @@ it('upgrades a populated database without losing match and game references', asy
 			{ id: 'eb', tournamentId: 't', teamId: 'b' },
 			{ id: 'ec', tournamentId: 't', teamId: 'c' }
 		]);
-		await database.insert(schema.matches).values({
-			id: 'm',
-			tournamentId: 't',
-			teamAEntryId: 'ea',
-			teamBEntryId: 'eb',
-			label: 'Final'
-		});
-		await database
-			.insert(schema.games)
-			.values({ id: 'g', matchId: 'm', number: 1, name: 'Game 1' });
+		await client.execute(
+			"INSERT INTO matches (id, tournament_id, team_a_entry_id, team_b_entry_id, label) VALUES ('m', 't', 'ea', 'eb', 'Final')"
+		);
+		await client.execute(
+			"INSERT INTO games (id, match_id, number, name) VALUES ('g', 'm', 1, 'Game 1')"
+		);
 
 		await migrate(database, { migrationsFolder: join(process.cwd(), 'drizzle') });
 		expect((await client.execute('PRAGMA foreign_key_check')).rows).toHaveLength(0);

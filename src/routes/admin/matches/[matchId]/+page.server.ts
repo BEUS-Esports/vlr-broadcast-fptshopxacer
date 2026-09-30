@@ -23,6 +23,8 @@ import {
 	updateMatchParticipants
 } from '#lib/server/services/matches.ts';
 import { deriveSeriesResult } from '#lib/server/services/series-results.ts';
+import { getMatchStatistics } from '#lib/server/services/statistics-aggregation.ts';
+import { getMatchMvpCandidates, setMatchMvp } from '#lib/server/services/mvp.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -68,6 +70,8 @@ export const load: PageServerLoad = async ({ params }) => {
 		games: gameRows,
 		vetoes: vetoRows,
 		summary,
+		statistics: await getMatchStatistics(match.id),
+		mvpCandidates: await getMatchMvpCandidates(match.id),
 		participantBlockers: [
 			gameRows.length && `${gameRows.length} saved game(s)`,
 			vetoRows.length && `${vetoRows.length} veto action(s)`,
@@ -77,6 +81,21 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
+	mvp: async ({ request, params }) => {
+		const form = await request.formData();
+		let draft: Record<string, unknown> = {};
+		try {
+			draft = readPayload(form);
+			await setMatchMvp({
+				matchId: params.matchId,
+				expectedRevision: draft.expectedRevision as number,
+				playerId: draft.playerId === '' ? null : draft.playerId
+			});
+			return { saved: true };
+		} catch (cause) {
+			return formError(cause, form, draft);
+		}
+	},
 	veto: async ({ request, params }) => {
 		const form = await request.formData();
 		let draft: Record<string, unknown> = {};

@@ -2,6 +2,8 @@
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import ManagementWorkspace from '#lib/components/admin/management/ManagementWorkspace.svelte';
+	import MvpPicker from '#lib/components/admin/management/MvpPicker.svelte';
+	import StatisticsView from '#lib/components/admin/management/StatisticsView.svelte';
 	import RosterEditor from '#lib/components/admin/management/RosterEditor.svelte';
 	import MapPoolEditor from '#lib/components/admin/management/MapPoolEditor.svelte';
 	import type { PageProps } from './$types';
@@ -10,7 +12,8 @@
 		{ value: 'overview', label: 'Overview' },
 		{ value: 'teams', label: 'Teams & Players' },
 		{ value: 'maps', label: 'Map Pool' },
-		{ value: 'matches', label: 'Matches' }
+		{ value: 'matches', label: 'Matches' },
+		{ value: 'statistics', label: 'Statistics' }
 	];
 </script>
 
@@ -270,6 +273,16 @@
 						</ManagementForm>
 					</div>
 				{/if}
+			</Tabs.Content>
+			<Tabs.Content value="statistics" aria-label="Tournament statistics" class="admin-editor">
+				<StatisticsView statistics={data.statistics} entries={data.entries} />
+				<MvpPicker
+					revision={data.tournament.revision}
+					selected={data.tournament.mvpPlayerId}
+					candidates={data.mvpCandidates}
+					scope="Tournament"
+					disabled={!!data.tournament.archivedAt}
+				/>
 			</Tabs.Content>
 		</ManagementWorkspace>
 	</div>

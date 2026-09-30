@@ -18,6 +18,7 @@ import {
 	vetoActionTypes
 } from './common';
 import { maps } from './resources';
+import { players } from './profiles';
 import { tournamentEntries, tournaments } from './tournaments';
 
 export const matches = sqliteTable(
@@ -33,6 +34,7 @@ export const matches = sqliteTable(
 		bestOf: integer('best_of').notNull().default(3),
 		resultType: text('result_type', { enum: resultTypes }),
 		winnerEntryId: text('winner_entry_id'),
+		mvpPlayerId: text('mvp_player_id').references(() => players.id, { onDelete: 'restrict' }),
 		revision: revisionColumn(),
 		createdAt: createdAtColumn(),
 		updatedAt: updatedAtColumn()

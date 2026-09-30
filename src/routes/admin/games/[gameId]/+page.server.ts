@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { asc, eq, inArray } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
+	agents,
 	gameLineups,
 	games,
 	maps,
@@ -28,6 +29,8 @@ import { deriveSeriesResult, type SeriesInput } from '#lib/server/services/serie
 import type { Actions, PageServerLoad } from './$types';
 import { replaceGameLineups } from '#lib/server/services/lineups.ts';
 import { findVetoGameConflicts, projectVetoGame } from '#lib/server/services/game-preparation.ts';
+import { getGameStatistics, saveGameStatistics } from '#lib/server/services/statistics.ts';
+import { setGameMvp } from '#lib/server/services/mvp.ts';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const [game] = await db.select().from(games).where(eq(games.id, params.gameId));
@@ -37,7 +40,17 @@ export const load: PageServerLoad = async ({ params }) => {
 		.select()
 		.from(tournaments)
 		.where(eq(tournaments.id, match.tournamentId));
-	const [entries, pool, lineup, roster, playerRows, vetoActions, matchGames] = await Promise.all([
+	const [
+		entries,
+		pool,
+		lineup,
+		roster,
+		playerRows,
+		vetoActions,
+		matchGames,
+		statistics,
+		agentRows
+	] = await Promise.all([
 		db
 			.select({
 				id: tournamentEntries.id,
@@ -65,7 +78,12 @@ export const load: PageServerLoad = async ({ params }) => {
 			.from(matchVetoActions)
 			.where(eq(matchVetoActions.matchId, match.id))
 			.orderBy(asc(matchVetoActions.sequence)),
-		db.select().from(games).where(eq(games.matchId, match.id)).orderBy(asc(games.number))
+		db.select().from(games).where(eq(games.matchId, match.id)).orderBy(asc(games.number)),
+		getGameStatistics(game.id),
+		db
+			.select({ id: agents.id, displayName: agents.displayName, isActive: agents.isActive })
+			.from(agents)
+			.orderBy(asc(agents.displayName))
 	]);
 	return {
 		game,
@@ -82,6 +100,10 @@ export const load: PageServerLoad = async ({ params }) => {
 		),
 		vetoPreparation: projectVetoGame({ ...match, number: game.number, actions: vetoActions }),
 		lineup,
+		statistics,
+		agents: agentRows.filter(
+			(agent) => agent.isActive || statistics.scoreboard.some((row) => row.agentId === agent.id)
+		),
 		roster,
 		players: playerRows,
 		vetoActions,
@@ -103,6 +125,36 @@ function revisions(gameId: string, draft: Record<string, unknown>) {
 }
 
 export const actions: Actions = {
+	mvp: async ({ request, params }) => {
+		const form = await request.formData();
+		let draft: Record<string, unknown> = {};
+		try {
+			draft = readPayload(form);
+			await setGameMvp({
+				gameId: params.gameId,
+				expectedRevision: draft.expectedRevision as number,
+				playerId: draft.playerId === '' ? null : draft.playerId
+			});
+			return { saved: true };
+		} catch (cause) {
+			return formError(cause, form, draft);
+		}
+	},
+	statistics: async ({ request, params }) => {
+		const form = await request.formData();
+		let draft: Record<string, unknown> = {};
+		try {
+			draft = readPayload(form);
+			await saveGameStatistics({
+				gameId: params.gameId,
+				expectedGameRevision: draft.expectedGameRevision as number,
+				players: draft.players
+			});
+			return { saved: true };
+		} catch (cause) {
+			return formError(cause, form, draft);
+		}
+	},
 	veto: async ({ request, params }) => {
 		const form = await request.formData();
 		let draft: Record<string, unknown> = {};

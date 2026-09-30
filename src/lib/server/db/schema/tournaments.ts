@@ -1,10 +1,4 @@
-import {
-	index,
-	primaryKey,
-	sqliteTable,
-	text,
-	uniqueIndex
-} from 'drizzle-orm/sqlite-core';
+import { index, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import {
 	archivedAtColumn,
 	createdAtColumn,
@@ -21,6 +15,7 @@ export const tournaments = sqliteTable(
 		id: idColumn(),
 		name: text('name').notNull(),
 		slug: text('slug').notNull(),
+		mvpPlayerId: text('mvp_player_id').references(() => players.id, { onDelete: 'restrict' }),
 		archivedAt: archivedAtColumn(),
 		revision: revisionColumn(),
 		createdAt: createdAtColumn(),
@@ -47,14 +42,8 @@ export const tournamentEntries = sqliteTable(
 		updatedAt: updatedAtColumn()
 	},
 	(table) => [
-		uniqueIndex('tournament_entries_tournament_team_unique').on(
-			table.tournamentId,
-			table.teamId
-		),
-		uniqueIndex('tournament_entries_id_tournament_unique').on(
-			table.id,
-			table.tournamentId
-		),
+		uniqueIndex('tournament_entries_tournament_team_unique').on(table.tournamentId, table.teamId),
+		uniqueIndex('tournament_entries_id_tournament_unique').on(table.id, table.tournamentId),
 		index('tournament_entries_tournament_idx').on(table.tournamentId),
 		index('tournament_entries_team_idx').on(table.teamId)
 	]

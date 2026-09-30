@@ -4,3 +4,4 @@ export * from './resources';
 export * from './tournaments';
 export * from './matches';
 export * from './games';
+export * from './statistics';
