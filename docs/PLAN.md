@@ -134,6 +134,7 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 - [ ] Add a server-owned broadcast snapshot/update path, initially using the specification's SSE default with ordinary authenticated control actions. Reconnecting clients obtain the latest snapshot. Expose only explicit broadcast fields.
 - [ ] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
 - [ ] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Agent preparation and the native-HUD fallback must work manually.
+  - This allows the Graphics Controller to double as the specific Lineup/Map Veto/Agent Select/Ingame/Post-Game/MVP Control (where possible) just like in the tournaments/matches/games page, making the workflow even faster.
 - [ ] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Validate the transparent canvas and native spectator-HUD composition in OBS.
 
 ### Done when
