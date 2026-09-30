@@ -109,6 +109,8 @@ Operators create games **one at a time as needed**, under the selected match. Do
 
 Game information includes map, starting attacker and defender, each team's round score, and winner/result state. The two starting sides must refer to the match's two teams. Store scores against stable team identities; halftime or overtime side swaps must not transfer scores between teams.
 
+Normal results use MR12 regulation: 12 rounds per half, first to 13. Valid regulation finals are 13–0 through 13–11. At 12–12, overtime uses one round per half and repeats until a team wins both rounds of a pair: 14–12, 15–13, and so on, with no overtime cap. Enforce these rules on finalization and corrections. Drafts may hold unknown or unfinished scores, but cannot continue beyond a winning score; they do not contribute a series win until explicitly finalized.
+
 Each game has an ordered selection of five distinct players per team, drawn from that team's tournament roster. A player cannot occupy multiple slots or both teams' lineups in the same game. Draft preparation can be incomplete; a ready lineup requires all five selections. Test graphics must render incomplete preparation gracefully rather than crash or invent players.
 
 The game setup flow is **Info → Lineup → Map Veto**. The Map Veto view edits the parent match's shared veto. Lineup controls edit the game's saved lineup, not a second graphics-only roster. Management can link to the same editor without creating another copy of its state.
