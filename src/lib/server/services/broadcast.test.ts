@@ -3,6 +3,46 @@ import { eq } from 'drizzle-orm';
 import * as schema from '#lib/server/db/schema/index.ts';
 import { withTwoConnections } from '#lib/server/testing/management-fixture.ts';
 
+it('blocks deleting the on-air game with a usable error and rolls back until selection is cleared', async () => {
+	await withTwoConnections(async ({ db }) => {
+		await db
+			.insert(schema.games)
+			.values({ id: 'on-air', matchId: 'match', number: 1, name: 'On air' });
+		await db
+			.insert(schema.gameLineups)
+			.values({ gameId: 'on-air', entryId: 'entry-a', slot: 1, playerId: 'a1' });
+		const broadcast = await import('./broadcast');
+		const games = await import('./games');
+		const selected = await broadcast.updateBroadcastState({
+			expectedRevision: 1,
+			selectedGameId: 'on-air'
+		});
+		const before = {
+			games: await db.select().from(schema.games),
+			matches: await db.select().from(schema.matches),
+			lineups: await db.select().from(schema.gameLineups)
+		};
+		const input = { gameId: 'on-air', expectedGameRevision: 1, expectedMatchRevision: 1 };
+		await expect(games.deleteDraftGame(input)).rejects.toMatchObject({
+			code: 'blocked',
+			message: 'Clear the broadcast selection before deleting the on-air game.'
+		});
+		expect({
+			games: await db.select().from(schema.games),
+			matches: await db.select().from(schema.matches),
+			lineups: await db.select().from(schema.gameLineups)
+		}).toEqual(before);
+		expect(await broadcast.getBroadcastState()).toEqual(selected);
+		await broadcast.updateBroadcastState({
+			expectedRevision: selected.revision,
+			selectedGameId: null
+		});
+		await games.deleteDraftGame(input);
+		expect(await db.select().from(schema.games)).toEqual([]);
+		expect(await db.select().from(schema.gameLineups)).toEqual([]);
+	});
+});
+
 it('reads selected game and parents in one snapshot when another connection clears and deletes the game', async () => {
 	await withTwoConnections(async ({ db, secondDb }) => {
 		await db

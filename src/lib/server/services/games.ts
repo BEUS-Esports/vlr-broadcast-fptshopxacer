@@ -1,6 +1,7 @@
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
+	broadcastState,
 	games,
 	gameLineups,
 	matches,
@@ -281,6 +282,15 @@ export async function deleteDraftGame(input: GameWrite) {
 	const result = await mutateGame(input, async (tx, game, match) => {
 		if (game.resultType)
 			throw new SaveError('blocked', 'Reopen the game before deleting it and its saved lineup.');
+		const [onAir] = await tx
+			.select({ id: broadcastState.id })
+			.from(broadcastState)
+			.where(eq(broadcastState.selectedGameId, game.id));
+		if (onAir)
+			throw new SaveError(
+				'blocked',
+				'Clear the broadcast selection before deleting the on-air game.'
+			);
 		const [tournament] = await tx
 			.select({ mvpPlayerId: tournaments.mvpPlayerId })
 			.from(tournaments)
