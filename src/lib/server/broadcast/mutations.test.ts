@@ -1,53 +1,27 @@
 import { expect, it } from 'vitest';
+import { isBroadcastMutation } from './mutations';
 
-it('recognizes successful management writes and controls without publishing failures or navigation', async () => {
-	const { successfulBroadcastMutation } = await import('./mutations');
+it('recognizes management POST attempts including refresh, excluding navigation and streaming sync', () => {
 	const request = new Request('http://localhost/admin/teams', { method: 'POST' });
 	for (const route of [
 		'/admin/teams',
 		'/admin/players',
 		'/admin/resources',
+		'/admin/graphics',
 		'/admin/tournaments/[tournamentId]',
 		'/admin/games/[gameId]',
 		'/admin/matches/[matchId]'
-	]) {
-		expect(
-			await successfulBroadcastMutation(request, route, new Response('', { status: 303 }))
-		).toBe(true);
-	}
-	const json = (body: unknown) =>
-		new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
-	for (const type of ['failure', 'error'])
-		expect(
-			await successfulBroadcastMutation(request, '/admin/games/[gameId]', json({ type }))
-		).toBe(false);
-	for (const status of [400, 422, 500])
-		expect(
-			await successfulBroadcastMutation(
-				request,
-				'/admin/games/[gameId]',
-				new Response('', { status })
-			)
-		).toBe(false);
-	for (const type of ['success', 'redirect'])
-		expect(
-			await successfulBroadcastMutation(request, '/admin/games/[gameId]', json({ type }))
-		).toBe(true);
-	const get = new Request('http://localhost/admin/teams');
-	const refresh = new Request('http://localhost/admin/resources?/refresh', { method: 'POST' });
+	])
+		expect(isBroadcastMutation(request, route)).toBe(true);
 	expect(
-		await successfulBroadcastMutation(
-			refresh,
-			'/admin/resources',
-			new Response('', { status: 303 })
+		isBroadcastMutation(
+			new Request('http://localhost/admin/resources?/refresh', { method: 'POST' }),
+			'/admin/resources'
 		)
-	).toBe(false);
-	expect(await successfulBroadcastMutation(get, '/admin/teams', new Response())).toBe(false);
-	expect(await successfulBroadcastMutation(request, '/unrelated', new Response())).toBe(false);
-	expect(await successfulBroadcastMutation(request, '/admin/resources/sync', new Response())).toBe(
+	).toBe(true);
+	expect(isBroadcastMutation(new Request('http://localhost/admin/teams'), '/admin/teams')).toBe(
 		false
 	);
-	expect(
-		await successfulBroadcastMutation(request, '/admin/graphics', json({ type: 'success' }))
-	).toBe(true);
+	for (const route of [null, '/unrelated', '/admin/resources/sync', '/admin/teams-extra'])
+		expect(isBroadcastMutation(request, route)).toBe(false);
 });

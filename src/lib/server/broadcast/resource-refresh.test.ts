@@ -44,9 +44,21 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 		);
 		try {
 			const { actions } = await import('../../../routes/admin/resources/+page.server');
+			const { handle } = await import('../../../hooks.server');
 			const refresh = actions.refresh;
-			const event = {} as Parameters<typeof refresh>[0];
-			expect(await refresh(event)).toMatchObject({
+			const event = {
+				route: { id: '/admin/resources' },
+				request: new Request('http://localhost/admin/resources?/refresh', { method: 'POST' })
+			};
+			const run = () =>
+				handle({
+					event,
+					resolve: async () => {
+						const result = await refresh(event as Parameters<typeof refresh>[0]);
+						return Response.json(result, { status: 502 });
+					}
+				} as unknown as Parameters<typeof handle>[0]);
+			expect(await (await run()).json()).toMatchObject({
 				status: 502,
 				data: { error: 'Catalogue refresh failed. Saved resources were kept; try again later.' }
 			});
@@ -57,7 +69,7 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 			await client.execute(
 				"CREATE TRIGGER reject_refresh BEFORE UPDATE ON maps BEGIN SELECT RAISE(ABORT, 'map rollback'); END"
 			);
-			expect(await refresh(event)).toMatchObject({ status: 502 });
+			expect(await (await run()).json()).toMatchObject({ status: 502 });
 			expect((await getBroadcastState()).revision).toBe(3);
 			expect(snapshots).toHaveLength(2);
 			const publish = vi
@@ -65,7 +77,7 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 				.mockRejectedValueOnce(new Error('publication unavailable'));
 			const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 			try {
-				expect(await refresh(event)).toMatchObject({
+				expect(await (await run()).json()).toMatchObject({
 					status: 502,
 					data: { error: 'Catalogue refresh failed. Saved resources were kept; try again later.' }
 				});
