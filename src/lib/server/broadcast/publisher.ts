@@ -1,12 +1,26 @@
-import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
+import type {
+	BroadcastEnvelope,
+	BroadcastSnapshot,
+	BroadcastStreamCursor
+} from '#lib/broadcast/types.ts';
 import { buildBroadcastSnapshot } from './snapshot';
 
-type Subscriber = { send: (snapshot: BroadcastSnapshot) => void; close: () => void };
+type Subscriber = {
+	send: (snapshot: BroadcastSnapshot, stream: BroadcastStreamCursor) => void;
+	close: () => void;
+};
+
+function samePersistedRevision(a: BroadcastSnapshot, b: BroadcastSnapshot) {
+	return a.controlRevision === b.controlRevision && a.dataRevision === b.dataRevision;
+}
 
 export function createBroadcastPublisher(dependencies: {
 	build: () => Promise<BroadcastSnapshot>;
+	epoch?: string;
 }) {
-	let latest: BroadcastSnapshot | null = null;
+	const epoch = dependencies.epoch ?? crypto.randomUUID();
+	let sequence = 0;
+	let latest: { snapshot: BroadcastSnapshot; stream: BroadcastStreamCursor } | null = null;
 	let queue: Promise<unknown> = Promise.resolve();
 	const subscribers = new Set<Subscriber>();
 	const remove = (subscriber: Subscriber) => {
@@ -17,9 +31,12 @@ export function createBroadcastPublisher(dependencies: {
 			/* Already disconnected. */
 		}
 	};
-	const send = (subscriber: Subscriber, snapshot: BroadcastSnapshot) => {
+	const send = (
+		subscriber: Subscriber,
+		current: { snapshot: BroadcastSnapshot; stream: BroadcastStreamCursor }
+	) => {
 		try {
-			subscriber.send(snapshot);
+			subscriber.send(current.snapshot, current.stream);
 		} catch {
 			remove(subscriber);
 		}
@@ -29,14 +46,18 @@ export function createBroadcastPublisher(dependencies: {
 		queue = next.catch(() => {});
 		return next;
 	}
-	async function refresh() {
+	function next(snapshot: BroadcastSnapshot) {
+		latest = { snapshot, stream: { epoch, sequence: ++sequence } };
+		return latest;
+	}
+	async function refresh(force: boolean) {
 		try {
 			const snapshot = await dependencies.build();
-			if (!latest || snapshot.revision > latest.revision) {
-				latest = snapshot;
-				for (const subscriber of subscribers) send(subscriber, snapshot);
+			if (!latest || force || !samePersistedRevision(snapshot, latest.snapshot)) {
+				const current = next(snapshot);
+				for (const subscriber of subscribers) send(subscriber, current);
 			}
-			return latest;
+			return latest!;
 		} catch (cause) {
 			// Reconnect must rebuild even when a failed volatile/provider update did not
 			// change either persisted revision.
@@ -46,14 +67,19 @@ export function createBroadcastPublisher(dependencies: {
 		}
 	}
 	return {
-		publish() {
-			return serialize(refresh);
+		/**
+		 * Normal publications deduplicate unchanged persisted revisions.
+		 * Phase 6 volatile provider updates can call publish({ force: true }) so live data
+		 * advances the SSE stream without staling operator control forms.
+		 */
+		publish(options: { force?: boolean } = {}) {
+			return serialize(async () => (await refresh(options.force ?? false)).snapshot);
 		},
 		subscribe(subscriber: Subscriber) {
 			return serialize(async () => {
-				const snapshot = await refresh();
+				const current = await refresh(false);
 				subscribers.add(subscriber);
-				send(subscriber, snapshot);
+				send(subscriber, current);
 				return () => {
 					subscribers.delete(subscriber);
 				};
@@ -109,10 +135,12 @@ export function createBroadcastResponse(
 			}
 			void publisher
 				.subscribe({
-					send: (snapshot) =>
+					send: (snapshot, stream) => {
+						const envelope: BroadcastEnvelope = { version: 1, stream, snapshot };
 						write(
-							`id: ${snapshot.revision}\nevent: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`
-						),
+							`id: ${stream.epoch}:${stream.sequence}\nevent: snapshot\ndata: ${JSON.stringify(envelope)}\n\n`
+						);
+					},
 					close: () => cleanup()
 				})
 				.then((stop) => {
