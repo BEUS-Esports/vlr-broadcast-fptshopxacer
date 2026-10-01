@@ -1,4 +1,3 @@
-import { preview } from 'vite';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
@@ -37,7 +36,8 @@ try {
 	client.close();
 }
 
-// Build in a separate process so preview cannot reuse prerender's cached manifests.
+process.env.ORIGIN = 'http://localhost:4173';
+// Build separately, then start the same adapter-node entrypoint as `node build`.
 const build = spawn(
 	process.execPath,
 	[
@@ -50,11 +50,13 @@ const build = spawn(
 );
 const [code] = await once(build, 'exit');
 if (code !== 0) throw new Error(`Test build failed (${code}).`);
-const server = await preview({ logLevel: 'warn', preview: { port: 4173, strictPort: true } });
+process.env.PORT = '4173';
+const { server } = await import('../build/index.js');
+await once(server, 'listening');
 process.send('ready');
 process.on('message', (message) => {
 	if (message === 'stop') {
-		server.httpServer.closeAllConnections();
-		server.httpServer.close(() => process.exit(0));
+		server.closeAllConnections();
+		server.close(() => process.exit(0));
 	}
 });
