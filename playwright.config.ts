@@ -9,6 +9,8 @@ process.env.DATABASE_URL = `file:${join(process.env.VLR_E2E_DIR, 'app.db')}`;
 process.env.ASSET_DIR = join(process.env.VLR_E2E_DIR, 'assets');
 
 export default defineConfig({
+	// ponytail: one shared live selection; isolate apps per worker if suite speed matters.
+	workers: 1,
 	globalSetup: './tests/setup.ts',
 	use: {
 		baseURL: 'http://localhost:4173',

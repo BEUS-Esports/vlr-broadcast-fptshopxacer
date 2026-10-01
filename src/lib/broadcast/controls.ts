@@ -10,6 +10,15 @@ export const graphicIds = [
 export const broadcastScopes = ['game', 'match', 'tournament'] as const;
 export type BroadcastScope = (typeof broadcastScopes)[number];
 export type GraphicId = (typeof graphicIds)[number];
+export const graphicLabels: Record<GraphicId, string> = {
+	'player-lineup': 'Player Lineup',
+	'player-stats': 'Player Stats',
+	'map-veto': 'Map Veto',
+	'agent-select': 'Agent Select',
+	'in-game': 'In-Game',
+	'post-game': 'Post-Game',
+	mvp: 'MVP'
+};
 export type GraphicVisibility = Record<GraphicId, boolean>;
 export type PlayerStatsControl = {
 	mode: 'single' | 'head-to-head';

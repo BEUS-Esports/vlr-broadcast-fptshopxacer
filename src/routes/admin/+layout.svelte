@@ -2,7 +2,7 @@
 	import './layout.css';
 	import { page } from '$app/state';
 	import { AppBar, Navigation, Toast } from '@skeletonlabs/skeleton-svelte';
-	import { LayoutDashboard, Users, UserRound, Map, Trophy } from '@lucide/svelte';
+	import { LayoutDashboard, Users, UserRound, Map, Trophy, Monitor } from '@lucide/svelte';
 	import { toaster } from '#lib/toaster.ts';
 
 	let { children } = $props();
@@ -63,7 +63,7 @@
 						class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"
 						>Preparation</Navigation.Label
 					>
-					{#each [{ href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game resources', active: resourcesActive, icon: Map }, { href: '/admin/tournaments', label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] as item (item.href)}
+					{#each [{ href: '/admin/graphics', label: 'Graphics', active: page.url.pathname === '/admin/graphics', icon: Monitor }, { href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game resources', active: resourcesActive, icon: Map }, { href: '/admin/tournaments', label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] as item (item.href)}
 						<Navigation.TriggerAnchor
 							href={item.href}
 							aria-current={item.active ? 'page' : undefined}
