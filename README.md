@@ -24,6 +24,40 @@ Run the management browser journeys with `pnpm exec playwright test tests/phase3
 
 The Game Resources page syncs tactical maps, playable agents, and weapons from [VALORANT-API](https://valorant-api.com/). The server needs internet access only during refresh; saved records and downloaded images remain available locally afterward. The management routes currently have no sign-in gate, so keep the app on a trusted network until the planned account and session work is implemented.
 
+## Broadcast operation and production
+
+`/admin/graphics` owns one persisted on-air game. Choose Tournament → Match → Game and **Take game live**; parent dropdown drafts and ordinary management browsing retain the old on-air game. Other operators receive shared updates; stale drafts require an explicit reload. Each graphic has its own Show control. Player Stats supports Single and Head-to-Head in game/match/tournament scopes; MVP uses the saved operator pick. Missing preparation stays visibly unavailable.
+
+Use these stable, read-only OBS URLs, all on a transparent 1920×1080 canvas:
+
+| Graphic       | Route                     |
+| ------------- | ------------------------- |
+| Player Lineup | `/gfx/live/player-lineup` |
+| Player Stats  | `/gfx/live/player-stats`  |
+| Map Veto      | `/gfx/live/map-veto`      |
+| Agent Select  | `/gfx/live/agent-select`  |
+| In-Game       | `/gfx/live/in-game`       |
+| Post-Game     | `/gfx/live/post-game`     |
+| MVP           | `/gfx/live/mvp`           |
+
+Team A/B is competition order; **Swap Left/Right** changes only screen presentation. Current attackers/defenders change blue/red colors without moving teams. In-Game is supplementary context over the native HUD; its provisional placement still needs real Valorant/OBS rehearsal. Unknown tournament slugs use the generic test templates; final supplied artwork and live providers are later phases.
+
+Use Node 24 LTS and `pnpm install --frozen-lockfile`. The lockfile applies a small adapter-node prerelease patch for Windows static-asset paths. Set `ORIGIN` to the exact address used by controllers and OBS **before building**: SvelteKit 3's `paths.origin` is a build setting; setting it only at runtime does not configure this installed adapter. Use the same address afterward, and rebuild when the deployment origin changes. For PowerShell:
+
+```powershell
+$env:ORIGIN = 'http://192.168.1.10:3000' # replace with the server LAN address
+pnpm build
+$env:HOST = '0.0.0.0'
+$env:PORT = '3000'
+node --env-file=.env build
+```
+
+Keep `DATABASE_URL` and `ASSET_DIR` persistent and set `BODY_SIZE_LIMIT=32M` for uploads. Run **one Node process**: publication is process-local; shared pub/sub is required before multiple workers/replicas. Authentication is intentionally deferred for trusted-LAN operation. Output pages contain no controls, but anyone who can reach management routes can write; they are not protected by sign-in or authorization.
+
+Existing installations need reviewed forward migrations **0004** (broadcast state) and **0005** (canonical lineup slots). Back up the database and assets together, stop the app, confirm `DATABASE_URL`, rehearse `pnpm db:migrate` against a disposable copy, then apply reviewed migrations during a planned event upgrade. Do not use `db:push` on event data. This phase's verification did not migrate the local/event database.
+
+Run `PLAYWRIGHT_CHANNEL=chrome` and `pnpm exec playwright test tests/phase5-broadcast.e2e.ts tests/phase5-controller.e2e.ts tests/phase5-graphics.e2e.ts tests/team-a-veto-order.e2e.ts --workers 1` for production Node browser journeys. Run check/build/E2E sequentially because they share generated files. See [Phase 5 evidence and screenshots](./docs/2026-10-01-phase-5-verification.md); automated verification is complete, while actual OBS alpha, clipping, native-HUD compatibility and LAN rehearsal remain pending. Full Phase 5 acceptance and broadcast readiness are not yet claimed.
+
 ## Expected features includes
 
 - CRUD tasks and management features for:

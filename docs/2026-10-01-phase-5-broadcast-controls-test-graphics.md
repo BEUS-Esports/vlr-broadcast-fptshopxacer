@@ -8,7 +8,15 @@
 
 **Spec:** `docs/TECH-SPEC.md`, especially sections 3, 4.3-4.4, 5, and 6. The Team A/B prerequisite is tracked separately in [2026-10-01-team-a-b-veto-order-correction.md](./2026-10-01-team-a-b-veto-order-correction.md).
 
-**Status:** Planned 2026-10-01. Phase 1-4 application data is implemented. Final tournament artwork remains Phase 8.
+**Status:** Tasks 0–8 implemented and reviewed; Task 9 automated browser/production verification completed on 2026-10-01. Actual OBS/Valorant composition remains pending, so full Phase 5 acceptance and broadcast readiness are not yet claimed. See [verification evidence and screenshots](./2026-10-01-phase-5-verification.md). Final tournament artwork remains Phase 8; authentication is explicitly deferred to trusted-LAN operation.
+
+| Tasks                                                                    | Status                                                 |
+| ------------------------------------------------------------------------ | ------------------------------------------------------ |
+| 0–3: Team A/B, persisted control, controller, typed snapshot/SSE library | Complete and tested                                    |
+| 4–5: Stable routes/templates and presentation primitives                 | Complete and tested                                    |
+| 6–8: All seven saved/manual generic outputs                              | Complete and tested                                    |
+| 9: Browser journeys, production Node, screenshots and operator guidance  | Automated verification complete                        |
+| 9: Actual OBS/Valorant and target LAN rehearsal                          | Pending; separate checklist in the verification report |
 
 ---
 

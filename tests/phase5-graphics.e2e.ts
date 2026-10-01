@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@libsql/client';
-import { graphicIds } from '../src/lib/broadcast/controls';
+import { graphicIds, graphicLabels } from '../src/lib/broadcast/controls';
+import { mkdir } from 'node:fs/promises';
 import { createGame, createMatch, prepareTournament, save } from './management-helpers';
 
 test('production graphics stay stable, transparent and read-only across live selections', async ({
@@ -11,6 +12,12 @@ test('production graphics stay stable, transparent and read-only across live sel
 	const tournament = await prepareTournament(page, 'Unknown graphics template', [1]);
 	const match = await createMatch(page, tournament, 'Stable graphics match', 3);
 	const game = await createGame(page, match);
+	await page.getByRole('combobox', { name: 'Map', exact: true }).selectOption('map-1');
+	await save(page, 'Save game info');
+	await page.getByRole('tab', { name: 'Lineup', exact: true }).click();
+	await page.getByRole('combobox', { name: 'Alpha slot 1', exact: true }).selectOption('Alpha-1');
+	await page.getByRole('combobox', { name: 'Bravo slot 1', exact: true }).selectOption('Bravo-1');
+	await save(page, 'Save lineup');
 	const nextGame = await createGame(page, match);
 	await page.goto('/admin/graphics');
 	await page
@@ -23,17 +30,29 @@ test('production graphics stay stable, transparent and read-only across live sel
 		.getByRole('combobox', { name: 'Game', exact: true })
 		.selectOption(game.split('/').pop()!);
 	await save(page, 'Take game live');
-	await page.getByLabel('Show Player Lineup', { exact: true }).check();
-	await save(page, 'Save Player Lineup');
-	const output = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+	for (const graphic of graphicIds) {
+		await page.getByRole('tab', { name: graphicLabels[graphic], exact: true }).click();
+		await page.getByLabel(`Show ${graphicLabels[graphic]}`, { exact: true }).check();
+		await save(page, `Save ${graphicLabels[graphic]}`);
+	}
+	const outputs = await Promise.all(
+		graphicIds.map(() => browser.newPage({ viewport: { width: 1920, height: 1080 } }))
+	);
+	const output = outputs[0];
+	const errors: string[] = [];
 	const mutations: string[] = [];
-	output.on('request', (request) => {
-		if (!['GET', 'HEAD'].includes(request.method())) mutations.push(request.url());
-	});
+	for (const target of outputs) {
+		target.on('pageerror', (error) => errors.push(error.message));
+		target.on('request', (request) => {
+			if (!['GET', 'HEAD'].includes(request.method())) mutations.push(request.url());
+		});
+	}
 	const db = createClient({ url: process.env.DATABASE_URL! });
 	try {
 		const original = (await db.execute('SELECT * FROM broadcast_state')).rows;
-		for (const graphic of graphicIds) {
+		await mkdir('docs/phase-5-screenshots', { recursive: true });
+		for (const [index, graphic] of graphicIds.entries()) {
+			const output = outputs[index];
 			await output.goto(`/gfx/live/${graphic}`);
 			await expect(output.locator('[data-graphic]')).toHaveAttribute(
 				'data-game-id',
@@ -48,25 +67,69 @@ test('production graphics stay stable, transparent and read-only across live sel
 			expect(
 				await output.locator('body').evaluate((el) => getComputedStyle(el).backgroundColor)
 			).toBe('rgba(0, 0, 0, 0)');
+			await expect(output.locator('[data-graphic] section').first()).toBeVisible();
+			await output.screenshot({
+				path: `docs/phase-5-screenshots/${graphic}.png`,
+				omitBackground: true
+			});
+			await page.getByRole('tab', { name: graphicLabels[graphic], exact: true }).click();
+			await page.getByLabel(`Show ${graphicLabels[graphic]}`, { exact: true }).uncheck();
+			await save(page, `Save ${graphicLabels[graphic]}`);
+			await expect(output.locator('[data-graphic] > div')).toHaveCount(0);
+			await page.getByLabel(`Show ${graphicLabels[graphic]}`, { exact: true }).check();
+			await save(page, `Save ${graphicLabels[graphic]}`);
+			await expect(output.locator('[data-graphic] section').first()).toBeVisible();
 		}
-		expect((await db.execute('SELECT * FROM broadcast_state')).rows).toEqual(original);
-		await output.goto('/gfx/live/player-lineup');
+		// Visibility mutations alone leave the persisted selection and presentation intact.
+		const current = (await db.execute('SELECT * FROM broadcast_state')).rows[0];
+		expect(original[0].selected_game_id).toBe(game.split('/').pop()!);
+		for (const key of ['selected_game_id', 'swapped', 'current_attackers_entry_id'])
+			expect(current[key]).toEqual(original[0][key]);
 		await expect(output.getByRole('heading', { name: 'Player Lineup', exact: true })).toBeVisible();
+		await page
+			.getByRole('combobox', { name: 'Tournament', exact: true })
+			.selectOption('tabs-event');
+		for (const output of outputs)
+			await expect(output.locator('[data-graphic]')).toHaveAttribute(
+				'data-game-id',
+				game.split('/').pop()!
+			);
+		await page
+			.getByRole('combobox', { name: 'Tournament', exact: true })
+			.selectOption(tournament.split('/').pop()!);
+		await page
+			.getByRole('combobox', { name: 'Match', exact: true })
+			.selectOption(match.split('/').pop()!);
 		await page
 			.getByRole('combobox', { name: 'Game', exact: true })
 			.selectOption(nextGame.split('/').pop()!);
 		await save(page, 'Take game live');
-		await expect(output.locator('[data-graphic]')).toHaveAttribute(
-			'data-game-id',
-			nextGame.split('/').pop()!
-		);
+		for (const output of outputs)
+			await expect(output.locator('[data-graphic]')).toHaveAttribute(
+				'data-game-id',
+				nextGame.split('/').pop()!
+			);
 		await expect(output).toHaveURL(/\/gfx\/live\/player-lineup$/);
+		const revisions = await Promise.all(
+			outputs.map((output) => output.locator('[data-graphic]').getAttribute('data-revision'))
+		);
+		expect(new Set(revisions).size).toBe(1);
+		expect(Number(revisions[0])).toBeGreaterThan(Number(current.revision));
+		for (const output of outputs) {
+			await output.reload();
+			await expect(output.locator('[data-graphic]')).toHaveAttribute(
+				'data-game-id',
+				nextGame.split('/').pop()!
+			);
+		}
 		await save(page, 'Clear live selection');
-		await expect(output.getByText('No game selected', { exact: true })).toBeVisible();
+		for (const output of outputs)
+			await expect(output.getByText('No game selected', { exact: true })).toBeVisible();
+		expect(errors).toEqual([]);
 		expect(mutations).toEqual([]);
 		expect((await output.goto('/gfx/live/unknown'))?.status()).toBe(404);
 	} finally {
 		db.close();
-		await output.close();
+		await Promise.all(outputs.map((output) => output.close()));
 	}
 });
