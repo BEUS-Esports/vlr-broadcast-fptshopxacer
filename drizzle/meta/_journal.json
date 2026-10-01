@@ -29,6 +29,13 @@
       "when": 1790782429807,
       "tag": "0003_brown_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790839325030,
+      "tag": "0004_broadcast_state",
+      "breakpoints": true
     }
   ]
 }
