@@ -237,22 +237,28 @@ it('keeps every action of a prepared seven-step veto visible without scrolling',
 		sideChooserEntryId: action === 'ban' ? null : 'b',
 		sideChoice: action === 'ban' ? null : 'defense'
 	}));
-	const view = render(Graphic, { snapshot, graphic: 'map-veto' });
-	const list = view.container.querySelector('ol')!;
-	const bounds = list.getBoundingClientRect();
-	const steps = list.querySelectorAll('[data-sequence]');
-	expect(steps).toHaveLength(7);
-	expect(list.scrollHeight).toBeLessThanOrEqual(list.clientHeight);
-	for (const [index, step] of [...steps].entries()) {
-		const box = step.getBoundingClientRect();
-		expect(box.top).toBeGreaterThanOrEqual(bounds.top);
-		expect(box.bottom).toBeLessThanOrEqual(bounds.bottom);
-		expect(step.textContent).toContain(`Saved map ${index + 1}`);
-		expect(step.textContent).toContain(index % 2 === 0 ? 'Team a' : 'Team b');
-		if (snapshot.veto[index].gameNumber !== null) {
-			expect(step.textContent).toContain(`Game ${snapshot.veto[index].gameNumber}`);
-			expect(step.textContent).toContain('Team b · Defender');
+	for (const longNames of [false, true]) {
+		if (longNames) {
+			snapshot.teams.forEach((team) => (team.name += ' long saved name'.repeat(30)));
+			snapshot.veto.forEach((step) => (step.map.displayName += ' long saved name'.repeat(30)));
 		}
+		const view = render(Graphic, { snapshot, graphic: 'map-veto' });
+		const list = view.container.querySelector('ol')!;
+		const bounds = list.getBoundingClientRect();
+		const steps = list.querySelectorAll('[data-sequence]');
+		expect(steps).toHaveLength(7);
+		expect(list.scrollHeight).toBeLessThanOrEqual(list.clientHeight);
+		for (const [index, step] of [...steps].entries()) {
+			const box = step.getBoundingClientRect();
+			expect(box.top).toBeGreaterThanOrEqual(bounds.top);
+			expect(box.bottom).toBeLessThanOrEqual(bounds.bottom);
+			expect(step.textContent).toContain(snapshot.veto[index].map.displayName);
+			expect(step.textContent).toContain(index % 2 === 0 ? 'Team a' : 'Team b');
+			if (snapshot.veto[index].gameNumber !== null) {
+				expect(step.textContent).toContain(`Game ${snapshot.veto[index].gameNumber}`);
+				expect(step.textContent).toContain(`${snapshot.teams[1].name} · Defender`);
+			}
+		}
+		expect(steps[6].getBoundingClientRect().bottom).toBeLessThanOrEqual(1016);
 	}
-	expect(steps[6].getBoundingClientRect().bottom).toBeLessThanOrEqual(1016);
 });

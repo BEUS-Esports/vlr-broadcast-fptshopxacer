@@ -60,6 +60,7 @@
 		margin: 32px 0 0;
 		list-style: none;
 		max-height: 680px;
+		/* ponytail: vetoes beyond two rows scroll; condense or paginate if an event needs more steps. */
 		overflow: auto;
 	}
 	li {
