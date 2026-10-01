@@ -7,6 +7,7 @@
 	import PostGame from './PostGame.svelte';
 	import PlayerStats from './PlayerStats.svelte';
 	import MVP from './MVP.svelte';
+	import InGame from './InGame.svelte';
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 	const pregame = $derived(
 		snapshot.selection !== null &&
@@ -16,27 +17,31 @@
 	);
 </script>
 
-<section class:pregame aria-label={graphicLabels[graphic]}>
-	<h1>{graphicLabels[graphic]}</h1>
-	{#if snapshot.selection && graphic === 'player-lineup'}
-		<PlayerLineup {snapshot} />
-	{:else if snapshot.selection && graphic === 'map-veto'}
-		<MapVeto {snapshot} />
-	{:else if snapshot.selection && graphic === 'agent-select'}
-		<AgentSelect {snapshot} />
-	{:else if snapshot.selection && graphic === 'post-game'}
-		<PostGame {snapshot} />
-	{:else if snapshot.selection && graphic === 'player-stats'}
-		<PlayerStats {snapshot} />
-	{:else if snapshot.selection && graphic === 'mvp'}
-		<MVP {snapshot} />
-	{:else if snapshot.selection}
-		<p>{snapshot.tournament?.name ?? 'Unknown tournament'}</p>
-		<p>{snapshot.match?.label ?? 'Unknown match'} · {snapshot.game?.name ?? 'Unknown game'}</p>
-	{:else}
-		<p>No game selected</p>
-	{/if}
-</section>
+{#if graphic === 'in-game'}
+	<InGame {snapshot} />
+{:else}
+	<section class:pregame aria-label={graphicLabels[graphic]}>
+		<h1>{graphicLabels[graphic]}</h1>
+		{#if snapshot.selection && graphic === 'player-lineup'}
+			<PlayerLineup {snapshot} />
+		{:else if snapshot.selection && graphic === 'map-veto'}
+			<MapVeto {snapshot} />
+		{:else if snapshot.selection && graphic === 'agent-select'}
+			<AgentSelect {snapshot} />
+		{:else if snapshot.selection && graphic === 'post-game'}
+			<PostGame {snapshot} />
+		{:else if snapshot.selection && graphic === 'player-stats'}
+			<PlayerStats {snapshot} />
+		{:else if snapshot.selection && graphic === 'mvp'}
+			<MVP {snapshot} />
+		{:else if snapshot.selection}
+			<p>{snapshot.tournament?.name ?? 'Unknown tournament'}</p>
+			<p>{snapshot.match?.label ?? 'Unknown match'} · {snapshot.game?.name ?? 'Unknown game'}</p>
+		{:else}
+			<p>No game selected</p>
+		{/if}
+	</section>
+{/if}
 
 <style>
 	section {

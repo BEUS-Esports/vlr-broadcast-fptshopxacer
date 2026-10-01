@@ -202,7 +202,6 @@ export async function buildBroadcastSnapshot(): Promise<BroadcastSnapshot> {
 				)
 			);
 		// ponytail: linear rank lookups suit tournament-sized lists; use a rank Map for large entry sets.
-		// ponytail: linear rank lookups suit tournament-sized lists; use a rank Map for large entry sets.
 		snapshot.teams.sort((a, b) => entryIds.indexOf(a.entryId) - entryIds.indexOf(b.entryId));
 		snapshot.lineups = appearances
 			.filter((row) => row.gameId === game.id)
