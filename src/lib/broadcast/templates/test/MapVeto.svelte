@@ -67,7 +67,7 @@
 		padding: 20px;
 		background: #111e;
 		--asset-width: 120px;
-		--asset-height: 120px;
+		--asset-height: 96px;
 	}
 	h2 {
 		font-size: 28px;

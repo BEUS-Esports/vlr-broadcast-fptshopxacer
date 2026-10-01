@@ -217,3 +217,42 @@ it('bounds long names within transparent 1920x1080 concept margins', () => {
 		}
 	}
 });
+
+it('keeps every action of a prepared seven-step veto visible without scrolling', () => {
+	const snapshot = preparedSnapshot();
+	const actions = ['ban', 'ban', 'pick', 'pick', 'ban', 'ban', 'decider'] as const;
+	const image =
+		'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120"/%3E';
+	snapshot.veto = actions.map((action, index) => ({
+		sequence: index + 1,
+		action,
+		map: {
+			...snapshot.veto[0].map,
+			id: `map-${index}`,
+			displayName: `Saved map ${index + 1}`,
+			splashPath: image
+		},
+		actingEntryId: index % 2 === 0 ? 'a' : 'b',
+		gameNumber: action === 'pick' ? index - 1 : action === 'decider' ? 3 : null,
+		sideChooserEntryId: action === 'ban' ? null : 'b',
+		sideChoice: action === 'ban' ? null : 'defense'
+	}));
+	const view = render(Graphic, { snapshot, graphic: 'map-veto' });
+	const list = view.container.querySelector('ol')!;
+	const bounds = list.getBoundingClientRect();
+	const steps = list.querySelectorAll('[data-sequence]');
+	expect(steps).toHaveLength(7);
+	expect(list.scrollHeight).toBeLessThanOrEqual(list.clientHeight);
+	for (const [index, step] of [...steps].entries()) {
+		const box = step.getBoundingClientRect();
+		expect(box.top).toBeGreaterThanOrEqual(bounds.top);
+		expect(box.bottom).toBeLessThanOrEqual(bounds.bottom);
+		expect(step.textContent).toContain(`Saved map ${index + 1}`);
+		expect(step.textContent).toContain(index % 2 === 0 ? 'Team a' : 'Team b');
+		if (snapshot.veto[index].gameNumber !== null) {
+			expect(step.textContent).toContain(`Game ${snapshot.veto[index].gameNumber}`);
+			expect(step.textContent).toContain('Team b · Defender');
+		}
+	}
+	expect(steps[6].getBoundingClientRect().bottom).toBeLessThanOrEqual(1016);
+});
