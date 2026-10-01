@@ -12,6 +12,87 @@ const pick = (mapId: string, gameNumber: number | null) => ({
 	sideChoice: null
 });
 
+it('preserves an operator-edited first actor, including after a neutral decider', () =>
+	withManagementFixture(async ({ db }) => {
+		const { replaceMatchVeto } = await import('./vetoes');
+		await replaceMatchVeto({
+			matchId: 'match',
+			expectedMatchRevision: 1,
+			actions: [{ ...pick('map-1', null), actingEntryId: 'entry-b' }]
+		});
+		await replaceMatchVeto({
+			matchId: 'match',
+			expectedMatchRevision: 2,
+			actions: [
+				{ ...pick('map-2', null), action: 'decider', actingEntryId: null },
+				{ ...pick('map-1', null), actingEntryId: 'entry-b' }
+			]
+		});
+		expect(
+			(
+				await db.select().from(schema.matchVetoActions).orderBy(schema.matchVetoActions.sequence)
+			).map((row) => row.actingEntryId)
+		).toEqual([null, 'entry-b']);
+	}));
+
+it('allows the upper-bracket Team B two opening BO5 bans', () =>
+	withManagementFixture(async ({ db }) => {
+		const { replaceMatchVeto } = await import('./vetoes');
+		const bans = [
+			{ ...pick('map-1', null), action: 'ban' as const, actingEntryId: 'entry-b' },
+			{ ...pick('map-2', null), action: 'ban' as const, actingEntryId: 'entry-b' }
+		];
+		await db.update(schema.matches).set({ bestOf: 5 });
+		await replaceMatchVeto({
+			matchId: 'match',
+			expectedMatchRevision: 1,
+			actions: [...bans, pick('map-3', 1)]
+		});
+		expect(
+			(
+				await db.select().from(schema.matchVetoActions).orderBy(schema.matchVetoActions.sequence)
+			).map((row) => [row.action, row.actingEntryId])
+		).toEqual([
+			['ban', 'entry-b'],
+			['ban', 'entry-b'],
+			['pick', 'entry-a']
+		]);
+	}));
+
+it('uses the swapped Team A as first actor and permits consecutive later actions by either team', () =>
+	withManagementFixture(async ({ db }) => {
+		const { updateMatchParticipants } = await import('./matches');
+		const { replaceMatchVeto } = await import('./vetoes');
+		await updateMatchParticipants({
+			matchId: 'match',
+			expectedRevision: 1,
+			teamAEntryId: 'entry-b',
+			teamBEntryId: 'entry-a'
+		});
+		await replaceMatchVeto({
+			matchId: 'match',
+			expectedMatchRevision: 2,
+			actions: [
+				{ ...pick('map-1', null), actingEntryId: 'entry-b' },
+				{ ...pick('map-2', null), actingEntryId: 'entry-a' },
+				{ ...pick('map-3', null), actingEntryId: 'entry-a' }
+			]
+		});
+		expect(
+			(
+				await db.select().from(schema.matchVetoActions).orderBy(schema.matchVetoActions.sequence)
+			).map((row) => row.actingEntryId)
+		).toEqual(['entry-b', 'entry-a', 'entry-a']);
+		await expect(
+			updateMatchParticipants({
+				matchId: 'match',
+				expectedRevision: 3,
+				teamAEntryId: 'entry-a',
+				teamBEntryId: 'entry-b'
+			})
+		).rejects.toMatchObject({ code: 'blocked' });
+	}));
+
 it('supports arbitrary ordered same-team picks, stable IDs, future games, and neutral deciders', async () => {
 	await withManagementFixture(async ({ db }) => {
 		const { replaceMatchVeto } = await import('./vetoes');

@@ -227,6 +227,10 @@
 				{#if !data.tournament.archivedAt}
 					<div class="admin-editor">
 						<h2 class="h3">Create match</h2>
+						<p class="my-2 text-sm text-surface-600-400">
+							Team A starts standard vetoes. A grand final may begin with two upper-bracket bans
+							from either team. You can swap Team A and Team B before dependent data is saved.
+						</p>
 						<ManagementForm
 							action="?/createMatch"
 							initial={{ teamAEntryId: '', teamBEntryId: '', label: '', bestOf: 3 }}

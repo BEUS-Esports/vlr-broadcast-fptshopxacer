@@ -5,6 +5,7 @@
 		matchId,
 		revision,
 		bestOf,
+		teamAEntryId,
 		actions,
 		entries,
 		maps,
@@ -13,12 +14,66 @@
 		matchId: string;
 		revision: number;
 		bestOf: number;
+		teamAEntryId: string;
 		actions: VetoActionInput[];
 		entries: Array<{ id: string; name: string }>;
 		maps: Array<{ id: string; displayName: string }>;
 		disabled?: boolean;
 	} = $props();
 	type Row = VetoActionInput & { key: string };
+	const teamBEntryId = $derived(entries.find((entry) => entry.id !== teamAEntryId)?.id);
+	function presetActions(upperBracketEntryId?: string): Row[] {
+		if (!teamBEntryId) return [];
+		const types: VetoActionInput['action'][] =
+			bestOf === 1
+				? ['ban', 'ban', 'ban', 'ban', 'ban', 'ban', 'decider']
+				: bestOf === 3
+					? ['ban', 'ban', 'pick', 'pick', 'ban', 'ban', 'decider']
+					: ['ban', 'ban', 'pick', 'pick', 'pick', 'pick', 'decider'];
+		const gameNumbers =
+			bestOf === 1
+				? [null, null, null, null, null, null, 1]
+				: bestOf === 3
+					? [null, null, 1, 2, null, null, 3]
+					: [null, null, 1, 2, 3, 4, 5];
+		const actors = upperBracketEntryId
+			? [
+					upperBracketEntryId,
+					upperBracketEntryId,
+					teamAEntryId,
+					teamBEntryId,
+					teamAEntryId,
+					teamBEntryId,
+					null
+				]
+			: [teamAEntryId, teamBEntryId, teamAEntryId, teamBEntryId, teamAEntryId, teamBEntryId, null];
+		return actors.map((actingEntryId, index) => ({
+			key: crypto.randomUUID(),
+			action: types[index],
+			mapId: '',
+			actingEntryId,
+			gameNumber: gameNumbers[index],
+			sideChooserEntryId: null,
+			sideChoice: null
+		}));
+	}
+	function fillDraft(
+		draft: {
+			actions: Row[];
+			applyToDraftGames: Array<{ gameId: string; expectedGameRevision: number }>;
+		},
+		upperBracketEntryId?: string
+	) {
+		if (
+			draft.actions.length &&
+			!window.confirm(
+				'Replace the current veto draft with this order? Saved actions stay unchanged until you save.'
+			)
+		)
+			return;
+		draft.actions = presetActions(upperBracketEntryId);
+		draft.applyToDraftGames = [];
+	}
 	function move(rows: Row[], index: number, direction: number) {
 		const next = [...rows];
 		[next[index], next[index + direction]] = [next[index + direction], next[index]];
@@ -36,8 +91,8 @@
 </script>
 
 <p class="mb-4 text-sm text-surface-600-400">
-	This edits the entire match. Picks may be assigned before games exist; action order does not
-	alternate teams automatically.
+	This edits the entire match. Standard map vetoes start with Team A; the upper bracket team may ban
+	twice first in a grand final. Every action remains editable.
 </p>
 <ManagementForm
 	action="?/veto"
@@ -56,6 +111,56 @@
 				if (event.target instanceof HTMLSelectElement) draft.applyToDraftGames = [];
 			}}
 		>
+			{#if bestOf === 2}
+				<p class="text-sm text-surface-600-400">
+					No map veto preset for BO2; enter actions manually.
+				</p>
+			{:else if teamBEntryId}
+				<section class="space-y-2" aria-label="Veto order presets">
+					<p class="text-sm text-surface-600-400">
+						Fill the seven-map veto order, then choose maps and side selections. Side choices stay
+						unknown until entered. Refill only replaces this draft after confirmation.
+					</p>
+					{#if maps.length !== 7}
+						<p class="text-sm text-warning-600-400">
+							The preset needs exactly seven maps in the tournament pool.
+						</p>
+					{/if}
+					<div class="flex flex-wrap gap-2">
+						<button
+							type="button"
+							class="btn preset-tonal-primary"
+							disabled={maps.length !== 7}
+							onclick={() => fillDraft(draft)}>Fill Map Veto</button
+						>
+						{#if bestOf === 5}
+							<button
+								type="button"
+								class="btn preset-tonal-primary"
+								disabled={maps.length !== 7}
+								onclick={() => fillDraft(draft, teamAEntryId)}
+								>Fill Grand Final (Upper Bracket Team A)</button
+							>
+							<button
+								type="button"
+								class="btn preset-tonal-primary"
+								disabled={maps.length !== 7}
+								onclick={() => fillDraft(draft, teamBEntryId)}
+								>Fill Grand Final (Upper Bracket Team B)</button
+							>
+						{/if}
+					</div>
+					{#if bestOf === 1}<p class="text-sm text-surface-600-400">
+							Team A chooses the side for the decider.
+						</p>
+					{:else if bestOf === 3}<p class="text-sm text-surface-600-400">
+							Side choosers: Team B for Game 1; Team A for Games 2 and 3.
+						</p>
+					{:else}<p class="text-sm text-surface-600-400">
+							Side choosers: Team B for Games 1, 3, and 5; Team A for Games 2 and 4.
+						</p>{/if}
+				</section>
+			{/if}
 			{#each draft.actions as row, index (row.key)}
 				<section
 					class="space-y-3 rounded-base border border-surface-200-800 p-4"
@@ -178,7 +283,7 @@
 							key: crypto.randomUUID(),
 							action: 'pick',
 							mapId: '',
-							actingEntryId: entries[0]?.id ?? null,
+							actingEntryId: teamAEntryId,
 							gameNumber: null,
 							sideChooserEntryId: null,
 							sideChoice: null

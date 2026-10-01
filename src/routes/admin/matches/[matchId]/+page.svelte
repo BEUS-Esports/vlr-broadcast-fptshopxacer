@@ -112,6 +112,10 @@
 				</section>
 				<section class="admin-editor" aria-label="Match participants">
 					<h2 class="h3">Team A and Team B</h2>
+					<p class="my-2 text-sm text-surface-600-400">
+						Team A starts standard vetoes; a grand final may begin with two upper-bracket bans from
+						either team. Broadcast left/right and attacker/defender sides are separate.
+					</p>
 					{#if data.participantBlockers.length}<p class="my-2 text-sm text-surface-600-400">
 							Participants are locked by {data.participantBlockers.join(', ')}. Clear those records
 							explicitly before changing team identity.
@@ -148,6 +152,18 @@
 									></label
 								>
 							</div>
+							<button
+								type="button"
+								class="btn preset-tonal-primary"
+								disabled={pending ||
+									!!data.participantBlockers.length ||
+									!!data.tournament.archivedAt}
+								onclick={() => {
+									const teamA = draft.teamAEntryId;
+									draft.teamAEntryId = draft.teamBEntryId;
+									draft.teamBEntryId = teamA;
+								}}>Swap Team A / Team B</button
+							>
 							<button
 								class="btn preset-filled-primary-500"
 								disabled={pending ||
@@ -296,6 +312,7 @@
 					matchId={data.match.id}
 					revision={data.match.revision}
 					bestOf={data.match.bestOf}
+					teamAEntryId={data.match.teamAEntryId}
 					actions={data.vetoes}
 					entries={data.entries.filter(
 						(entry) => entry.id === data.match.teamAEntryId || entry.id === data.match.teamBEntryId

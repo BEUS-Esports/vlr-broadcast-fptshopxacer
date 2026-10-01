@@ -21,7 +21,7 @@
 The additional decisions in section 2 were adopted for implementation. Management editing requires JavaScript; read-only tab links remain available without it. Each successful enhanced save applies its result in place (`navigate: false`) to retain the workspace tab. Archived player profiles cannot become new lineup choices; same-game historical selections remain retainable.
 
 > [!IMPORTANT]
-> **Known semantic correction discovered 2026-10-01:** Match Team A / Team B must represent veto competition order, with Team A taking the first acting veto action. The current implementation persists A/B identities but does not enforce or explain that first-actor meaning. Complete [the Team A/B veto-order correction](./2026-10-01-team-a-b-veto-order-correction.md) before accepting the Phase 5 Map Veto graphics workflow.
+> **Semantic follow-up updated 2026-10-01:** Match Team A / Team B represent competition order. Team A starts the standard map veto; a grand-final upper-bracket team may ban twice first as A or B. The editor offers editable ruleset drafts and preserves saved actor ownership. See [the Team A/B veto-order correction](./2026-10-01-team-a-b-veto-order-correction.md) before accepting the Phase 5 Map Veto graphics workflow.
 
 ## Verification evidence — 2026-09-30
 

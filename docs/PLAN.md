@@ -13,7 +13,7 @@ The specification owns product behavior. This file owns build order, concrete wo
 | Existing item          | Current state / implication                                                                                                                                                                  |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.       |
-| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; reviewed forward migrations through `0003` recreate the current schema.                 |
+| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; reviewed forward migrations through `0003` recreate the current schema.  |
 | Routes                 | `/admin` has Team, Player, and Game Resources CRUD screens. `/gfx` remains a transparent 1920×1080 canvas.                                                                                   |
 | Production graphics    | `src/routes/gfx/+layout.js` currently sets `ssr = false` and `csr = dev`, disabling client rendering in production. Resolve this when building actual outputs and verify a production build. |
 | Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.           |
@@ -104,7 +104,7 @@ Use small, realistic fixtures: two tournaments with different map pools, teams w
 
 Progress, 2026-09-30: Tournament, roster, pool, match, individual game, historical lineup, and shared veto management use the existing schema. Skeleton tabs retain drafts and support deep links, keyboard navigation, and history. Five isolated browser tests cover the acceptance workflow, losing drafts from two operators, sibling-section revisions, and malformed inputs. Separate database connections exercise related-record races; a writer process exits before a fresh reader validates saved setup and foreign keys. Normal score corrections, explicit reopen, exceptional outcomes, and explicit veto propagation are covered. Final verification details are recorded in the Phase 3 implementation plan. No event-data migration was required.
 
-**Required follow-up before Phase 5 Map Veto output:** Team A / Team B must stop being merely participant labels and become the match's competition-order slots. Team A is the first veto actor; if the other team must act first, the operator must swap A/B before dependent match data exists. This correction is specified in [2026-10-01-team-a-b-veto-order-correction.md](./2026-10-01-team-a-b-veto-order-correction.md).
+**Required follow-up before Phase 5 Map Veto output:** Team A / Team B are competition-order slots. Team A starts the standard map veto, while an upper-bracket team may take two opening grand-final bans as A or B. The editor offers editable presets and saves the operator's chosen actors. This correction is specified in [2026-10-01-team-a-b-veto-order-correction.md](./2026-10-01-team-a-b-veto-order-correction.md).
 
 ## Phase 4 — Make manual post-game statistics and all scopes usable
 
@@ -132,7 +132,7 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 
 ### Work
 
-- [ ] Complete the Team A / Team B veto-order correction before building the Map Veto output: Match Team A is the first veto actor, Match Team B is the second competition-order slot, and broadcast left/right remains a separate presentation concern. See [the corrective note](./2026-10-01-team-a-b-veto-order-correction.md).
+- [x] Complete the management/domain Team A / Team B veto-order correction before building the Map Veto output: Team A starts the standard map veto preset, grand-final upper-bracket bans may start from A or B, and saved veto order remains editable. Broadcast left/right isolation is verified with its Phase 5 control. See [the corrective note](./2026-10-01-team-a-b-veto-order-correction.md).
 - [ ] Add the single persistent live-game selection with a revision/version check. Build the shared Tournament → Match → Game selector; partial dropdown changes retain the prior on-air game, while a complete valid selection updates the broadcast.
 - [ ] Add a server-owned broadcast snapshot/update path, initially using the specification's SSE default with ordinary authenticated control actions. Reconnecting clients obtain the latest snapshot. Expose only explicit broadcast fields.
 - [ ] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
@@ -148,7 +148,9 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 
 ### Focused proof
 
-Run a browser scenario with two controller sessions and at least one output: select, edit, reconnect, recover from a stale selection write, swap presentation left/right without mutating Match A/B, and change attacker/defender colors without moving team positions. Verify Team A is the first veto actor, a production build, an unknown custom slug falling back to a test template, incomplete lineups, and outputs without operator cookies. Record an actual OBS visual check separately from browser-test results.
+Run a browser scenario with two controller sessions and at least one output: select, edit, reconnect, recover from a stale selection write, swap presentation left/right without mutating Match A/B, and change attacker/defender colors without moving team positions. Verify the standard Team A preset, a Team B upper-bracket double-ban, manually edited saved veto order, a production build, an unknown custom slug falling back to a test template, incomplete lineups, and outputs without operator cookies. Record an actual OBS visual check separately from browser-test results.
+
+Progress, 2026-10-01: Match creation and editing explain standard A/B order, the participant form offers a revision-checked swap before dependencies exist, and the Map Veto editor fills editable seven-map BO1/BO3/BO5 or grand-final drafts. The service preserves operator-chosen actors, including a Team B grand-final opening, while validating participants and map relationships. Broadcast left/right and its isolation test remain in the next Phase 5 work.
 
 ## Phase 6 — Integrate live providers and the HUD recovery rules
 
@@ -256,4 +258,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, complete the **Team A / Team B veto-order correction**, then build **Phase 5: shared broadcast controls and the seven functional test graphics** using [the detailed Phase 5 plan](./2026-10-01-phase-5-broadcast-controls-test-graphics.md). Reuse the Phase 3 management records and Phase 4 statistics/MVP read models rather than creating graphics-only copies. Real provider captures are not required to begin Phase 5.
+Next, build **Phase 5: shared broadcast controls and the seven functional test graphics** using [the detailed Phase 5 plan](./2026-10-01-phase-5-broadcast-controls-test-graphics.md). Verify the broadcast left/right control cannot change Match A/B or saved veto actors. Reuse the Phase 3 management records and Phase 4 statistics/MVP read models rather than creating graphics-only copies. Real provider captures are not required to begin Phase 5.

@@ -30,8 +30,9 @@
   - **Head-to-Head**
 - In-Game implementation is **native-HUD-safe first**.
 - Match **Team A / Team B** is competition order:
-  - Team A is the first veto actor.
-  - Team B is the other competition-order slot.
+  - Team A starts the standard map veto sequence.
+  - Team B is the other competition-order slot; grand-final upper-bracket bans may start with either A or B.
+  - Saved veto actors and order remain operator-editable.
 - Broadcast **left/right** is presentation order:
   - default A-left / B-right
   - explicit presentation-only Swap Left/Right is allowed.
@@ -65,13 +66,15 @@ Complete [the dedicated correction](./2026-10-01-team-a-b-veto-order-correction.
 
 Required result:
 
-- Team A is visibly and behaviorally the first veto actor.
-- the first non-neutral acting veto action agrees with Team A;
+- Team A is visibly the standard map veto sequence opener;
+- BO1, BO3, BO5, and BO5 grand-final presets fill editable veto drafts while saved actors remain authoritative;
 - Match UI offers a clear A/B correction path before dependent data locks identity;
 - later veto actors remain flexible;
 - presentation left/right never changes Match A/B.
 
 Do not hide this requirement inside graphics code.
+
+Management/domain implementation updated 2026-10-01 for editable veto presets, including upper-bracket Team B opening bans. The broadcast left/right isolation check remains with Tasks 1–2, when the presentation override exists.
 
 ---
 
@@ -325,7 +328,7 @@ Full-screen veto sequence using:
 - map images;
 - game number/side choice where prepared.
 
-Do not infer veto actor from graphics left/right. Team A's first-actor rule is enforced in management/domain behavior, then the graphic simply renders canonical data.
+Do not infer veto actor from graphics left/right or the standard preset. The graphic renders saved actors and order.
 
 ### Agent Select
 
@@ -447,7 +450,7 @@ The later custom HUD may keep only selected native elements such as timer, killf
 ### Browser journey B — identity axes
 
 1. Prepare Team A and Team B.
-2. Verify Team A is the first veto actor.
+2. Verify Team A is the standard preset's first actor; also verify a grand-final upper-bracket Team B double-ban and a manually edited order.
 3. Render A-left/B-right.
 4. Toggle Swap Left/Right.
 5. Verify the screen swaps but Match A/B, veto actors, scores, and lineups do not.

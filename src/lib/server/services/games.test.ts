@@ -72,6 +72,10 @@ it('creates individual stable slots, preserves team scores across side swaps, an
 			scoreB: 9,
 			winnerEntryId: null
 		});
+		expect((await db.select().from(schema.matches))[0]).toMatchObject({
+			teamAEntryId: 'entry-a',
+			teamBEntryId: 'entry-b'
+		});
 		for (const scoreA of [NaN, -1, 1.5, Infinity])
 			await expect(
 				service.saveGameResult({ ...key(), result: { mode: 'draft', scoreA, scoreB: 0 } })

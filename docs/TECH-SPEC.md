@@ -53,7 +53,7 @@ Authorization must be enforced on the server for every protected read/write, not
 | Player / Team             | Reusable profiles and branding, identified by stable application IDs. |
 | Tournament entry / roster | A team's participation in one tournament and its plain list of available players. |
 | Match                     | A series between two tournament entries, including its best-of format and series-wide map veto. |
-| Match Team A / Team B     | Competition-order slots. Team A is the first veto actor; Team B is the other match participant. These identities are not attacker/defender colors and are not a broadcast left/right override. |
+| Match Team A / Team B     | Competition-order slots. Team A starts the standard map veto; a grand-final upper-bracket team may ban twice first as A or B. Saved veto actors remain editable. These identities are not attacker/defender colors or a broadcast left/right override. |
 | Game / lineup             | One played map within a match, with its own selected five players per team, sides, scores, and result. |
 | Broadcast left / right    | Presentation order. Default A-left/B-right; an operator may swap presentation without changing Match A/B identity, veto ownership, scores, or lineups. |
 | Attacker / Defender       | Current gameplay side. Attacker is always blue and Defender is always red in broadcast graphics; color changes do not move a team between left and right. |
@@ -103,7 +103,7 @@ Incomplete games do not contribute a winner to the series score. Correcting a co
 
 The map veto belongs to the **entire match**, not an individual game. Store ordered ban/pick/decider information, the map, the acting team when applicable, and the target game number for a selected map.
 
-**Team A / Team B is semantically meaningful. Team A is the team that takes the first acting veto action.** If tournament procedure requires the other team to act first, assign/swap that team into the Team A slot before veto actions, games, or stored match results lock participant identity. The Match editor must explain this meaning and provide an obvious way to correct A/B while the participants are still mutable. The first non-neutral acting veto action must belong to Team A; changing later action order/acting teams remains supported for tournament-specific sequences, including consecutive same-team picks and winner-bracket advantages.
+**Team A / Team B is semantically meaningful. Team A starts the standard map veto sequence.** The better-seeded team chooses A or B, or that choice is decided at random when there is no seeding. In a double-elimination grand final, the upper-bracket team may make the first two bans whether it chose A or B. The Match editor must explain A/B and allow a swap while participants are still mutable. The Map Veto editor may fill the Riot-based BO1, BO3, BO5, or grand-final order as a draft, but every action remains editable. Saved `actingEntryId` values determine the actual sequence; graphics must not derive actors from A/B or screen position. BO2 remains manual because the cited procedures do not define it.
 
 Do not use Team A/B to encode attack/defense or broadcast screen position. Side-choice information may be recorded with the selected map and applied when its game is prepared.
 

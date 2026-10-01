@@ -286,6 +286,7 @@
 					matchId={data.match.id}
 					revision={data.match.revision}
 					bestOf={data.match.bestOf}
+					teamAEntryId={data.match.teamAEntryId}
 					actions={data.vetoActions}
 					entries={data.entries}
 					maps={data.maps}
