@@ -34,6 +34,14 @@ it('recognizes successful management writes and controls without publishing fail
 			await successfulBroadcastMutation(request, '/admin/games/[gameId]', json({ type }))
 		).toBe(true);
 	const get = new Request('http://localhost/admin/teams');
+	const refresh = new Request('http://localhost/admin/resources?/refresh', { method: 'POST' });
+	expect(
+		await successfulBroadcastMutation(
+			refresh,
+			'/admin/resources',
+			new Response('', { status: 303 })
+		)
+	).toBe(false);
 	expect(await successfulBroadcastMutation(get, '/admin/teams', new Response())).toBe(false);
 	expect(await successfulBroadcastMutation(request, '/unrelated', new Response())).toBe(false);
 	expect(await successfulBroadcastMutation(request, '/admin/resources/sync', new Response())).toBe(

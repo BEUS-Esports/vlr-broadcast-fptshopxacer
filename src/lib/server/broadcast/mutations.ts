@@ -7,6 +7,8 @@ export async function successfulBroadcastMutation(
 	if (request.method !== 'POST' || !routeId || response.status < 200 || response.status >= 400)
 		return false;
 	if (routeId === '/admin/resources/sync') return false;
+	if (routeId === '/admin/resources' && new URL(request.url).searchParams.has('/refresh'))
+		return false;
 	if (
 		!/^\/admin\/(teams|players|resources|tournaments|matches|games|graphics)(?:\/|$)/.test(routeId)
 	)

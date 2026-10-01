@@ -5,6 +5,7 @@ import { agents, maps, weapons } from '#lib/server/db/schema/index.ts';
 import { field, formError } from '#lib/server/services/form-error.ts';
 import { refreshCatalogue, removeResource, saveResource } from '#lib/server/services/resources.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
+import { broadcastPublisher } from '#lib/server/broadcast/publisher.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 function validKind(kind: string): kind is 'map' | 'agent' | 'weapon' {
@@ -54,10 +55,7 @@ export const actions: Actions = {
 		} catch (cause) {
 			return formError(cause, form);
 		}
-		redirect(
-			303,
-			`/admin/resources?tab=${tabFor(kind)}&${kind}=${encodeURIComponent(id)}`
-		);
+		redirect(303, `/admin/resources?tab=${tabFor(kind)}&${kind}=${encodeURIComponent(id)}`);
 	},
 	delete: async ({ request }) => {
 		const form = await request.formData();
@@ -79,6 +77,16 @@ export const actions: Actions = {
 			return fail(502, {
 				error: 'Catalogue refresh failed. Saved resources were kept; try again later.'
 			});
+		} finally {
+			// Each resource kind commits separately; a later failure may leave changed on-air data.
+			try {
+				await broadcastPublisher.publish();
+			} catch (cause) {
+				console.error(
+					'Catalogue refresh broadcast publication failed; clients will resynchronize.',
+					cause
+				);
+			}
 		}
 		redirect(303, '/admin/resources?refreshed=1');
 	}
