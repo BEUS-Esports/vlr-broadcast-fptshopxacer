@@ -76,8 +76,13 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 		await initialize(tx);
 		const [current] = await tx
 			.update(broadcastState)
-			.set({ revision: sql`${broadcastState.revision} + 1` })
-			.where(and(eq(broadcastState.id, 1), eq(broadcastState.revision, input.expectedRevision)))
+			.set({ controlRevision: sql`${broadcastState.controlRevision} + 1` })
+			.where(
+				and(
+					eq(broadcastState.id, 1),
+					eq(broadcastState.controlRevision, input.expectedRevision)
+				)
+			)
 			.returning();
 		if (!current) throw new SaveError('stale', 'Broadcast controls changed. Reload before saving.');
 		const selectedGameId =
@@ -86,7 +91,8 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 		const changedGame = selectedGameId !== current.selectedGameId;
 		const state = {
 			selectedGameId,
-			swapped: input.swapped ?? (changedGame ? false : current.swapped),
+			// Presentation order is an explicit operator override, not game-owned state.
+			swapped: input.swapped ?? current.swapped,
 			currentAttackersEntryId:
 				input.currentAttackersEntryId === undefined
 					? changedGame

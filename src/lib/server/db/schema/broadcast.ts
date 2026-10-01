@@ -16,7 +16,9 @@ export const broadcastState = sqliteTable(
 	{
 		id: integer('id').primaryKey().default(1),
 		selectedGameId: text('selected_game_id').references(() => games.id, { onDelete: 'restrict' }),
-		revision: revisionColumn(),
+		// `revision` is prepared-data invalidation; operator stale-write locking is separate.
+		dataRevision: revisionColumn(),
+		controlRevision: integer('control_revision').notNull().default(1),
 		swapped: integer('swapped', { mode: 'boolean' }).notNull().default(false),
 		currentAttackersEntryId: text('current_attackers_entry_id').references(
 			() => tournamentEntries.id,
@@ -39,7 +41,7 @@ export const broadcastState = sqliteTable(
 	},
 	(table) => [
 		check('broadcast_singleton_check', sql`${table.id} = 1`),
-		check('broadcast_revision_check', sql`${table.revision} > 0`),
+		check('broadcast_revision_check', sql`${table.dataRevision} > 0`),
 		check('broadcast_swapped_check', sql`${table.swapped} in (0, 1)`),
 		check('broadcast_mvp_scope_check', sql`${table.mvpScope} in ('game', 'match', 'tournament')`)
 	]

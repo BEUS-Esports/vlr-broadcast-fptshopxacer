@@ -110,11 +110,13 @@ test('production graphics stay stable, transparent and read-only across live sel
 				nextGame.split('/').pop()!
 			);
 		await expect(output).toHaveURL(/\/gfx\/live\/player-lineup$/);
-		const revisions = await Promise.all(
-			outputs.map((output) => output.locator('[data-graphic]').getAttribute('data-revision'))
+		const controlRevisions = await Promise.all(
+			outputs.map((output) =>
+				output.locator('[data-graphic]').getAttribute('data-control-revision')
+			)
 		);
-		expect(new Set(revisions).size).toBe(1);
-		expect(Number(revisions[0])).toBeGreaterThan(Number(current.revision));
+		expect(new Set(controlRevisions).size).toBe(1);
+		expect(Number(controlRevisions[0])).toBeGreaterThan(Number(current.control_revision));
 		for (const output of outputs) {
 			await output.reload();
 			await expect(output.locator('[data-graphic]')).toHaveAttribute(

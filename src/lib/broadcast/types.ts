@@ -46,7 +46,10 @@ export type BroadcastScopeView = {
 };
 export type BroadcastSnapshot = {
 	version: 1;
-	revision: number;
+	/** Optimistic-lock revision for operator broadcast controls only. */
+	controlRevision: number;
+	/** Persisted invalidation revision for prepared tournament/match/game data. */
+	dataRevision: number;
 	selection: { tournamentId: string; matchId: string; gameId: string } | null;
 	tournament: { id: string; name: string; slug: string } | null;
 	match:
@@ -106,6 +109,17 @@ export type BroadcastSnapshot = {
 		agents: boolean;
 		result: boolean;
 	};
+};
+
+export type BroadcastStreamCursor = {
+	epoch: string;
+	sequence: number;
+};
+
+export type BroadcastEnvelope = {
+	version: 1;
+	stream: BroadcastStreamCursor;
+	snapshot: BroadcastSnapshot;
 };
 
 type Check = (value: unknown) => boolean;
@@ -182,7 +196,8 @@ const result = {
 };
 const snapshotCheck = object({
 	version: oneOf(1),
-	revision: (v) => integer(v) && (v as number) > 0,
+	controlRevision: (v) => integer(v) && (v as number) > 0,
+	dataRevision: (v) => integer(v) && (v as number) > 0,
 	selection: nullable(object({ tournamentId: string, matchId: string, gameId: string })),
 	tournament: nullable(object({ id: string, name: string, slug: string })),
 	match: nullable(
@@ -281,6 +296,28 @@ export function decodeBroadcastSnapshot(data: string): BroadcastSnapshot | null 
 	try {
 		const value: unknown = JSON.parse(data);
 		return snapshotCheck(value) ? (value as BroadcastSnapshot) : null;
+	} catch {
+		return null;
+	}
+}
+
+const envelopeCheck = object({
+	version: oneOf(1),
+	stream: object({
+		epoch: string,
+		sequence: (v) => integer(v) && (v as number) > 0
+	}),
+	snapshot: snapshotCheck
+});
+
+/**
+ * App-level ordering is independent of persisted control/data revisions.
+ * A new process epoch is accepted even when its sequence restarts from one.
+ */
+export function decodeBroadcastEnvelope(data: string): BroadcastEnvelope | null {
+	try {
+		const value: unknown = JSON.parse(data);
+		return envelopeCheck(value) ? (value as BroadcastEnvelope) : null;
 	} catch {
 		return null;
 	}

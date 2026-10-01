@@ -38,7 +38,8 @@ export async function buildBroadcastSnapshot(): Promise<BroadcastSnapshot> {
 		const [state] = await tx.select().from(s.broadcastState).where(eq(s.broadcastState.id, 1));
 		const snapshot: BroadcastSnapshot = {
 			version: 1,
-			revision: state.revision,
+			controlRevision: state.controlRevision,
+			dataRevision: state.dataRevision,
 			selection: null,
 			tournament: null,
 			match: null,

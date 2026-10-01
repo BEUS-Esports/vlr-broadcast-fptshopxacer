@@ -111,7 +111,7 @@ Do not create a generic arbitrary styling/settings database.
 
 ### Required service behavior
 
-- transaction + revision checked update;
+- transaction + control-revision checked update; prepared-data invalidation uses a separate data revision so ordinary domain edits do not stale control drafts;
 - selecting a valid game changes the shared broadcast selection;
 - changing only the parent dropdown draft does not;
 - selecting another game resets or validates game-specific temporary controls;
@@ -193,7 +193,8 @@ The browser-side library owns:
 - connection/reconnection state exposed to graphics and controllers;
 - decoding/validating the shared snapshot envelope;
 - retaining the newest accepted snapshot;
-- ignoring duplicate or older revisions;
+- ordering SSE snapshots by a transport cursor (process epoch + sequence), independent of persisted control/data revisions;
+- ignoring duplicate or older events from the same stream epoch;
 - resynchronizing from a complete snapshot after reconnect;
 - a small typed API/store that graphics import rather than touching raw SSE events;
 - framework-neutral selectors/helpers where possible so test templates and later custom templates share data interpretation.
@@ -210,7 +211,7 @@ and then consume typed broadcast state. It should not need to know the SSE wire 
 
 - one shared server-owned publication path;
 - new/reconnecting client receives the latest complete snapshot immediately;
-- subsequent mutations publish a new revision;
+- subsequent control or prepared-data mutations publish a new ordered stream event; later provider telemetry may do the same without mutating control revision;
 - clients ignore older revisions through the shared library;
 - browser reconnect is separate from Phase 6 provider reconnect;
 - multiple OBS pages may each consume the app-level SSE stream, but must not create multiple upstream provider connections later;

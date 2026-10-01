@@ -23,7 +23,7 @@ it('allows explicit reconnect after EventSource permanently closes', async () =>
 	client.disconnect();
 });
 
-it('retains newest complete state through malformed data, reconnect and disconnect', async () => {
+it('orders complete snapshots by stream cursor rather than persisted revisions', async () => {
 	await withManagementFixture(async () => {
 		const { buildBroadcastSnapshot } = await import('../server/broadcast/snapshot');
 		const snapshot = await buildBroadcastSnapshot();
@@ -47,22 +47,32 @@ it('retains newest complete state through malformed data, reconnect and disconne
 		client.connect();
 		client.connect();
 		events.dispatchEvent(new Event('open'));
-		const send = (data: unknown) =>
-			events.dispatchEvent(new MessageEvent('snapshot', { data: JSON.stringify(data) }));
-		send(snapshot);
-		send({ ...snapshot, revision: 3 });
-		send({ ...snapshot, revision: 2 });
-		send({ ...snapshot, revision: 4, lineups: [null] });
-		send({ ...snapshot, revision: 4, scopes: { ...snapshot.scopes, game: null } });
-		expect(client.getState().snapshot?.revision).toBe(3);
+		const send = (
+			stream: { epoch: string; sequence: number },
+			next = snapshot
+		) =>
+			events.dispatchEvent(
+				new MessageEvent('snapshot', {
+					data: JSON.stringify({ version: 1, stream, snapshot: next })
+				})
+			);
+		send({ epoch: 'one', sequence: 1 });
+		// Same persisted revisions are valid for volatile provider updates when stream ordering advances.
+		send({ epoch: 'one', sequence: 3 });
+		send({ epoch: 'one', sequence: 2 }, { ...snapshot, controlRevision: 99 });
+		send({ epoch: 'one', sequence: 4 }, { ...snapshot, lineups: [null] } as typeof snapshot);
+		expect(client.getState().cursor).toEqual({ epoch: 'one', sequence: 3 });
+		expect(client.getState().snapshot?.controlRevision).toBe(snapshot.controlRevision);
 		events.dispatchEvent(new Event('error'));
 		expect(client.getState().connection).toBe('reconnecting');
 		events.dispatchEvent(new Event('open'));
-		send({ ...snapshot, revision: 5 });
-		expect(client.getState().snapshot?.revision).toBe(5);
+		// Process restart: a new epoch can restart the numeric sequence.
+		send({ epoch: 'two', sequence: 1 }, { ...snapshot, controlRevision: 2 });
+		expect(client.getState().cursor).toEqual({ epoch: 'two', sequence: 1 });
+		expect(client.getState().snapshot?.controlRevision).toBe(2);
 		client.disconnect();
-		send({ ...snapshot, revision: 6 });
-		expect(client.getState().snapshot?.revision).toBe(5);
+		send({ epoch: 'two', sequence: 2 }, { ...snapshot, controlRevision: 3 });
+		expect(client.getState().snapshot?.controlRevision).toBe(2);
 		expect(opens).toBe(1);
 		expect(closed).toBe(1);
 		expect(states).toContain('reconnecting');

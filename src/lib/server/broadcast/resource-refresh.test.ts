@@ -16,10 +16,10 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 		const { getBroadcastState, updateBroadcastState } = await import('../services/broadcast');
 		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'selected' });
 		const { broadcastPublisher } = await import('./publisher');
-		const snapshots: Array<{ revision: number; name: string | undefined }> = [];
+		const snapshots: Array<{ dataRevision: number; name: string | undefined }> = [];
 		const stop = await broadcastPublisher.subscribe({
 			send: (snapshot) =>
-				snapshots.push({ revision: snapshot.revision, name: snapshot.game?.map?.displayName }),
+				snapshots.push({ dataRevision: snapshot.dataRevision, name: snapshot.game?.map?.displayName }),
 			close() {}
 		});
 		vi.stubGlobal(
@@ -63,14 +63,14 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 				data: { error: 'Catalogue refresh failed. Saved resources were kept; try again later.' }
 			});
 			expect(snapshots).toEqual([
-				{ revision: 2, name: 'map-1' },
-				{ revision: 3, name: 'Updated map' }
+				{ dataRevision: 2, name: 'map-1' },
+				{ dataRevision: 3, name: 'Updated map' }
 			]);
 			await client.execute(
 				"CREATE TRIGGER reject_refresh BEFORE UPDATE ON maps BEGIN SELECT RAISE(ABORT, 'map rollback'); END"
 			);
 			expect(await (await run()).json()).toMatchObject({ status: 502 });
-			expect((await getBroadcastState()).revision).toBe(3);
+			expect((await getBroadcastState()).dataRevision).toBe(3);
 			expect(snapshots).toHaveLength(2);
 			const publish = vi
 				.spyOn(broadcastPublisher, 'publish')

@@ -13,21 +13,17 @@
 	} from '#lib/broadcast/controls.ts';
 	import type { PageProps } from './$types';
 	let { data }: PageProps = $props();
-	let stream = $state<BroadcastClientState>({ connection: 'disconnected', snapshot: null });
+	let stream = $state<BroadcastClientState>({ connection: 'disconnected', snapshot: null, cursor: null });
 	let refreshError = $state('');
-	const live = $derived(
-		stream.snapshot && stream.snapshot.revision > data.snapshot.revision
-			? stream.snapshot
-			: data.snapshot
-	);
+	const live = $derived(stream.snapshot ?? data.snapshot);
 	const selectionInitial = $derived({
-		expectedRevision: live.revision,
+		expectedRevision: live.controlRevision,
 		tournamentId: live.selection?.tournamentId ?? '',
 		matchId: live.selection?.matchId ?? '',
 		gameId: live.selection?.gameId ?? ''
 	});
 	const presentationInitial = $derived({
-		expectedRevision: live.revision,
+		expectedRevision: live.controlRevision,
 		swapped: !!live.selection && live.presentation.leftEntryId === live.competition.teamBEntryId,
 		currentAttackersEntryId:
 			live.sides.source === 'manual' ? (live.sides.attackersEntryId ?? '') : ''
@@ -67,11 +63,11 @@
 	}
 	onMount(() => {
 		const client = createBroadcastClient();
-		let refreshedRevision = data.snapshot.revision;
+		let refreshedDataRevision = data.snapshot.dataRevision;
 		const unsubscribe = client.subscribe((state) => {
 			stream = state;
-			if (state.snapshot && state.snapshot.revision > refreshedRevision) {
-				refreshedRevision = state.snapshot.revision;
+			if (state.snapshot && state.snapshot.dataRevision > refreshedDataRevision) {
+				refreshedDataRevision = state.snapshot.dataRevision;
 				void invalidateAll()
 					.then(() => {
 						refreshError = '';
@@ -95,8 +91,8 @@
 		<h1 class="h1">Graphics Controller</h1>
 		<p>Choose a complete game, then take it live. Saved preparation feeds every graphic.</p>
 		<p aria-label="Broadcast connection" role="status">
-			Connection: {stream.connection} · Snapshot: {stream.snapshot ? 'received' : 'loaded'} · Revision
-			{live.revision}
+			Connection: {stream.connection} · Snapshot: {stream.snapshot ? 'received' : 'loaded'} · Control
+			revision {live.controlRevision} · Data revision {live.dataRevision}
 		</p>
 		{#if refreshError}<p role="alert">{refreshError}</p>{/if}
 	</header>
@@ -185,7 +181,7 @@
 				>
 			{/snippet}
 		</ManagementForm>
-		<ManagementForm action="?/clear" initial={{ expectedRevision: live.revision }}>
+		<ManagementForm action="?/clear" initial={{ expectedRevision: live.controlRevision }}>
 			<button class="btn preset-tonal-error" disabled={!live.selection}>Clear live selection</button
 			>
 		</ManagementForm>
@@ -245,7 +241,7 @@
 				<ManagementForm
 					action="?/controls"
 					initial={{
-						expectedRevision: live.revision,
+						expectedRevision: live.controlRevision,
 						visibility: { [id]: live.controls.visibility[id] },
 						...(id === 'player-stats' ? { playerStats: live.controls.playerStats } : {}),
 						...(id === 'mvp' ? { mvpScope: live.controls.mvpScope } : {})

@@ -38,7 +38,9 @@ export function createBroadcastPublisher(dependencies: {
 			}
 			return latest;
 		} catch (cause) {
-			// Force browser-native reconnect to rebuild persisted state after a failed publication.
+			// Reconnect must rebuild even when a failed volatile/provider update did not
+			// change either persisted revision.
+			latest = null;
 			for (const subscriber of subscribers) remove(subscriber);
 			throw cause;
 		}

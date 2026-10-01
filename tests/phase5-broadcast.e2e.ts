@@ -17,7 +17,7 @@ test('native EventSource receives a complete snapshot, a committed management up
 					'snapshot',
 					(event) => {
 						clearTimeout(timeout);
-						resolve(JSON.parse(event.data));
+						resolve(JSON.parse(event.data).snapshot);
 					},
 					{ once: true }
 				);
@@ -42,8 +42,9 @@ test('native EventSource receives a complete snapshot, a committed management up
 		return { initial, updated, resync };
 	});
 	expect(result.initial.version).toBe(1);
-	expect(result.updated.revision).toBeGreaterThan(result.initial.revision);
-	expect(result.resync.revision).toBeGreaterThanOrEqual(result.updated.revision);
+	expect(result.updated.dataRevision).toBeGreaterThan(result.initial.dataRevision);
+	expect(result.updated.controlRevision).toBe(result.initial.controlRevision);
+	expect(result.resync.dataRevision).toBeGreaterThanOrEqual(result.updated.dataRevision);
 	expect(result.resync.scopes.tournament.statistics.scope).toBe('tournament');
 	expect(
 		(

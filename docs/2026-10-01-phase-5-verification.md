@@ -76,9 +76,9 @@ Known runner output is preserved: client Vitest warns about unsupported `transfo
 
 ## Operational boundaries and pending OBS rehearsal
 
-One Node process owns broadcast publication. Run one process; shared pub/sub is required before deploying multiple workers or replicas. Seven outputs share persisted selection and visibility through one typed broadcast library. Provider telemetry and final tournament artwork remain Phases 6–8.
+One Node process owns broadcast publication. Run one process; shared pub/sub is required before deploying multiple workers or replicas. Seven outputs share persisted selection and visibility through one typed broadcast library. Operator optimistic locking uses `controlRevision`; prepared database changes use `dataRevision`; SSE delivery has its own process epoch + sequence so Phase 6 provider telemetry can advance the stream without staling operator forms. Provider telemetry and final tournament artwork remain Phases 6–8.
 
-Existing installations need forward migrations **0004** (persistent broadcast state) and **0005** (canonical lineup slots). Back up database and `ASSET_DIR` together, stop the app and migrate with the correct `DATABASE_URL`; rehearse against a disposable copy first. Never run schema push against event data. This verification recreates disposable databases through all reviewed migrations and does not authorize an event upgrade.
+Existing installations need forward migrations **0004** (persistent broadcast state), **0005** (prepared-data broadcast invalidation), and **0006** (independent broadcast-control revision). Back up database and `ASSET_DIR` together, stop the app and migrate with the correct `DATABASE_URL`; rehearse against a disposable copy first. Never run schema push against event data. This verification recreates disposable databases through all reviewed migrations and does not authorize an event upgrade.
 
 Actual OBS and Valorant were unavailable. Keep these separately pending:
 

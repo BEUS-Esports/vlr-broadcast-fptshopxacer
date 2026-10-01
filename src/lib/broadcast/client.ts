@@ -1,8 +1,13 @@
-import { decodeBroadcastSnapshot, type BroadcastSnapshot } from './types';
+import {
+	decodeBroadcastEnvelope,
+	type BroadcastSnapshot,
+	type BroadcastStreamCursor
+} from './types';
 
 export type BroadcastClientState = {
 	connection: 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 	snapshot: BroadcastSnapshot | null;
+	cursor: BroadcastStreamCursor | null;
 };
 type Source = Pick<EventTarget, 'addEventListener' | 'removeEventListener'> & {
 	close: () => void;
@@ -13,7 +18,11 @@ type Source = Pick<EventTarget, 'addEventListener' | 'removeEventListener'> & {
 export function createBroadcastClient(
 	options: { url?: string; eventSource?: (url: string) => Source } = {}
 ) {
-	let state: BroadcastClientState = { connection: 'disconnected', snapshot: null };
+	let state: BroadcastClientState = {
+		connection: 'disconnected',
+		snapshot: null,
+		cursor: null
+	};
 	let source: Source | null = null;
 	const subscribers = new Set<(state: BroadcastClientState) => void>();
 	function notify() {
@@ -28,9 +37,16 @@ export function createBroadcastClient(
 	const message = (event: Event) => {
 		const data = (event as MessageEvent).data;
 		if (typeof data !== 'string') return;
-		const snapshot = decodeBroadcastSnapshot(data);
-		if (!snapshot || snapshot.revision <= (state.snapshot?.revision ?? 0)) return;
-		state = { ...state, snapshot };
+		const envelope = decodeBroadcastEnvelope(data);
+		if (!envelope) return;
+		if (
+			state.cursor &&
+			envelope.stream.epoch === state.cursor.epoch &&
+			envelope.stream.sequence <= state.cursor.sequence
+		)
+			return;
+		// A different epoch means the server process restarted; its sequence legitimately restarts.
+		state = { ...state, snapshot: envelope.snapshot, cursor: envelope.stream };
 		notify();
 	};
 	function disconnect() {

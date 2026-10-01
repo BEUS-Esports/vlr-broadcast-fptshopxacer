@@ -9,9 +9,9 @@ it('publishes preparation once and controls without a second revision, and leave
 		const { handle } = await import('../../../hooks.server');
 		const { getBroadcastState, updateBroadcastState } = await import('../services/broadcast');
 		const { broadcastPublisher } = await import('./publisher');
-		const revisions: number[] = [];
+		const revisions: Array<[number, number]> = [];
 		const stop = await broadcastPublisher.subscribe({
-			send: (snapshot) => revisions.push(snapshot.revision),
+			send: (snapshot) => revisions.push([snapshot.controlRevision, snapshot.dataRevision]),
 			close() {}
 		});
 		const run = async (route: string, method = 'POST', type = 'success') =>
@@ -27,14 +27,18 @@ it('publishes preparation once and controls without a second revision, and leave
 			} as unknown as Parameters<typeof handle>[0]);
 		await db.update(s.teams).set({ name: 'Changed branding' }).where(eq(s.teams.id, 'team-a'));
 		await run('/admin/teams');
-		expect((await getBroadcastState()).revision).toBe(2);
-		await updateBroadcastState({ expectedRevision: 2, visibility: { mvp: true } });
+		expect(await getBroadcastState()).toMatchObject({ controlRevision: 1, dataRevision: 2 });
+		await updateBroadcastState({ expectedRevision: 1, visibility: { mvp: true } });
 		await run('/admin/graphics');
-		expect((await getBroadcastState()).revision).toBe(3);
+		expect(await getBroadcastState()).toMatchObject({ controlRevision: 2, dataRevision: 2 });
 		await run('/admin/teams', 'POST', 'failure');
 		await run('/admin/games/[gameId]', 'GET');
-		expect((await getBroadcastState()).revision).toBe(3);
-		expect(revisions).toEqual([1, 2, 3]);
+		expect(await getBroadcastState()).toMatchObject({ controlRevision: 2, dataRevision: 2 });
+		expect(revisions).toEqual([
+			[1, 1],
+			[1, 2],
+			[2, 2]
+		]);
 		stop();
 	});
 });
@@ -86,9 +90,9 @@ it('publishes a real committed MVP despite its following aggregate read failing'
 				mvpPlayerId: 'a1',
 				revision: 3
 			});
-			const savedRevision = (await getBroadcastState()).revision;
+			const savedRevision = (await getBroadcastState()).dataRevision;
 			expect(savedRevision).toBeGreaterThan(2);
-			expect(snapshots.map((snapshot) => snapshot.revision)).toEqual([2, savedRevision]);
+			expect(snapshots.map((snapshot) => snapshot.dataRevision)).toEqual([2, savedRevision]);
 			expect(snapshots[1].scopes.game.mvpPlayerId).toBe('a1');
 			// Invalid participation rolls back the revision bump and never emits another snapshot.
 			expect(await (await run('a6', 3)).json()).toMatchObject({
@@ -96,7 +100,7 @@ it('publishes a real committed MVP despite its following aggregate read failing'
 				status: 400,
 				data: { code: 'invalid' }
 			});
-			expect((await getBroadcastState()).revision).toBe(savedRevision);
+			expect((await getBroadcastState()).dataRevision).toBe(savedRevision);
 			expect(snapshots).toHaveLength(2);
 		} finally {
 			read.mockRestore();

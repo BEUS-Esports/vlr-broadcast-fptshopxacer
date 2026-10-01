@@ -34,7 +34,7 @@ it('blocks deleting the on-air game with a usable error and rolls back until sel
 		}).toEqual(before);
 		expect(await broadcast.getBroadcastState()).toEqual(selected);
 		await broadcast.updateBroadcastState({
-			expectedRevision: selected.revision,
+			expectedRevision: selected.controlRevision,
 			selectedGameId: null
 		});
 		await games.deleteDraftGame(input);
@@ -103,14 +103,14 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 			selectedGameId: null,
 			matchId: null,
 			tournamentId: null,
-			revision: 1
+			controlRevision: 1
 		});
 		state = await service.updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g1' });
 		expect(state).toMatchObject({
 			selectedGameId: 'g1',
 			matchId: 'match',
 			tournamentId: 't',
-			revision: 2
+			controlRevision: 2
 		});
 		await expect(
 			service.updateBroadcastState({ expectedRevision: 1, swapped: true })
@@ -122,7 +122,7 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 			opponentPlayerId: null
 		};
 		state = await service.updateBroadcastState({
-			expectedRevision: state.revision,
+			expectedRevision: state.controlRevision,
 			swapped: true,
 			currentAttackersEntryId: 'entry-b',
 			visibility: { 'player-stats': true },
@@ -145,34 +145,46 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 			{ playerStats: { ...stats, style: 'arbitrary' } }
 		]) {
 			await expect(
-				service.updateBroadcastState({ expectedRevision: state.revision, ...patch } as Parameters<
+				service.updateBroadcastState({ expectedRevision: state.controlRevision, ...patch } as Parameters<
 					typeof service.updateBroadcastState
 				>[0])
 			).rejects.toMatchObject({ code: expect.stringMatching(/invalid|not-found/) });
 			expect(await service.getBroadcastState()).toEqual(state);
 		}
 		state = await service.updateBroadcastState({
-			expectedRevision: state.revision,
+			expectedRevision: state.controlRevision,
 			playerStats: { mode: 'head-to-head', scope: 'match', playerId: 'a1', opponentPlayerId: 'b1' }
 		});
 		expect(state.playerStats.opponentPlayerId).toBe('b1');
 		state = await service.updateBroadcastState({
-			expectedRevision: state.revision,
+			expectedRevision: state.controlRevision,
 			playerStats: { ...stats, scope: 'tournament', playerId: 'b1' }
 		});
 		expect(state.playerStats.playerId).toBe('b1');
 		state = await service.updateBroadcastState({
-			expectedRevision: state.revision,
+			expectedRevision: state.controlRevision,
 			selectedGameId: 'g2'
 		});
 		expect(state).toMatchObject({
 			selectedGameId: 'g2',
-			swapped: false,
+			swapped: true,
 			currentAttackersEntryId: null,
 			playerStats: { mode: 'single', scope: 'game', playerId: null, opponentPlayerId: null },
 			mvpScope: 'game'
 		});
 		expect(state.visibility['player-stats']).toBe(true);
+		// Prepared-data writes advance dataRevision without invalidating control drafts.
+		const controlRevision = state.controlRevision;
+		const dataRevision = state.dataRevision;
+		await db.update(schema.teams).set({ name: 'Prepared edit' }).where(eq(schema.teams.id, 'team-a'));
+		const afterPreparedEdit = await service.getBroadcastState();
+		expect(afterPreparedEdit.controlRevision).toBe(controlRevision);
+		expect(afterPreparedEdit.dataRevision).toBeGreaterThan(dataRevision);
+		state = await service.updateBroadcastState({
+			expectedRevision: controlRevision,
+			visibility: { mvp: true }
+		});
+		expect(state.controlRevision).toBe(controlRevision + 1);
 		await expect(db.delete(schema.games).where(eq(schema.games.id, 'g2'))).rejects.toThrow();
 		expect({
 			games: await db.select().from(schema.games),

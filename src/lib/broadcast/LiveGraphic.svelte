@@ -27,7 +27,10 @@
 	data-graphic={graphic}
 	data-template={template.id}
 	data-game-id={snapshot?.selection?.gameId ?? ''}
-	data-revision={snapshot?.revision ?? 0}
+	data-control-revision={snapshot?.controlRevision ?? 0}
+	data-data-revision={snapshot?.dataRevision ?? 0}
+	data-stream-epoch={broadcast.cursor?.epoch ?? ''}
+	data-stream-sequence={broadcast.cursor?.sequence ?? 0}
 >
 	{#if snapshot && snapshot.controls.visibility[graphic]}
 		<div transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}>

@@ -10,11 +10,11 @@ it('invalidates prepared data in its original transaction and recovers a missed 
 		await expect(
 			db.transaction(async (tx) => {
 				await tx.update(s.teams).set({ name: 'Uncommitted' }).where(eq(s.teams.id, 'team-a'));
-				expect((await tx.select().from(s.broadcastState))[0].revision).toBe(2);
+				expect((await tx.select().from(s.broadcastState))[0].dataRevision).toBe(2);
 				throw new Error('rollback');
 			})
 		).rejects.toThrow('rollback');
-		expect((await getBroadcastState()).revision).toBe(1);
+		expect((await getBroadcastState()).dataRevision).toBe(1);
 		const { buildBroadcastSnapshot } = await import('./snapshot');
 		const { createBroadcastPublisher } = await import('./publisher');
 		const { createBroadcastClient } = await import('../../broadcast/client');
@@ -31,19 +31,27 @@ it('invalidates prepared data in its original transaction and recovers a missed 
 			}
 		});
 		const revisions: number[] = [];
-		const receive = (snapshot: Awaited<ReturnType<typeof buildBroadcastSnapshot>>) => {
-			revisions.push(snapshot.revision);
-			events.dispatchEvent(new MessageEvent('snapshot', { data: JSON.stringify(snapshot) }));
+		const receive = (
+			snapshot: Awaited<ReturnType<typeof buildBroadcastSnapshot>>,
+			stream: { epoch: string; sequence: number }
+		) => {
+			revisions.push(snapshot.dataRevision);
+			events.dispatchEvent(
+				new MessageEvent('snapshot', {
+					data: JSON.stringify({ version: 1, stream, snapshot })
+				})
+			);
 		};
 		await publisher.subscribe({ send: receive, close() {} });
 		await db.update(s.teams).set({ name: 'Committed' }).where(eq(s.teams.id, 'team-a'));
-		expect((await getBroadcastState()).revision).toBe(2);
+		expect((await getBroadcastState()).dataRevision).toBe(2);
 		fail = true;
 		await expect(publisher.publish()).rejects.toThrow('publication failed');
 		fail = false;
 		const stop = await publisher.subscribe({ send: receive, close() {} });
 		expect(revisions).toEqual([1, 2]);
-		expect(client.getState().snapshot?.revision).toBe(2);
+		expect(client.getState().snapshot?.dataRevision).toBe(2);
+		expect(client.getState().snapshot?.controlRevision).toBe(1);
 		client.disconnect();
 		stop();
 	});

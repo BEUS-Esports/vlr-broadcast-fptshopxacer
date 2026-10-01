@@ -250,7 +250,7 @@ it('includes tournament pick branding without changing selected-game ownership o
 		expect(decodeBroadcastSnapshot(JSON.stringify(snapshot))).toEqual(snapshot);
 		await expect(
 			updateBroadcastState({
-				expectedRevision: snapshot.revision,
+				expectedRevision: snapshot.controlRevision,
 				currentAttackersEntryId: 'entry-c'
 			})
 		).rejects.toThrow('selected match participant');
