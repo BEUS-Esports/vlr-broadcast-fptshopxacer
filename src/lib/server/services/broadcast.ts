@@ -174,15 +174,3 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 		return withParents(tx, saved);
 	});
 }
-
-export async function advanceBroadcastRevision() {
-	return db.transaction(async (tx) => {
-		await initialize(tx);
-		const [state] = await tx
-			.update(broadcastState)
-			.set({ revision: sql`${broadcastState.revision} + 1` })
-			.where(eq(broadcastState.id, 1))
-			.returning();
-		return withParents(tx, state);
-	});
-}

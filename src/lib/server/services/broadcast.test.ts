@@ -182,19 +182,3 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 		}).toEqual(before);
 	});
 });
-
-it('advances the shared revision without requiring selection or changing controls', async () => {
-	await withTwoConnections(async () => {
-		const service = await import('./broadcast');
-		const initial = await service.getBroadcastState();
-		const advanced = await service.advanceBroadcastRevision();
-		expect(advanced).toEqual({ ...initial, revision: 2, updatedAt: advanced.updatedAt });
-		await expect(
-			service.updateBroadcastState({ expectedRevision: 1, visibility: { 'in-game': true } })
-		).rejects.toMatchObject({ code: 'stale' });
-		await expect(
-			service.updateBroadcastState({ expectedRevision: 2, currentAttackersEntryId: 'entry-a' })
-		).rejects.toMatchObject({ code: 'invalid' });
-		expect(await service.getBroadcastState()).toEqual(advanced);
-	});
-});
