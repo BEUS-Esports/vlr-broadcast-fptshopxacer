@@ -20,17 +20,19 @@
 	<div class="teams">
 		{#each ['left', 'right'] as position (position)}
 			{@const team = teams[position as 'left' | 'right']}
-			<div data-position={position} data-entry-id={team?.entryId ?? ''}>
+			{@const entryId =
+				position === 'left'
+					? snapshot.presentation.leftEntryId
+					: snapshot.presentation.rightEntryId}
+			<div data-position={position} data-entry-id={entryId ?? ''}>
 				<Identity
 					name={team?.name ?? null}
 					detail={team?.tag}
 					assetPath={team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null}
 					unavailable="Team unavailable"
-					side={sides === 'neutral' ? null : gameplaySide(snapshot, team?.entryId ?? null, sides)}
+					side={sides === 'neutral' ? null : gameplaySide(snapshot, entryId, sides)}
 				/>
-				<strong class="score"
-					>{teamScore(snapshot, team?.entryId ?? null, scope) ?? 'Unavailable'}</strong
-				>
+				<strong class="score">{teamScore(snapshot, entryId, scope) ?? 'Unavailable'}</strong>
 			</div>
 		{/each}
 	</div>
@@ -42,8 +44,8 @@
 					walkover: 'Walkover',
 					cancelled: 'Cancelled'
 				}[result.resultType]
-			: 'Result unavailable'}{#if winner}
-			· Winner: {winner.name}{/if}
+			: 'Result unavailable'}{#if result?.winnerEntryId}
+			· Winner: {winner?.name ?? 'Team unavailable'}{/if}
 	</p>
 </header>
 

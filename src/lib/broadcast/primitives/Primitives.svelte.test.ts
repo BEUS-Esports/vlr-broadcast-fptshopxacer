@@ -122,4 +122,9 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 	expect(left().querySelector('[data-side]')?.getAttribute('data-side')).toBe('neutral');
 	const neutral = render(ScoreHeader, { snapshot });
 	expect(neutral.container.querySelector('[data-side]')?.getAttribute('data-side')).toBe('neutral');
+	await header.rerender({ snapshot: { ...snapshot, teams: [] }, sides: 'prepared' });
+	expect(right().getAttribute('data-entry-id')).toBe('a');
+	expect(right().querySelector('.score')?.textContent).toBe('0');
+	expect(right().querySelector('[data-side]')?.getAttribute('data-side')).toBe('attack');
+	expect(header.container.textContent).toContain('Winner: Team unavailable');
 });
