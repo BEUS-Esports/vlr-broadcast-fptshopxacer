@@ -211,7 +211,7 @@ it('includes tournament pick branding without changing selected-game ownership o
 		await db.update(s.tournaments).set({ mvpPlayerId: 'c1' }).where(eq(s.tournaments.id, 't'));
 		const { getBroadcastState } = await import('../services/broadcast');
 		await updateBroadcastState({
-			expectedRevision: (await getBroadcastState()).revision,
+			expectedRevision: (await getBroadcastState()).controlRevision,
 			mvpScope: 'tournament',
 			playerStats: {
 				mode: 'head-to-head',
