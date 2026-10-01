@@ -4,9 +4,15 @@
 	import PlayerLineup from './PlayerLineup.svelte';
 	import MapVeto from './MapVeto.svelte';
 	import AgentSelect from './AgentSelect.svelte';
+	import PostGame from './PostGame.svelte';
+	import PlayerStats from './PlayerStats.svelte';
+	import MVP from './MVP.svelte';
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 	const pregame = $derived(
-		snapshot.selection !== null && ['player-lineup', 'map-veto', 'agent-select'].includes(graphic)
+		snapshot.selection !== null &&
+			['player-lineup', 'map-veto', 'agent-select', 'post-game', 'player-stats', 'mvp'].includes(
+				graphic
+			)
 	);
 </script>
 
@@ -18,6 +24,12 @@
 		<MapVeto {snapshot} />
 	{:else if snapshot.selection && graphic === 'agent-select'}
 		<AgentSelect {snapshot} />
+	{:else if snapshot.selection && graphic === 'post-game'}
+		<PostGame {snapshot} />
+	{:else if snapshot.selection && graphic === 'player-stats'}
+		<PlayerStats {snapshot} />
+	{:else if snapshot.selection && graphic === 'mvp'}
+		<MVP {snapshot} />
 	{:else if snapshot.selection}
 		<p>{snapshot.tournament?.name ?? 'Unknown tournament'}</p>
 		<p>{snapshot.match?.label ?? 'Unknown match'} · {snapshot.game?.name ?? 'Unknown game'}</p>
