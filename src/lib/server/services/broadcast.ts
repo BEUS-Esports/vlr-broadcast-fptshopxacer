@@ -60,8 +60,13 @@ async function withParents(
 
 export async function getBroadcastState() {
 	await initialize(db);
-	const [state] = await db.select().from(broadcastState).where(eq(broadcastState.id, 1));
-	return withParents(db, state);
+	const [selected] = await db
+		.select({ state: broadcastState, matchId: matches.id, tournamentId: matches.tournamentId })
+		.from(broadcastState)
+		.leftJoin(games, eq(broadcastState.selectedGameId, games.id))
+		.leftJoin(matches, eq(games.matchId, matches.id))
+		.where(eq(broadcastState.id, 1));
+	return { ...selected.state, matchId: selected.matchId, tournamentId: selected.tournamentId };
 }
 
 export async function updateBroadcastState(input: BroadcastUpdate) {

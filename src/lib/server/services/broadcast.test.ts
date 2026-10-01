@@ -1,7 +1,38 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import * as schema from '#lib/server/db/schema/index.ts';
 import { withTwoConnections } from '#lib/server/testing/management-fixture.ts';
+
+it('reads selected game and parents in one snapshot when another connection clears and deletes the game', async () => {
+	await withTwoConnections(async ({ db, secondDb }) => {
+		await db
+			.insert(schema.games)
+			.values({ id: 'selected', matchId: 'match', number: 1, name: 'Selected' });
+		const service = await import('./broadcast');
+		await service.updateBroadcastState({ expectedRevision: 1, selectedGameId: 'selected' });
+		const reads = vi.spyOn(db, 'select');
+		try {
+			expect(await service.getBroadcastState()).toMatchObject({
+				selectedGameId: 'selected',
+				matchId: 'match',
+				tournamentId: 't'
+			});
+			expect(reads).toHaveBeenCalledTimes(1);
+			await secondDb
+				.update(schema.broadcastState)
+				.set({ selectedGameId: null })
+				.where(eq(schema.broadcastState.id, 1));
+			await secondDb.delete(schema.games).where(eq(schema.games.id, 'selected'));
+			expect(await service.getBroadcastState()).toMatchObject({
+				selectedGameId: null,
+				matchId: null,
+				tournamentId: null
+			});
+		} finally {
+			reads.mockRestore();
+		}
+	});
+});
 
 it('persists shared controls, rejects stale writes, rolls back invalid picks, and isolates presentation', async () => {
 	await withTwoConnections(async ({ db, secondDb }) => {
