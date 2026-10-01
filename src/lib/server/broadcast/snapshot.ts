@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import * as s from '#lib/server/db/schema/index.ts';
 import type { BroadcastMap, BroadcastSnapshot, BroadcastScopeView } from '#lib/broadcast/types.ts';
@@ -176,6 +176,13 @@ export async function buildBroadcastSnapshot(): Promise<BroadcastSnapshot> {
 						: match.teamAEntryId,
 			source: state.currentAttackersEntryId ? 'manual' : attackers ? 'prepared' : 'unknown'
 		};
+		const matchEntryIds = [match.teamAEntryId, match.teamBEntryId];
+		const entryIds = [
+			...new Set([
+				...matchEntryIds,
+				...snapshot.scopes.tournament.candidates.flatMap((player) => player.entryIds).sort()
+			])
+		];
 		snapshot.teams = await tx
 			.select({
 				entryId: s.tournamentEntries.id,
@@ -188,10 +195,15 @@ export async function buildBroadcastSnapshot(): Promise<BroadcastSnapshot> {
 			})
 			.from(s.tournamentEntries)
 			.innerJoin(s.teams, eq(s.tournamentEntries.teamId, s.teams.id))
-			.where(inArray(s.tournamentEntries.id, [match.teamAEntryId, match.teamBEntryId]));
-		snapshot.teams.sort((a, b) =>
-			a.entryId === b.entryId ? 0 : a.entryId === match.teamAEntryId ? -1 : 1
-		);
+			.where(
+				and(
+					eq(s.tournamentEntries.tournamentId, tournament.id),
+					inArray(s.tournamentEntries.id, entryIds)
+				)
+			);
+		// ponytail: linear rank lookups suit tournament-sized lists; use a rank Map for large entry sets.
+		// ponytail: linear rank lookups suit tournament-sized lists; use a rank Map for large entry sets.
+		snapshot.teams.sort((a, b) => entryIds.indexOf(a.entryId) - entryIds.indexOf(b.entryId));
 		snapshot.lineups = appearances
 			.filter((row) => row.gameId === game.id)
 			.map((row) => ({
@@ -214,9 +226,9 @@ export async function buildBroadcastSnapshot(): Promise<BroadcastSnapshot> {
 			.innerJoin(s.maps, eq(s.matchVetoActions.mapId, s.maps.id))
 			.where(eq(s.matchVetoActions.matchId, match.id))
 			.orderBy(asc(s.matchVetoActions.sequence));
-		const completeLineups = snapshot.teams.every(
-			(team) =>
-				snapshot.lineups.filter((row) => row.entryId === team.entryId && row.player).length === 5
+		const completeLineups = matchEntryIds.every(
+			(entryId) =>
+				snapshot.lineups.filter((row) => row.entryId === entryId && row.player).length === 5
 		);
 		snapshot.readiness = {
 			selected: true,

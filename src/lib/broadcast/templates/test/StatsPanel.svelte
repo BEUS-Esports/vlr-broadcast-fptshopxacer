@@ -34,7 +34,7 @@
 			/>
 		{:else}<p>Team unavailable</p>{/each}
 	</div>
-	<p>Agent: {agent?.displayName ?? 'Agent unavailable'}</p>
+	<p class="agent">Agent: {agent?.displayName ?? 'Agent unavailable'}</p>
 	<p>Games played: {selected.statistics?.gamesPlayed ?? 'Unavailable'}</p>
 	<p>
 		Games with statistics: {selected.statistics
@@ -63,6 +63,11 @@
 	p {
 		margin: 8px 0;
 		font-size: 22px;
+	}
+	.agent {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	article :global(.fields) {
 		margin-top: 24px;

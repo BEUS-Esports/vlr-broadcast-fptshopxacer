@@ -219,6 +219,18 @@ it('renders exactly operator single/head-to-head picks across scopes and explici
 			expect(view.container.querySelectorAll('[data-player-panel]')).toHaveLength(
 				mode === 'single' ? 1 : 2
 			);
+			expect(
+				[...view.container.querySelectorAll('[data-player-panel]')].map((panel) =>
+					panel.getAttribute('data-player-panel')
+				)
+			).toEqual(mode === 'single' ? ['a0'] : ['a0', 'b4']);
+			expect(view.container.querySelector('[data-player-panel="a0"]')?.textContent).toContain(
+				'Saved a0'
+			);
+			if (mode === 'head-to-head')
+				expect(view.container.querySelector('[data-player-panel="b4"]')?.textContent).toContain(
+					'Saved b4'
+				);
 			expect(view.container.textContent).toContain('Saved a0');
 			expect(view.container.textContent).toContain('Games contributing: 3 / 4');
 			expect(view.container.textContent).toContain('Games played: 2');
@@ -248,6 +260,69 @@ it('renders exactly operator single/head-to-head picks across scopes and explici
 	});
 	expect(view.container.textContent).toContain('Historical pick');
 	expect(view.container.textContent).toContain('Games played: Unavailable');
+});
+
+it('preserves explicit tournament H2H identity and order for same-team and other-team picks', async () => {
+	const snapshot = statisticsSnapshot();
+	snapshot.teams.push({ ...snapshot.teams[0], entryId: 'c', teamId: 'c', name: 'Team C' });
+	snapshot.scopes.tournament.candidates.push({
+		playerId: 'c0',
+		displayName: 'Saved c0',
+		portraitPath: null,
+		entryIds: ['c']
+	});
+	const view = render(Graphic, { snapshot, graphic: 'player-stats' });
+	for (const opponentPlayerId of ['a1', 'c0']) {
+		await view.rerender({
+			snapshot: {
+				...snapshot,
+				controls: {
+					...snapshot.controls,
+					playerStats: {
+						mode: 'head-to-head',
+						scope: 'tournament',
+						playerId: 'a0',
+						opponentPlayerId
+					}
+				}
+			},
+			graphic: 'player-stats'
+		});
+		const panels = [...view.container.querySelectorAll('[data-player-panel]')];
+		expect(panels.map((panel) => panel.getAttribute('data-player-panel'))).toEqual([
+			'a0',
+			opponentPlayerId
+		]);
+		expect(panels[0].textContent).toContain('Saved a0');
+		expect(panels[0].textContent).toContain('Team a');
+		expect(panels[1].textContent).toContain(`Saved ${opponentPlayerId}`);
+		expect(panels[1].textContent).toContain(opponentPlayerId === 'a1' ? 'Team a' : 'Team C');
+	}
+});
+
+it('bounds long unbroken saved agent names in player stats and MVP panels', () => {
+	const snapshot = statisticsSnapshot();
+	const name = 'UnbrokenAgent'.repeat(100);
+	snapshot.lineups.forEach((row) => {
+		if (row.agent) row.agent.displayName = name;
+	});
+	snapshot.controls.playerStats.mode = 'head-to-head';
+	for (const graphic of ['player-stats', 'mvp'] as const) {
+		const view = render(Graphic, { snapshot, graphic });
+		const section = view.container.querySelector('section')!;
+		for (const panel of section.querySelectorAll('[data-player-panel]')) {
+			const agent = [...panel.querySelectorAll('p')].find((p) =>
+				p.textContent?.startsWith('Agent:')
+			)!;
+			expect(agent.textContent).toBe(`Agent: ${name}`);
+			expect(getComputedStyle(agent).overflowX).toBe('hidden');
+			expect(getComputedStyle(agent).textOverflow).toBe('ellipsis');
+			expect(agent.getBoundingClientRect().right).toBeLessThanOrEqual(
+				panel.getBoundingClientRect().right
+			);
+		}
+		expect(section.scrollWidth).toBeLessThanOrEqual(section.clientWidth);
+	}
 });
 
 it('uses only saved MVP for every scope and distinguishes no pick from missing record', async () => {

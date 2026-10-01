@@ -145,6 +145,118 @@ it('keeps scope membership across matches and historical entry transfers', async
 	});
 });
 
+it('includes tournament pick branding without changing selected-game ownership or readiness', async () => {
+	await withManagementFixture(async ({ db }) => {
+		await db.insert(s.agents).values({ id: 'agent', key: 'agent', displayName: 'Agent' });
+		await db.insert(s.players).values({ id: 'c1', displayName: 'Tournament pick' });
+		await db.update(s.teams).set({ logoPath: '/saved-c.png' }).where(eq(s.teams.id, 'team-c'));
+		await db.insert(s.games).values({
+			id: 'selected',
+			matchId: 'match',
+			number: 1,
+			name: 'Selected',
+			mapId: 'map-1',
+			startingAttackersEntryId: 'entry-a',
+			startingDefendersEntryId: 'entry-b'
+		});
+		await db.insert(s.gameLineups).values(
+			['a', 'b'].flatMap((team) =>
+				Array.from({ length: 5 }, (_, i) => ({
+					gameId: 'selected',
+					entryId: `entry-${team}`,
+					slot: i + 1,
+					playerId: `${team}${i + 1}`,
+					agentId: 'agent'
+				}))
+			)
+		);
+		const { updateBroadcastState } = await import('../services/broadcast');
+		await updateBroadcastState({
+			expectedRevision: 1,
+			selectedGameId: 'selected',
+			swapped: true,
+			currentAttackersEntryId: 'entry-b'
+		});
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		const before = await buildBroadcastSnapshot();
+		expect(before.readiness).toMatchObject({ lineups: true, agents: true });
+		await db.insert(s.tournamentEntries).values([
+			{ id: 'outside-a', tournamentId: 'other', teamId: 'team-a' },
+			{ id: 'outside-c', tournamentId: 'other', teamId: 'team-c' }
+		]);
+		await db.insert(s.matches).values([
+			{
+				id: 'later',
+				tournamentId: 't',
+				teamAEntryId: 'entry-a',
+				teamBEntryId: 'entry-c',
+				label: 'Later'
+			},
+			{
+				id: 'outside',
+				tournamentId: 'other',
+				teamAEntryId: 'outside-a',
+				teamBEntryId: 'outside-c',
+				label: 'Outside'
+			}
+		]);
+		await db.insert(s.games).values([
+			{ id: 'later-game', matchId: 'later', number: 1, name: 'Later' },
+			{ id: 'outside-game', matchId: 'outside', number: 1, name: 'Outside' }
+		]);
+		await db.insert(s.gameLineups).values([
+			{ gameId: 'later-game', entryId: 'entry-c', slot: 1, playerId: 'c1' },
+			{ gameId: 'outside-game', entryId: 'outside-c', slot: 1, playerId: 'a6' }
+		]);
+		await db.update(s.tournaments).set({ mvpPlayerId: 'c1' }).where(eq(s.tournaments.id, 't'));
+		const { getBroadcastState } = await import('../services/broadcast');
+		await updateBroadcastState({
+			expectedRevision: (await getBroadcastState()).revision,
+			mvpScope: 'tournament',
+			playerStats: {
+				mode: 'head-to-head',
+				scope: 'tournament',
+				playerId: 'c1',
+				opponentPlayerId: 'a1'
+			}
+		});
+		const snapshot = await buildBroadcastSnapshot();
+		const { selectedMvp, teamByEntryId, playerInScope } = await import('../../broadcast/selectors');
+		expect(snapshot.teams.map((team) => team.entryId)).toEqual(['entry-a', 'entry-b', 'entry-c']);
+		expect(
+			teamByEntryId(snapshot, playerInScope(snapshot, 'tournament', 'c1').player!.entryIds[0])
+		).toMatchObject({ name: 'Team C', logoPath: '/saved-c.png' });
+		expect(selectedMvp(snapshot).player).toMatchObject({ playerId: 'c1', entryIds: ['entry-c'] });
+		expect(snapshot.scopes.tournament.candidates.map((player) => player.playerId)).not.toContain(
+			'a6'
+		);
+		for (const key of [
+			'selection',
+			'match',
+			'competition',
+			'presentation',
+			'sides',
+			'lineups',
+			'readiness'
+		] as const)
+			expect(snapshot[key]).toEqual(before[key]);
+		expect(snapshot.controls.playerStats).toEqual({
+			mode: 'head-to-head',
+			scope: 'tournament',
+			playerId: 'c1',
+			opponentPlayerId: 'a1'
+		});
+		const { decodeBroadcastSnapshot } = await import('../../broadcast/types');
+		expect(decodeBroadcastSnapshot(JSON.stringify(snapshot))).toEqual(snapshot);
+		await expect(
+			updateBroadcastState({
+				expectedRevision: snapshot.revision,
+				currentAttackersEntryId: 'entry-c'
+			})
+		).rejects.toThrow('selected match participant');
+	});
+});
+
 it('emits a complete empty snapshot without inventing preparation', async () => {
 	await withManagementFixture(async () => {
 		const { buildBroadcastSnapshot } = await import('./snapshot');

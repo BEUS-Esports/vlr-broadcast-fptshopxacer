@@ -201,8 +201,8 @@
 						bind:value={draft.currentAttackersEntryId}
 						disabled={!live.selection}
 						><option value="">Use prepared starting sides</option
-						>{#each live.teams as team (team.entryId)}<option value={team.entryId}
-								>{team.name}</option
+						>{#each live.teams.filter( (team) => [live.competition.teamAEntryId, live.competition.teamBEntryId].includes(team.entryId) ) as team (team.entryId)}<option
+								value={team.entryId}>{team.name}</option
 							>{/each}</select
 					></label
 				>
