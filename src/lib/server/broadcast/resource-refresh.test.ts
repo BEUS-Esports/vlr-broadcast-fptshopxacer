@@ -63,14 +63,14 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 				data: { error: 'Catalogue refresh failed. Saved resources were kept; try again later.' }
 			});
 			expect(snapshots).toEqual([
-				{ dataRevision: 2, name: 'map-1' },
-				{ dataRevision: 3, name: 'Updated map' }
+				{ dataRevision: 1, name: 'map-1' },
+				{ dataRevision: 2, name: 'Updated map' }
 			]);
 			await client.execute(
 				"CREATE TRIGGER reject_refresh BEFORE UPDATE ON maps BEGIN SELECT RAISE(ABORT, 'map rollback'); END"
 			);
 			expect(await (await run()).json()).toMatchObject({ status: 502 });
-			expect((await getBroadcastState()).dataRevision).toBe(3);
+			expect((await getBroadcastState()).dataRevision).toBe(2);
 			expect(snapshots).toHaveLength(2);
 			const publish = vi
 				.spyOn(broadcastPublisher, 'publish')

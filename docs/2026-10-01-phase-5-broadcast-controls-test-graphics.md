@@ -212,7 +212,7 @@ and then consume typed broadcast state. It should not need to know the SSE wire 
 - one shared server-owned publication path;
 - new/reconnecting client receives the latest complete snapshot immediately;
 - subsequent control or prepared-data mutations publish a new ordered stream event; later provider telemetry may do the same without mutating control revision;
-- clients ignore older revisions through the shared library;
+- clients ignore duplicate/older stream events through the shared library;
 - browser reconnect is separate from Phase 6 provider reconnect;
 - multiple OBS pages may each consume the app-level SSE stream, but must not create multiple upstream provider connections later;
 - transport errors must not cause each graphic to invent its own retry/backoff implementation.

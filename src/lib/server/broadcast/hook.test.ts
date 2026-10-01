@@ -91,8 +91,8 @@ it('publishes a real committed MVP despite its following aggregate read failing'
 				revision: 3
 			});
 			const savedRevision = (await getBroadcastState()).dataRevision;
-			expect(savedRevision).toBeGreaterThan(2);
-			expect(snapshots.map((snapshot) => snapshot.dataRevision)).toEqual([2, savedRevision]);
+			expect(savedRevision).toBeGreaterThan(1);
+			expect(snapshots.map((snapshot) => snapshot.dataRevision)).toEqual([1, savedRevision]);
 			expect(snapshots[1].scopes.game.mvpPlayerId).toBe('a1');
 			// Invalid participation rolls back the revision bump and never emits another snapshot.
 			expect(await (await run('a6', 3)).json()).toMatchObject({
