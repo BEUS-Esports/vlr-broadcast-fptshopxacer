@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
+	import { prefersReducedMotion } from 'svelte/motion';
 	import { createBroadcastClient } from './client';
 	import type { GraphicId } from './controls';
 	import { resolveGraphicTemplate } from './templates';
@@ -28,6 +30,8 @@
 	data-revision={snapshot?.revision ?? 0}
 >
 	{#if snapshot && snapshot.controls.visibility[graphic]}
-		<Template {snapshot} {graphic} />
+		<div transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}>
+			<Template {snapshot} {graphic} />
+		</div>
 	{/if}
 </div>

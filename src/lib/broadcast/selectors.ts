@@ -1,11 +1,27 @@
 import type { BroadcastSnapshot } from './types';
 import type { BroadcastScope } from './controls';
+import type { Metric, StatisticValues } from '../server/services/statistics-aggregation';
+
+export function teamByEntryId(snapshot: BroadcastSnapshot, entryId: string | null) {
+	return snapshot.teams.find((team) => team.entryId === entryId) ?? null;
+}
+
+export function competitionTeams(snapshot: BroadcastSnapshot) {
+	return {
+		teamA: teamByEntryId(snapshot, snapshot.competition.teamAEntryId),
+		teamB: teamByEntryId(snapshot, snapshot.competition.teamBEntryId)
+	};
+}
 
 export function presentationTeams(snapshot: BroadcastSnapshot) {
 	return {
-		left: snapshot.teams.find((team) => team.entryId === snapshot.presentation.leftEntryId) ?? null,
-		right:
-			snapshot.teams.find((team) => team.entryId === snapshot.presentation.rightEntryId) ?? null
+		left: teamByEntryId(snapshot, snapshot.presentation.leftEntryId),
+		right: teamByEntryId(snapshot, snapshot.presentation.rightEntryId),
+		swapped:
+			snapshot.competition.teamAEntryId !== null &&
+			snapshot.competition.teamBEntryId !== null &&
+			snapshot.presentation.leftEntryId === snapshot.competition.teamBEntryId &&
+			snapshot.presentation.rightEntryId === snapshot.competition.teamAEntryId
 	};
 }
 
@@ -26,10 +42,73 @@ export function selectedMvp(snapshot: BroadcastSnapshot) {
 	return playerInScope(snapshot, scope, snapshot.scopes[scope].mvpPlayerId);
 }
 
-export function gameplaySide(snapshot: BroadcastSnapshot, entryId: string) {
-	return entryId === snapshot.sides.attackersEntryId
-		? 'attack'
-		: entryId === snapshot.sides.defendersEntryId
-			? 'defense'
+export function gameplaySide(
+	snapshot: BroadcastSnapshot,
+	entryId: string | null,
+	source: 'prepared' | 'current' = 'current'
+) {
+	if (entryId === null) return null;
+	const attackers =
+		source === 'prepared'
+			? snapshot.sides.preparedAttackersEntryId
+			: snapshot.sides.attackersEntryId;
+	const defenders =
+		source === 'prepared'
+			? snapshot.sides.preparedDefendersEntryId
+			: snapshot.sides.defendersEntryId;
+	return entryId === attackers ? 'attack' : entryId === defenders ? 'defense' : null;
+}
+
+export function lineupForTeam(snapshot: BroadcastSnapshot, entryId: string | null) {
+	return snapshot.lineups
+		.filter((slot) => slot.entryId === entryId)
+		.sort((a, b) => a.slot - b.slot);
+}
+
+export function gameplayTeams(
+	snapshot: BroadcastSnapshot,
+	source: 'prepared' | 'current' = 'current'
+) {
+	return {
+		attackers:
+			snapshot.teams.find((team) => gameplaySide(snapshot, team.entryId, source) === 'attack') ??
+			null,
+		defenders:
+			snapshot.teams.find((team) => gameplaySide(snapshot, team.entryId, source) === 'defense') ??
+			null
+	};
+}
+
+export function vetoActor(
+	snapshot: BroadcastSnapshot,
+	veto: Pick<BroadcastSnapshot['veto'][number], 'actingEntryId'>
+) {
+	return teamByEntryId(snapshot, veto.actingEntryId);
+}
+
+export function teamScore(
+	snapshot: BroadcastSnapshot,
+	entryId: string | null,
+	scope: 'game' | 'match'
+) {
+	if (entryId === null) return null;
+	const result = snapshot[scope];
+	return entryId === snapshot.competition.teamAEntryId
+		? (result?.scoreA ?? null)
+		: entryId === snapshot.competition.teamBEntryId
+			? (result?.scoreB ?? null)
 			: null;
+}
+
+export function statisticMetric(
+	statistics: Partial<Record<keyof StatisticValues, Metric>> | null,
+	field: keyof StatisticValues,
+	scope: BroadcastScope
+): Metric {
+	return (
+		(field === 'performanceScore' && scope !== 'game' ? null : statistics?.[field]) ?? {
+			value: null,
+			coverage: 'none'
+		}
+	);
 }
