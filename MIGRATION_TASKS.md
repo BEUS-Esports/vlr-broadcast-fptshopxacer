@@ -33,8 +33,8 @@ Create a mutable copy with `new URL(page.url.href)`, mutate that copy, and use i
 
 #### Files to review
 
-- [ ] `src/lib/components/admin/graphics/GraphicsWorkspace.svelte`
-- [ ] `src/routes/admin/+layout.svelte`
+- [x] `src/lib/components/admin/graphics/GraphicsWorkspace.svelte`
+- [x] `src/routes/admin/+layout.svelte`
 
 ### Review `goto` destinations
 
@@ -50,7 +50,7 @@ Confirm each destination is an internal route. Use `window.location.href` for ex
 
 #### Files to review
 
-- [ ] `src/lib/components/admin/management/ManagementWorkspace.svelte`
+- [x] `src/lib/components/admin/management/ManagementWorkspace.svelte`
 
 ### Replace `invalidateAll` with `refreshAll`
 
@@ -66,7 +66,8 @@ Replace `invalidateAll()` with `refreshAll()`. Note that `refreshAll()` will kee
 
 #### Files to review
 
-- [ ] `src/lib/components/admin/management/ManagementWorkspace.svelte`
+- [x] `src/lib/components/admin/management/ManagementWorkspace.svelte`
+(apparently there's a lot of pages using `invalidateAll`, wtf `sv migrate`?)
 
 ### CORS for static assets in development is handled by Vite
 
@@ -94,13 +95,13 @@ If this value configures adapter-node, move the public-facing origin to `paths.o
 
 #### Files to review
 
-- [ ] `tests/setup.ts`
-- [ ] `vite.config.ts`
+- [x] `tests/setup.ts`
+- [x] `vite.config.ts`
 
 ## Final verification
 
-- [ ] Review every migration task and ignore any irrelevant findings.
-- [ ] Resolve remaining `@migration-task` comments.
+- [x] Review every migration task and ignore any irrelevant findings.
+- [x] Resolve remaining `@migration-task` comments.
 - [ ] Run the project's type checker and tests.
-- [ ] Build the project successfully.
+- [x] Build the project successfully.
 - [ ] Delete this file when all migration work is complete.

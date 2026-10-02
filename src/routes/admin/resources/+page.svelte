@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Progress, Tabs } from '@skeletonlabs/skeleton-svelte';
 	import { Download, Pencil, Plus, X } from '@lucide/svelte';
@@ -114,7 +114,7 @@
 			}
 
 			if (buffer.trim()) handleSyncEvent(JSON.parse(buffer) as SyncEvent);
-			if (!syncError) await invalidateAll();
+			if (!syncError) await refreshAll();
 		} catch (cause) {
 			syncError = cause instanceof Error ? cause.message : 'Catalogue sync failed.';
 		} finally {

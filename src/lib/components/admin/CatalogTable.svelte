@@ -1,5 +1,5 @@
 <script lang="ts" generics="T extends { id: string }">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { ChevronLeft, ChevronRight, RefreshCw, Search } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 
@@ -40,7 +40,7 @@
 		refreshing = true;
 		refreshError = '';
 		try {
-			await invalidateAll();
+			await refreshAll();
 		} catch {
 			refreshError = 'Could not refresh the list. Please try again.';
 		} finally {
