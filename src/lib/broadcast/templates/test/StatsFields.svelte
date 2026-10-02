@@ -2,14 +2,14 @@
 	import type { BroadcastScope } from '../../controls';
 	import type { PlayerStatisticsView } from '../../../server/services/statistics-aggregation';
 	import { statisticMetric } from '../../selectors';
-	import StatValue from '../../primitives/StatValue.svelte';
+
 	let { statistics, scope }: { statistics: PlayerStatisticsView | null; scope: BroadcastScope } =
 		$props();
 	const fields = [
 		['kills', 'Kills'],
 		['deaths', 'Deaths'],
 		['assists', 'Assists'],
-		['performanceScore', 'Performance Score'],
+		['performanceScore', 'Perf. Score'],
 		['trades', 'Trades'],
 		['firstBloods', 'First Bloods'],
 		['plants', 'Plants'],
@@ -19,8 +19,11 @@
 
 <div class="fields" aria-label="K/D/A and statistics">
 	{#each fields as [field, label] (field)}
-		<div data-field={field}>
-			<StatValue {label} metric={statisticMetric(statistics, field, scope)} />
+		{@const metric = statisticMetric(statistics, field, scope)}
+		<div data-field={field} data-coverage={metric.coverage}>
+			<strong>{metric.value ?? '—'}</strong>
+			<span>{label}</span>
+			{#if metric.coverage === 'partial'}<small>INCOMPLETE</small>{/if}
 		</div>
 	{/each}
 </div>
@@ -29,23 +32,53 @@
 	.fields {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 8px;
+		gap: 7px;
 	}
-	.fields :global(.stat) {
+	.fields [data-field] {
+		position: relative;
+		min-width: 0;
+		min-height: 62px;
+		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
-		gap: 0;
-		min-height: 56px;
-		line-height: 1.2;
+		justify-content: center;
+		padding: 9px 10px;
+		background: #0b1017b8;
+		border-top: 1px solid var(--gfx-line);
 	}
-	.fields :global(span) {
-		font-size: 15px;
+	.fields [data-coverage='partial'] {
+		border-top-color: #d2b45a;
+	}
+	strong {
+		color: var(--gfx-ink);
+		font:
+			800 25px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		font-variant-numeric: tabular-nums;
+	}
+	span {
+		margin-top: 5px;
+		color: var(--gfx-muted);
+		font:
+			700 10px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.fields :global(strong) {
-		font-size: 20px;
-	}
-	.fields :global(small) {
-		font-size: 12px;
+	small {
+		position: absolute;
+		right: 7px;
+		top: 7px;
+		color: #d2b45a;
+		font:
+			700 7px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.08em;
 	}
 </style>

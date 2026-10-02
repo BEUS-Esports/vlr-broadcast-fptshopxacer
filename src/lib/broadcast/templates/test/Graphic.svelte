@@ -9,6 +9,7 @@
 	import MVP from './MVP.svelte';
 	import InGame from './InGame.svelte';
 	import { dev } from '$app/env';
+
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 	const pregame = $derived(
 		snapshot.selection !== null &&
@@ -23,118 +24,223 @@
 {:else}
 	<section class:pregame aria-label={graphicLabels[graphic]}>
 		<header class="package-header">
-			<div>
-				<p class="eyebrow">Test GFX v2 · Saved preparation</p>
+			<div class="title-lockup">
+				<p class="event-name">{snapshot.tournament?.name ?? 'VALORANT'}</p>
 				<h1>{graphicLabels[graphic]}</h1>
 			</div>
 			<div class="event-context">
-				<strong>{snapshot.tournament?.name ?? 'Tournament unavailable'}</strong>
-				<p>{snapshot.match?.label ?? 'Match unavailable'} · Game {snapshot.game?.number ?? '—'}</p>
+				<strong>{snapshot.match?.label ?? 'Match unavailable'}</strong>
+				<p>
+					Game {snapshot.game?.number ?? '—'}
+					<span aria-hidden="true"> // </span>
+					{snapshot.game?.map?.displayName ?? snapshot.game?.name ?? 'Map TBD'}
+				</p>
 			</div>
 		</header>
-		{#if snapshot.selection && graphic === 'player-lineup'}
-			<PlayerLineup {snapshot} />
-		{:else if snapshot.selection && graphic === 'map-veto'}
-			<MapVeto {snapshot} />
-		{:else if snapshot.selection && graphic === 'agent-select'}
-			<AgentSelect {snapshot} />
-		{:else if snapshot.selection && graphic === 'post-game'}
-			<PostGame {snapshot} />
-		{:else if snapshot.selection && graphic === 'player-stats'}
-			<PlayerStats {snapshot} />
-		{:else if snapshot.selection && graphic === 'mvp'}
-			<MVP {snapshot} />
-		{:else if snapshot.selection}
-			<p>{snapshot.tournament?.name ?? 'Unknown tournament'}</p>
-			<p>{snapshot.match?.label ?? 'Unknown match'} · {snapshot.game?.name ?? 'Unknown game'}</p>
-		{:else}
-			<p>No game selected</p>
-		{/if}
+
+		<div class="content-frame">
+			{#if snapshot.selection && graphic === 'player-lineup'}
+				<PlayerLineup {snapshot} />
+			{:else if snapshot.selection && graphic === 'map-veto'}
+				<MapVeto {snapshot} />
+			{:else if snapshot.selection && graphic === 'agent-select'}
+				<AgentSelect {snapshot} />
+			{:else if snapshot.selection && graphic === 'post-game'}
+				<PostGame {snapshot} />
+			{:else if snapshot.selection && graphic === 'player-stats'}
+				<PlayerStats {snapshot} />
+			{:else if snapshot.selection && graphic === 'mvp'}
+				<MVP {snapshot} />
+			{:else if snapshot.selection}
+				<p>{snapshot.tournament?.name ?? 'Unknown tournament'}</p>
+				<p>{snapshot.match?.label ?? 'Unknown match'} · {snapshot.game?.name ?? 'Unknown game'}</p>
+			{:else}
+				<div class="empty-state">
+					<strong>WAITING FOR MATCH</strong>
+					<p>No game selected</p>
+				</div>
+			{/if}
+		</div>
 	</section>
 {/if}
+
 <footer
 	class:in-game={graphic === 'in-game'}
 	data-attribution-safe-area
 	aria-label="Reserved data source attribution"
 >
-	{#if dev}<span>Attribution test area</span>{/if}
+	{#if dev}<span>DATA SOURCE</span>{/if}
 </footer>
 
 <style>
 	section {
 		position: absolute;
-		left: 64px;
-		top: 64px;
-		padding: 24px;
-		color: #f1f6fa;
-		background: #101d30ed;
+		left: 48px;
+		top: 48px;
+		color: #f7f4eb;
 		font:
-			24px/1.3 'Segoe UI',
+			20px/1.25 'Segoe UI',
 			sans-serif;
+		--gfx-bg: #090c11;
+		--gfx-panel: #10151ded;
+		--gfx-panel-solid: #10151d;
+		--gfx-panel-raised: #171e28;
+		--gfx-line: #303947;
+		--gfx-muted: #97a2b0;
+		--gfx-ink: #f7f4eb;
+		--gfx-accent: #63e6d7;
+		--gfx-accent-soft: #63e6d728;
+		--gfx-attack: #248bff;
+		--gfx-defense: #ff4655;
+		--gfx-cut: 22px;
 	}
 	h1,
 	p {
 		margin: 0;
 	}
 	section.pregame {
-		width: 1792px;
-		height: 952px;
+		width: 1824px;
+		height: 936px;
 		box-sizing: border-box;
 		padding: 0;
 		background: transparent;
-	}
-	.pregame h1 {
-		font:
-			600 44px/1.1 Bahnschrift,
-			'Arial Narrow',
-			sans-serif;
-		letter-spacing: 0.02em;
+		overflow: hidden;
 	}
 	.package-header {
-		height: 96px;
+		position: relative;
+		height: 118px;
+		box-sizing: border-box;
 		display: flex;
 		justify-content: space-between;
-		align-items: start;
+		align-items: end;
 		gap: 48px;
+		padding: 18px 30px 19px;
+		background:
+			linear-gradient(90deg, var(--gfx-accent) 0 156px, transparent 156px) top left / 100% 4px
+				no-repeat,
+			linear-gradient(90deg, #0a0e14f5, #151b24f3 72%, #0a0e14e8);
+		clip-path: polygon(
+			0 0,
+			calc(100% - var(--gfx-cut)) 0,
+			100% var(--gfx-cut),
+			100% 100%,
+			var(--gfx-cut) 100%,
+			0 calc(100% - var(--gfx-cut))
+		);
+		border-bottom: 1px solid var(--gfx-line);
 	}
-	.eyebrow {
-		color: #54c5c0;
+	.package-header::after {
+		content: '';
+		position: absolute;
+		left: 30px;
+		right: 30px;
+		bottom: 0;
+		height: 1px;
+		background: linear-gradient(90deg, var(--gfx-accent), #63e6d700 54%);
+	}
+	.title-lockup {
+		min-width: 0;
+	}
+	.event-name {
+		max-width: 900px;
+		color: var(--gfx-accent);
 		font:
-			600 14px/1.8 'Segoe UI',
+			700 14px/1.1 Bahnschrift,
+			'Arial Narrow',
 			sans-serif;
+		letter-spacing: 0.18em;
 		text-transform: uppercase;
-		letter-spacing: 0.16em;
-	}
-	.event-context {
-		max-width: 680px;
-		text-align: right;
-		padding-top: 8px;
-		font-size: 20px;
-	}
-	.event-context strong,
-	.event-context p {
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
+	.pregame h1 {
+		margin-top: 7px;
+		font:
+			800 46px/0.95 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.035em;
+		text-transform: uppercase;
+	}
+	.event-context {
+		max-width: 660px;
+		min-width: 300px;
+		text-align: right;
+		padding-bottom: 2px;
+	}
+	.event-context strong {
+		font:
+			700 22px/1.05 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
 	.event-context p {
-		color: #9fb2c8;
-		margin-top: 4px;
+		margin-top: 8px;
+		color: var(--gfx-muted);
+		font:
+			600 15px/1 'Segoe UI',
+			sans-serif;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+	.event-context strong,
+	.event-context p {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.content-frame {
+		position: relative;
+		height: 800px;
+		box-sizing: border-box;
+		padding-top: 20px;
+	}
+	.empty-state {
+		position: absolute;
+		inset: 160px 260px auto;
+		padding: 52px;
+		text-align: center;
+		background: linear-gradient(135deg, #10151df2, #171e28e8);
+		border-block: 1px solid var(--gfx-line);
+		clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+	}
+	.empty-state strong {
+		color: var(--gfx-accent);
+		font:
+			800 38px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.08em;
+	}
+	.empty-state p {
+		margin-top: 12px;
+		color: var(--gfx-muted);
+		font-size: 18px;
 	}
 	footer {
 		position: absolute;
-		right: 64px;
+		right: 48px;
 		top: 1004px;
-		width: 248px;
+		width: 270px;
 		height: 28px;
+		box-sizing: border-box;
+		padding-right: 14px;
 		text-align: right;
-		color: #9fb2c8;
+		color: #97a2b0;
 		font:
-			14px/28px 'Segoe UI',
+			700 11px/28px Bahnschrift,
+			'Arial Narrow',
 			sans-serif;
+		letter-spacing: 0.16em;
+		background: linear-gradient(90deg, transparent, #10151db8);
+		border-right: 2px solid #63e6d7;
 	}
 	footer.in-game {
-		top: 352px;
+		top: 350px;
 		right: 480px;
 	}
 	.pregame :global(.identity) {
@@ -146,7 +252,6 @@
 	}
 	.pregame :global(strong),
 	.pregame :global(small) {
-		display: block;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

@@ -2,6 +2,7 @@
 	import type { BroadcastSnapshot } from '../../types';
 	import { presentationTeams, gameplaySide } from '../../selectors';
 	import Identity from '../../primitives/Identity.svelte';
+
 	let { snapshot }: { snapshot: BroadcastSnapshot } = $props();
 	const teams = $derived(presentationTeams(snapshot));
 </script>
@@ -15,7 +16,7 @@
 					? snapshot.presentation.leftEntryId
 					: snapshot.presentation.rightEntryId}
 			{@const side = gameplaySide(snapshot, entryId)}
-			<div class="team" data-position={position} data-entry-id={entryId ?? ''}>
+			<div class="team" data-position={position} data-entry-id={entryId ?? ''} data-side={side ?? 'neutral'}>
 				<Identity
 					name={team?.name ?? null}
 					detail={team?.tag}
@@ -23,23 +24,14 @@
 					unavailable="Team unavailable"
 					{side}
 				/>
-				{#if !side}<small>Side unavailable</small>{/if}
 			</div>
 		{/each}
 		<div class="context">
-			<strong>{snapshot.tournament?.name ?? 'Tournament unavailable'}</strong>
-			<p>{snapshot.game?.map?.displayName ?? 'Map unavailable'}</p>
+			<strong>{snapshot.game?.map?.displayName ?? 'MAP TBD'}</strong>
 			<p>
-				{snapshot.game?.name ?? 'Game unavailable'}{#if snapshot.match}
-					· BO{snapshot.match.bestOf}{/if}
+				GAME {snapshot.game?.number ?? '—'}{#if snapshot.match}
+					<span aria-hidden="true"> // </span>BO{snapshot.match.bestOf}{/if}
 			</p>
-			<small
-				>{snapshot.sides.source === 'prepared'
-					? 'Prepared sides'
-					: snapshot.sides.source === 'manual'
-						? 'Manual sides'
-						: 'Sides unavailable'}</small
-			>
 		</div>
 	{:else}
 		<p class="empty">No game selected</p>
@@ -58,22 +50,33 @@
 		height: 112px;
 		box-sizing: border-box;
 		display: grid;
-		grid-template-columns: 300px 360px 300px;
-		align-items: center;
+		grid-template-columns: 310px 340px 310px;
+		align-items: stretch;
 		overflow: hidden;
-		color: white;
-		background: #101d30e8;
+		color: #f7f4eb;
+		background: linear-gradient(90deg, #0b0f15ee, #151b24f2 50%, #0b0f15ee);
 		font:
-			16px/1.25 'Segoe UI',
+			15px/1.2 'Segoe UI',
 			sans-serif;
-		border-block: 1px solid #38526d;
-		--asset-width: 40px;
-		--asset-height: 40px;
+		border-block: 1px solid #303947;
+		clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
+		--gfx-accent: #63e6d7;
+		--gfx-muted: #97a2b0;
+		--gfx-attack: #248bff;
+		--gfx-defense: #ff4655;
+		--asset-width: 46px;
+		--asset-height: 46px;
 	}
 	.team,
 	.context {
 		min-width: 0;
 		overflow: hidden;
+	}
+	.team {
+		display: flex;
+		align-items: center;
+		padding: 10px 14px;
+		border-bottom: 4px solid #303947;
 	}
 	.team[data-position='left'] {
 		grid-column: 1;
@@ -83,18 +86,75 @@
 		grid-column: 3;
 		grid-row: 1;
 	}
+	.team[data-side='attack'] {
+		border-bottom-color: var(--gfx-attack);
+	}
+	.team[data-side='defense'] {
+		border-bottom-color: var(--gfx-defense);
+	}
+	.team[data-position='right'] {
+		justify-content: end;
+	}
+	.team :global(.identity) {
+		width: 100%;
+		border: 0;
+		padding: 0;
+		gap: 10px;
+	}
+	.team[data-position='right'] :global(.identity) {
+		flex-direction: row-reverse;
+		text-align: right;
+	}
+	.team :global(.identity strong) {
+		font:
+			800 18px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		text-transform: uppercase;
+	}
+	.team :global(.identity small) {
+		margin-top: 4px;
+		color: var(--gfx-muted);
+		font:
+			700 9px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
 	.context {
 		grid-column: 2;
 		grid-row: 1;
-		padding: 8px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		padding: 8px 18px;
 		text-align: center;
+		background: #090d13c9;
+		border-inline: 1px solid #303947;
+	}
+	.context strong {
+		color: var(--gfx-accent);
+		font:
+			900 23px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+	.context p {
+		margin: 7px 0 0;
+		color: var(--gfx-muted);
+		font:
+			700 10px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.11em;
 	}
 	.empty {
 		grid-column: 1 / -1;
+		align-self: center;
 		text-align: center;
-	}
-	p {
-		margin: 0;
 	}
 	section :global(.identity),
 	section :global(.identity > div) {
