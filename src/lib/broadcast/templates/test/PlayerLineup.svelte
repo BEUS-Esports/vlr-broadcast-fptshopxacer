@@ -20,6 +20,7 @@
 				detail={team?.tag}
 				unavailable="Team unavailable"
 			/>
+			<p class="readiness">{lineup.filter((row) => row.player).length}/5 saved players</p>
 			<ol>
 				{#each [1, 2, 3, 4, 5] as slot (slot)}
 					<li data-slot={slot}>
@@ -41,19 +42,22 @@
 	.teams {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 40px;
+		gap: 32px;
 	}
 	.team {
 		min-width: 0;
-		--asset-width: 88px;
-		--asset-height: 88px;
+		--asset-width: 96px;
+		--asset-height: 96px;
+		background: #101d30f2;
+		border-top: 3px solid #54c5c0;
+		padding: 20px;
 	}
 	ol {
 		display: grid;
-		gap: 16px;
+		gap: 10px;
 		list-style: none;
 		padding: 0;
-		margin: 24px 0 0;
+		margin: 12px 0 0;
 	}
 	li {
 		display: flex;
@@ -61,10 +65,19 @@
 		gap: 16px;
 		min-width: 0;
 		padding: 8px 16px;
-		background: #111e;
+		background: #162b43;
+		border-inline-start: 2px solid #38526d;
+		--asset-width: 88px;
+		--asset-height: 88px;
 	}
 	.slot {
 		font-size: 18px;
-		color: #bbb;
+		color: #54c5c0;
+		font-variant-numeric: tabular-nums;
+	}
+	.readiness {
+		margin: 8px 0 0;
+		color: #9fb2c8;
+		font-size: 18px;
 	}
 </style>

@@ -28,7 +28,7 @@ it('publishes preparation once and controls without a second revision, and leave
 		await db.update(s.teams).set({ name: 'Changed branding' }).where(eq(s.teams.id, 'team-a'));
 		await run('/admin/teams');
 		expect(await getBroadcastState()).toMatchObject({ controlRevision: 1, dataRevision: 2 });
-		await updateBroadcastState({ expectedRevision: 1, visibility: { mvp: true } });
+		await updateBroadcastState({ expectedRevision: 1, swapped: true });
 		await run('/admin/graphics');
 		expect(await getBroadcastState()).toMatchObject({ controlRevision: 2, dataRevision: 2 });
 		await run('/admin/teams', 'POST', 'failure');

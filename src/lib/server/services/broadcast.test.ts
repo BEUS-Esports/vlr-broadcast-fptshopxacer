@@ -145,9 +145,10 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 			{ playerStats: { ...stats, style: 'arbitrary' } }
 		]) {
 			await expect(
-				service.updateBroadcastState({ expectedRevision: state.controlRevision, ...patch } as Parameters<
-					typeof service.updateBroadcastState
-				>[0])
+				service.updateBroadcastState({
+					expectedRevision: state.controlRevision,
+					...patch
+				} as Parameters<typeof service.updateBroadcastState>[0])
 			).rejects.toMatchObject({ code: expect.stringMatching(/invalid|not-found/) });
 			expect(await service.getBroadcastState()).toEqual(state);
 		}
@@ -163,6 +164,10 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 		expect(state.playerStats.playerId).toBe('b1');
 		state = await service.updateBroadcastState({
 			expectedRevision: state.controlRevision,
+			visibility: { 'player-stats': false }
+		});
+		state = await service.updateBroadcastState({
+			expectedRevision: state.controlRevision,
 			selectedGameId: 'g2'
 		});
 		expect(state).toMatchObject({
@@ -172,11 +177,14 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 			playerStats: { mode: 'single', scope: 'game', playerId: null, opponentPlayerId: null },
 			mvpScope: 'game'
 		});
-		expect(state.visibility['player-stats']).toBe(true);
+		expect(state.visibility['player-stats']).toBe(false);
 		// Prepared-data writes advance dataRevision without invalidating control drafts.
 		const controlRevision = state.controlRevision;
 		const dataRevision = state.dataRevision;
-		await db.update(schema.teams).set({ name: 'Prepared edit' }).where(eq(schema.teams.id, 'team-a'));
+		await db
+			.update(schema.teams)
+			.set({ name: 'Prepared edit' })
+			.where(eq(schema.teams.id, 'team-a'));
 		const afterPreparedEdit = await service.getBroadcastState();
 		expect(afterPreparedEdit.controlRevision).toBe(controlRevision);
 		expect(afterPreparedEdit.dataRevision).toBeGreaterThan(dataRevision);

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@libsql/client';
+import { mkdir } from 'node:fs/promises';
 import { createGame, createMatch, prepareTournament, save, scores } from './management-helpers';
 
 test('controller commits complete selections and rejects retained stale drafts across sessions', async ({
@@ -19,7 +20,7 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await save(page, 'Save lineup');
 	page.once('dialog', (dialog) => dialog.accept());
 	await scores(page, '13', '7');
-	await page.getByRole('tab', { name: 'Post-Game', exact: true }).click();
+	await page.getByRole('tab', { name: 'Post-Game Report', exact: true }).click();
 	await page
 		.getByRole('region', { name: 'Game MVP', exact: true })
 		.getByRole('combobox', { name: 'Player', exact: true })
@@ -77,9 +78,7 @@ test('controller commits complete selections and rejects retained stale drafts a
 	expect(originalPreparation[2]).toHaveLength(1);
 	expect(originalPreparation[3]).toHaveLength(2);
 	await page.goto('/admin/graphics');
-	await expect(
-		page.getByRole('heading', { name: 'Graphics Controller', exact: true })
-	).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Global Settings', exact: true })).toBeVisible();
 	await page
 		.getByRole('combobox', { name: 'Tournament', exact: true })
 		.selectOption(tournament.split('/').pop()!);
@@ -94,9 +93,9 @@ test('controller commits complete selections and rejects retained stale drafts a
 		.getByRole('combobox', { name: 'Game', exact: true })
 		.selectOption(game.split('/').pop()!);
 	await save(page, 'Take game live');
-	await page.getByRole('tab', { name: 'In-Game', exact: true }).click();
-	await page.getByLabel('Show In-Game', { exact: true }).check();
-	await save(page, 'Save In-Game');
+	await page.goto('/admin/graphics/in-game');
+	await save(page, 'Show In-Game');
+	await mkdir('docs/phase-5-screenshots', { recursive: true });
 	const identityOutput = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 	await identityOutput.goto('/gfx/live/in-game');
 	const left = identityOutput.locator('[data-position="left"]');
@@ -110,8 +109,10 @@ test('controller commits complete selections and rejects retained stale drafts a
 	const other = await context.newPage();
 	await other.goto('http://localhost:4173/admin/graphics');
 	await expect(other.getByLabel('Broadcast connection')).toContainText('Connection: connected');
-	await page.getByRole('combobox', { name: 'Tournament', exact: true }).selectOption('tabs-event');
-	await expect(onAir).toContainText('Graphics match');
+	await expect(page.getByRole('combobox', { name: 'Tournament', exact: true })).toBeDisabled();
+	await page
+		.getByRole('combobox', { name: 'Current attackers', exact: true })
+		.selectOption({ label: 'Alpha' });
 	await other.goto(`http://localhost:4173${nextGame}`);
 	await other.getByLabel('Game name', { exact: true }).fill('Updated preparation');
 	await save(other, 'Save game info');
@@ -120,23 +121,14 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await expect(left).toContainText('Bravo');
 	await expect(right).toContainText('Alpha');
 	await expect(onAir).toContainText('Left: Bravo');
-	await expect(page.getByRole('combobox', { name: 'Tournament', exact: true })).toHaveValue(
-		'tabs-event'
+	await expect(page.getByRole('combobox', { name: 'Current attackers', exact: true })).toHaveValue(
+		String(participants.team_a_entry_id)
 	);
-	await page
-		.getByRole('combobox', { name: 'Tournament', exact: true })
-		.selectOption(tournament.split('/').pop()!);
-	await page
-		.getByRole('combobox', { name: 'Match', exact: true })
-		.selectOption(match.split('/').pop()!);
 	await expect(
 		page.getByRole('combobox', { name: 'Game', exact: true }).locator('option')
 	).toContainText(['Choose game', 'Game 1', 'Updated preparation']);
-	await page
-		.getByRole('combobox', { name: 'Game', exact: true })
-		.selectOption(nextGame.split('/').pop()!);
 	const stale = page.waitForResponse((r) => r.request().method() === 'POST');
-	await page.getByRole('button', { name: 'Take game live', exact: true }).click();
+	await page.getByRole('button', { name: 'Save presentation', exact: true }).click();
 	expect((await stale).status()).toBe(409);
 	await expect(page.getByRole('alert')).toContainText('Reload before saving');
 	page.once('dialog', (dialog) => dialog.accept());
@@ -169,8 +161,7 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await save(other, 'Save presentation');
 	await expect(onAir).toContainText('Attackers: Unknown');
 	await expect(onAir).toContainText('Left: Bravo');
-	await other.getByRole('tab', { name: 'Player Stats', exact: true }).click();
-	await other.getByLabel('Show Player Stats', { exact: true }).check();
+	await other.goto('/admin/graphics/player-stats');
 	const statsOutput = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 	await statsOutput.goto('/gfx/live/player-stats');
 	await other
@@ -184,7 +175,8 @@ test('controller commits complete selections and rejects retained stale drafts a
 		await other
 			.getByRole('combobox', { name: 'Opponent player', exact: true })
 			.selectOption('Bravo-1');
-		await save(other, 'Save Player Stats');
+		await save(other, 'Save Player Stats controls');
+		await save(other, 'Show Player Stats');
 		await expect(
 			statsOutput.getByText(`Head-to-Head · Scope: ${scope}`, { exact: true })
 		).toBeVisible();
@@ -192,18 +184,22 @@ test('controller commits complete selections and rejects retained stale drafts a
 		await expect(statsOutput.locator('[data-player-panel="Alpha-1"]')).toContainText('Alpha 1');
 		await expect(statsOutput.locator('[data-player-panel="Bravo-1"]')).toContainText('Bravo 1');
 		await expect(statsOutput).toHaveURL(/\/gfx\/live\/player-stats$/);
+		await save(other, 'Hide Player Stats');
 	}
 	await other
 		.getByRole('combobox', { name: 'Opponent player', exact: true })
 		.selectOption('Alpha-2');
-	await save(other, 'Save Player Stats');
+	await save(other, 'Save Player Stats controls');
+	await save(other, 'Show Player Stats');
 	await expect(statsOutput.locator('[data-player-panel="Alpha-2"]')).toContainText('Alpha 2');
 	await statsOutput.screenshot({
 		path: 'docs/phase-5-screenshots/player-stats-head-to-head.png',
 		omitBackground: true
 	});
+	await save(other, 'Hide Player Stats');
 	await other.getByRole('combobox', { name: 'Stats mode', exact: true }).selectOption('single');
-	await save(other, 'Save Player Stats');
+	await save(other, 'Save Player Stats controls');
+	await save(other, 'Show Player Stats');
 	await expect(statsOutput.locator('[data-player-panel]')).toHaveCount(1);
 	await expect(statsOutput.locator('body')).toContainText('Single / Player to Watch');
 	await statsOutput.screenshot({
@@ -213,12 +209,12 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await expect(other.getByRole('combobox', { name: 'Opponent player', exact: true })).toHaveCount(
 		0
 	);
-	await other.getByRole('tab', { name: 'MVP', exact: true }).click();
+	await other.goto('/admin/graphics/mvp');
 	await other.getByRole('combobox', { name: 'MVP scope', exact: true }).selectOption('match');
-	await save(other, 'Save MVP');
+	await save(other, 'Save MVP controls');
 	await other.getByRole('combobox', { name: 'MVP scope', exact: true }).selectOption('game');
-	await other.getByLabel('Show MVP', { exact: true }).check();
-	await save(other, 'Save MVP');
+	await save(other, 'Save MVP controls');
+	await save(other, 'Show MVP');
 	const preparedOutput = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 	await preparedOutput.goto('/gfx/live/mvp');
 	await expect(preparedOutput.getByText('Alpha 1', { exact: true })).toBeVisible();
@@ -226,18 +222,16 @@ test('controller commits complete selections and rejects retained stale drafts a
 		path: 'docs/phase-5-screenshots/mvp-saved.png',
 		omitBackground: true
 	});
-	await other.getByRole('tab', { name: 'Map Veto', exact: true }).click();
-	await other.getByLabel('Show Map Veto', { exact: true }).check();
-	await save(other, 'Save Map Veto');
+	await other.goto('/admin/graphics/map-veto');
+	await save(other, 'Show Map Veto');
 	await preparedOutput.goto('/gfx/live/map-veto');
 	await expect(preparedOutput.getByText('Map 2', { exact: true })).toBeVisible();
 	await preparedOutput.screenshot({
 		path: 'docs/phase-5-screenshots/map-veto-saved.png',
 		omitBackground: true
 	});
-	await other.getByRole('tab', { name: 'Player Lineup', exact: true }).click();
-	await other.getByLabel('Show Player Lineup').check();
-	await save(other, 'Save Player Lineup');
+	await other.goto('/admin/graphics/player-lineup');
+	await save(other, 'Show Player Lineup');
 	await expect(other.getByRole('link', { name: 'Open Player Lineup output' })).toHaveAttribute(
 		'href',
 		'/gfx/live/player-lineup'
@@ -257,6 +251,16 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await expect(page.getByRole('combobox', { name: 'Starting attackers', exact: true })).toHaveValue(
 		''
 	);
+	for (const [id, label] of [
+		['player-lineup', 'Player Lineup'],
+		['player-stats', 'Player Stats'],
+		['map-veto', 'Map Veto'],
+		['mvp', 'MVP'],
+		['in-game', 'In-Game']
+	]) {
+		await page.goto('/admin/graphics/' + id);
+		await save(page, 'Hide ' + label);
+	}
 	await page.goto('/admin/graphics');
 	await save(page, 'Clear live selection');
 	await expect(other.getByRole('region', { name: 'On air', exact: true })).toContainText(

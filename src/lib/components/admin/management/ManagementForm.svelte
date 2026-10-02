@@ -2,20 +2,26 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { getContext, onDestroy, onMount, untrack, type Snippet } from 'svelte';
-	import type { SvelteMap } from 'svelte/reactivity';
+	import type { DraftRegistry } from './DraftGuard.svelte';
 	let {
 		action,
 		initial,
 		confirmMessage,
+		recordDraft = true,
+		changesContext = false,
 		children
 	}: {
 		action: string;
 		initial: T;
 		confirmMessage?: string;
+		recordDraft?: boolean;
+		changesContext?: boolean;
 		children: Snippet<[T, boolean, Record<string, unknown> | null]>;
 	} = $props();
-	let draft = $state<T>(untrack(() => JSON.parse(JSON.stringify(initial))));
-	let baseline = $state(untrack(() => JSON.stringify(initial)));
+	const formState = $state({
+		draft: untrack(() => JSON.parse(JSON.stringify(initial)) as T),
+		baseline: untrack(() => JSON.stringify(initial))
+	});
 	let pending = $state(false);
 	let message = $state('');
 	let failed = $state(false);
@@ -24,25 +30,24 @@
 	onMount(() => {
 		hydrated = true;
 	});
-	const dirty = $derived(JSON.stringify(draft) !== baseline);
-	const drafts = getContext<SvelteMap<symbol, boolean> | undefined>('management-drafts');
+	const dirty = $derived(JSON.stringify(formState.draft) !== formState.baseline);
+	const saved = $derived(JSON.stringify(initial));
+	const drafts = getContext<DraftRegistry | undefined>('management-drafts');
 	const id = Symbol();
-	$effect(() => {
-		drafts?.set(id, dirty);
+	$effect.pre(() => {
+		drafts?.set(id, { dirty, record: recordDraft, reset: resetToSaved });
 	});
 	onDestroy(() => drafts?.delete(id));
 	// Only clean sections follow a refreshed load. Dirty sections keep their original revision.
-	$effect(() => {
-		const saved = JSON.stringify(initial);
-		if (untrack(() => !dirty && !pending))
-			untrack(() => {
-				draft = JSON.parse(saved);
-				baseline = saved;
-			});
+	$effect.pre(() => {
+		if (!dirty && !pending) {
+			formState.draft = JSON.parse(saved);
+			formState.baseline = saved;
+		}
 	});
 	function resetToSaved() {
-		baseline = JSON.stringify(initial);
-		draft = JSON.parse(baseline);
+		formState.baseline = JSON.stringify(initial);
+		formState.draft = JSON.parse(formState.baseline);
 	}
 </script>
 
@@ -55,13 +60,26 @@
 			cancel();
 			return;
 		}
-		formData.set('payload', JSON.stringify(draft));
+		if (changesContext) {
+			const affected = [...(drafts?.entries() ?? [])].filter(
+				([key, form]) => key !== id && form.record && form.dirty
+			);
+			if (
+				affected.length &&
+				!window.confirm('Discard unsaved preparation before changing the live game?')
+			) {
+				cancel();
+				return;
+			}
+			for (const [, form] of affected) form.reset();
+		}
+		formData.set('payload', JSON.stringify(formState.draft));
 		pending = true;
 		message = '';
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success' || result.type === 'redirect') {
-					baseline = JSON.stringify(draft);
+					formState.baseline = JSON.stringify(formState.draft);
 					await update({ reset: false, navigate: false });
 					resetToSaved();
 					message = 'Saved.';
@@ -81,10 +99,10 @@
 		};
 	}}
 >
-	<input type="hidden" name="payload" value={JSON.stringify(draft)} />
+	<input type="hidden" name="payload" value={JSON.stringify(formState.draft)} />
 	<noscript><p>Enable JavaScript to edit management records.</p></noscript>
 	<fieldset disabled={pending || !hydrated} class="min-w-0 space-y-4">
-		{@render children(draft, pending, feedback)}
+		{@render children(formState.draft, pending, feedback)}
 	</fieldset>
 	{#if pending}<p role="status">Saving…</p>{/if}
 	{#if message}<p

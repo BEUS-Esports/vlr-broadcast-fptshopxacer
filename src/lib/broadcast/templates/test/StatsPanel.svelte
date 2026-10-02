@@ -46,11 +46,12 @@
 
 <style>
 	article {
-		padding: 24px;
-		background: #111c;
+		padding: 32px;
+		background: #101d30f2;
+		border-top: 4px solid #54c5c0;
 		min-width: 0;
-		--asset-width: 100px;
-		--asset-height: 100px;
+		--asset-width: 160px;
+		--asset-height: 160px;
 	}
 	.teams {
 		margin: 16px 0;
@@ -62,7 +63,8 @@
 	}
 	p {
 		margin: 8px 0;
-		font-size: 22px;
+		font-size: 20px;
+		color: #9fb2c8;
 	}
 	.agent {
 		overflow: hidden;
@@ -72,5 +74,15 @@
 	article :global(.fields) {
 		margin-top: 24px;
 		row-gap: 24px;
+	}
+	article :global(.fields [data-field]) {
+		background: #162b43;
+		padding: 12px;
+	}
+	article :global(.fields strong) {
+		font:
+			600 32px/1.2 Bahnschrift,
+			sans-serif;
+		color: #f1f6fa;
 	}
 </style>

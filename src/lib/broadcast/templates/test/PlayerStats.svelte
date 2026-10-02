@@ -29,6 +29,12 @@
 		gap: 24px;
 		margin-top: 24px;
 	}
+	p:first-of-type {
+		font:
+			600 28px Bahnschrift,
+			sans-serif;
+		color: #54c5c0;
+	}
 	.single {
 		grid-template-columns: minmax(0, 1000px);
 		justify-content: center;

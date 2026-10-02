@@ -10,6 +10,7 @@ import {
 import { createdAtColumn, revisionColumn, updatedAtColumn } from './common';
 import { games } from './games';
 import { tournamentEntries } from './tournaments';
+import type { BroadcastPublications } from '#lib/broadcast/types.ts';
 
 export const broadcastState = sqliteTable(
 	'broadcast_state',
@@ -28,6 +29,18 @@ export const broadcastState = sqliteTable(
 			.$type<GraphicVisibility>()
 			.notNull()
 			.default(defaultVisibility),
+		publications: text('publications', { mode: 'json' })
+			.$type<BroadcastPublications>()
+			.notNull()
+			.default({
+				'player-lineup': null,
+				'player-stats': null,
+				'map-veto': null,
+				'agent-select': null,
+				'in-game': null,
+				'post-game': null,
+				mvp: null
+			}),
 		playerStats: text('player_stats', { mode: 'json' })
 			.$type<PlayerStatsControl>()
 			.notNull()

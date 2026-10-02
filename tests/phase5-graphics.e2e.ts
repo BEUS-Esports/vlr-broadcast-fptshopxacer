@@ -31,9 +31,8 @@ test('production graphics stay stable, transparent and read-only across live sel
 		.selectOption(game.split('/').pop()!);
 	await save(page, 'Take game live');
 	for (const graphic of graphicIds) {
-		await page.getByRole('tab', { name: graphicLabels[graphic], exact: true }).click();
-		await page.getByLabel(`Show ${graphicLabels[graphic]}`, { exact: true }).check();
-		await save(page, `Save ${graphicLabels[graphic]}`);
+		await page.goto(`/admin/graphics/${graphic}`);
+		await save(page, `Show ${graphicLabels[graphic]}`);
 	}
 	const outputs = await Promise.all(
 		graphicIds.map(() => browser.newPage({ viewport: { width: 1920, height: 1080 } }))
@@ -72,12 +71,10 @@ test('production graphics stay stable, transparent and read-only across live sel
 				path: `docs/phase-5-screenshots/${graphic}.png`,
 				omitBackground: true
 			});
-			await page.getByRole('tab', { name: graphicLabels[graphic], exact: true }).click();
-			await page.getByLabel(`Show ${graphicLabels[graphic]}`, { exact: true }).uncheck();
-			await save(page, `Save ${graphicLabels[graphic]}`);
+			await page.goto(`/admin/graphics/${graphic}`);
+			await save(page, `Hide ${graphicLabels[graphic]}`);
 			await expect(output.locator('[data-graphic] > div')).toHaveCount(0);
-			await page.getByLabel(`Show ${graphicLabels[graphic]}`, { exact: true }).check();
-			await save(page, `Save ${graphicLabels[graphic]}`);
+			await save(page, `Show ${graphicLabels[graphic]}`);
 			await expect(output.locator('[data-graphic] section').first()).toBeVisible();
 		}
 		// Visibility mutations alone leave the persisted selection and presentation intact.
@@ -86,11 +83,16 @@ test('production graphics stay stable, transparent and read-only across live sel
 		for (const key of ['selected_game_id', 'swapped', 'current_attackers_entry_id'])
 			expect(current[key]).toEqual(original[0][key]);
 		await expect(output.getByRole('heading', { name: 'Player Lineup', exact: true })).toBeVisible();
+		await expect(page.getByRole('combobox', { name: 'Tournament', exact: true })).toBeDisabled();
+		for (const graphic of graphicIds) {
+			await page.goto(`/admin/graphics/${graphic}`);
+			await save(page, `Hide ${graphicLabels[graphic]}`);
+		}
 		await page
 			.getByRole('combobox', { name: 'Tournament', exact: true })
 			.selectOption('tabs-event');
 		for (const output of outputs)
-			await expect(output.locator('[data-graphic]')).toHaveAttribute(
+			await expect(output.locator('[data-live-graphic]')).toHaveAttribute(
 				'data-game-id',
 				game.split('/').pop()!
 			);
@@ -104,6 +106,10 @@ test('production graphics stay stable, transparent and read-only across live sel
 			.getByRole('combobox', { name: 'Game', exact: true })
 			.selectOption(nextGame.split('/').pop()!);
 		await save(page, 'Take game live');
+		for (const graphic of graphicIds) {
+			await page.goto(`/admin/graphics/${graphic}`);
+			await save(page, `Show ${graphicLabels[graphic]}`);
+		}
 		for (const output of outputs)
 			await expect(output.locator('[data-graphic]')).toHaveAttribute(
 				'data-game-id',
@@ -112,7 +118,7 @@ test('production graphics stay stable, transparent and read-only across live sel
 		await expect(output).toHaveURL(/\/gfx\/live\/player-lineup$/);
 		const controlRevisions = await Promise.all(
 			outputs.map((output) =>
-				output.locator('[data-graphic]').getAttribute('data-control-revision')
+				output.locator('[data-live-graphic]').getAttribute('data-control-revision')
 			)
 		);
 		expect(new Set(controlRevisions).size).toBe(1);
@@ -124,9 +130,13 @@ test('production graphics stay stable, transparent and read-only across live sel
 				nextGame.split('/').pop()!
 			);
 		}
+		for (const graphic of graphicIds) {
+			await page.goto(`/admin/graphics/${graphic}`);
+			await save(page, `Hide ${graphicLabels[graphic]}`);
+		}
 		await save(page, 'Clear live selection');
 		for (const output of outputs)
-			await expect(output.getByText('No game selected', { exact: true })).toBeVisible();
+			await expect(output.locator('[data-graphic] > div')).toHaveCount(0);
 		expect(errors).toEqual([]);
 		expect(mutations).toEqual([]);
 		expect((await output.goto('/gfx/live/unknown'))?.status()).toBe(404);

@@ -48,16 +48,18 @@
 	.competition {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 40px;
+		gap: 32px;
 		--asset-width: 64px;
 		--asset-height: 64px;
+		padding: 12px 20px;
+		background: #101d30f2;
 	}
 	ol {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 24px;
+		gap: 16px;
 		padding: 0;
-		margin: 32px 0 0;
+		margin: 24px 0 0;
 		list-style: none;
 		max-height: 680px;
 		/* ponytail: vetoes beyond two rows scroll; condense or paginate if an event needs more steps. */
@@ -66,12 +68,15 @@
 	li {
 		min-width: 0;
 		padding: 20px;
-		background: #111e;
-		--asset-width: 120px;
-		--asset-height: 96px;
+		background: #101d30f2;
+		border-top: 3px solid #54c5c0;
+		--asset-width: 140px;
+		--asset-height: 116px;
 	}
 	h2 {
-		font-size: 28px;
+		font:
+			600 28px Bahnschrift,
+			sans-serif;
 		text-transform: uppercase;
 		margin: 0 0 12px;
 	}
@@ -81,5 +86,9 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		margin: 8px 0;
+	}
+	li[data-sequence] :global(.identity) {
+		padding: 8px 0;
+		border: 0;
 	}
 </style>

@@ -6,6 +6,7 @@
 		lineup,
 		roster,
 		players,
+		action = '?/lineup',
 		disabled = false
 	}: {
 		revision: number;
@@ -13,12 +14,20 @@
 		lineup: Array<{ entryId: string; slot: number; playerId: string | null }>;
 		roster: Array<{ entryId: string; playerId: string }>;
 		players: Array<{ id: string; displayName: string; archivedAt?: Date | null }>;
+		action?: string;
 		disabled?: boolean;
 	} = $props();
 	function current(entryId: string, playerId: string) {
 		return (
 			!players.find((player) => player.id === playerId)?.archivedAt &&
 			roster.some((row) => row.entryId === entryId && row.playerId === playerId)
+		);
+	}
+	function options(entryId: string) {
+		return players.filter(
+			(player) =>
+				current(entryId, player.id) ||
+				lineup.some((row) => row.entryId === entryId && row.playerId === player.id)
 		);
 	}
 	function move(slots: Array<{ playerId: string | null }>, index: number, direction: number) {
@@ -30,9 +39,11 @@
 </script>
 
 <ManagementForm
-	action="?/lineup"
+	{action}
 	initial={{
 		expectedGameRevision: revision,
+		entries,
+		playerNames: Object.fromEntries(players.map((player) => [player.id, player.displayName])),
 		teams: entries.map((entry) => ({
 			entryId: entry.id,
 			slots: Array.from({ length: 5 }, (_, index) => ({
@@ -48,7 +59,7 @@
 			<legend class="sr-only">Game lineup selections</legend>
 			<div class="grid gap-5 lg:grid-cols-2">
 				{#each draft.teams as team (team.entryId)}
-					{@const entry = entries.find((entry) => entry.id === team.entryId)!}
+					{@const entry = draft.entries.find((entry) => entry.id === team.entryId)!}
 					{@const count = team.slots.filter((slot) => slot.playerId).length}
 					<section
 						class="space-y-3 rounded-base border border-surface-200-800 p-4"
@@ -62,15 +73,30 @@
 							<div class="space-y-2">
 								<label class="block"
 									>{entry.name} slot {slot.slot}
-									<select class="select mt-1 w-full" bind:value={slot.playerId}>
+									<select
+										class="select mt-1 w-full"
+										bind:value={slot.playerId}
+										onchange={(event) => {
+											const selected = players.find(
+												(player) => player.id === event.currentTarget.value
+											);
+											if (selected) draft.playerNames[selected.id] = selected.displayName;
+										}}
+									>
 										<option value={null}>Empty slot</option>
-										{#each players.filter((player) => current(team.entryId, player.id) || lineup.some((row) => row.entryId === team.entryId && row.playerId === player.id)) as player (player.id)}
+										{#each options(team.entryId) as player (player.id)}
 											<option value={player.id}
 												>{player.displayName} ({player.id}){current(team.entryId, player.id)
 													? ''
 													: ' · Historical'}</option
 											>
 										{/each}
+										{#if slot.playerId && !options(team.entryId).some((player) => player.id === slot.playerId)}
+											<option value={slot.playerId}
+												>{draft.playerNames[slot.playerId] ?? slot.playerId} ({slot.playerId}) ·
+												Retained draft</option
+											>
+										{/if}
 									</select>
 								</label>
 								{#if slot.playerId && !current(team.entryId, slot.playerId)}<p

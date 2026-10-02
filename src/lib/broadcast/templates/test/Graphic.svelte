@@ -8,6 +8,7 @@
 	import PlayerStats from './PlayerStats.svelte';
 	import MVP from './MVP.svelte';
 	import InGame from './InGame.svelte';
+	import { dev } from '$app/env';
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 	const pregame = $derived(
 		snapshot.selection !== null &&
@@ -21,7 +22,16 @@
 	<InGame {snapshot} />
 {:else}
 	<section class:pregame aria-label={graphicLabels[graphic]}>
-		<h1>{graphicLabels[graphic]}</h1>
+		<header class="package-header">
+			<div>
+				<p class="eyebrow">Test GFX v2 · Saved preparation</p>
+				<h1>{graphicLabels[graphic]}</h1>
+			</div>
+			<div class="event-context">
+				<strong>{snapshot.tournament?.name ?? 'Tournament unavailable'}</strong>
+				<p>{snapshot.match?.label ?? 'Match unavailable'} · Game {snapshot.game?.number ?? '—'}</p>
+			</div>
+		</header>
 		{#if snapshot.selection && graphic === 'player-lineup'}
 			<PlayerLineup {snapshot} />
 		{:else if snapshot.selection && graphic === 'map-veto'}
@@ -42,6 +52,13 @@
 		{/if}
 	</section>
 {/if}
+<footer
+	class:in-game={graphic === 'in-game'}
+	data-attribution-safe-area
+	aria-label="Reserved data source attribution"
+>
+	{#if dev}<span>Attribution test area</span>{/if}
+</footer>
 
 <style>
 	section {
@@ -49,9 +66,11 @@
 		left: 64px;
 		top: 64px;
 		padding: 24px;
-		color: white;
-		background: #111c;
-		font: 24px/1.4 sans-serif;
+		color: #f1f6fa;
+		background: #101d30ed;
+		font:
+			24px/1.3 'Segoe UI',
+			sans-serif;
 	}
 	h1,
 	p {
@@ -65,8 +84,58 @@
 		background: transparent;
 	}
 	.pregame h1 {
+		font:
+			600 44px/1.1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.02em;
+	}
+	.package-header {
 		height: 96px;
-		font-size: 40px;
+		display: flex;
+		justify-content: space-between;
+		align-items: start;
+		gap: 48px;
+	}
+	.eyebrow {
+		color: #54c5c0;
+		font:
+			600 14px/1.8 'Segoe UI',
+			sans-serif;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+	}
+	.event-context {
+		max-width: 680px;
+		text-align: right;
+		padding-top: 8px;
+		font-size: 20px;
+	}
+	.event-context strong,
+	.event-context p {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.event-context p {
+		color: #9fb2c8;
+		margin-top: 4px;
+	}
+	footer {
+		position: absolute;
+		right: 64px;
+		top: 1004px;
+		width: 248px;
+		height: 28px;
+		text-align: right;
+		color: #9fb2c8;
+		font:
+			14px/28px 'Segoe UI',
+			sans-serif;
+	}
+	footer.in-game {
+		top: 352px;
+		right: 480px;
 	}
 	.pregame :global(.identity) {
 		min-width: 0;

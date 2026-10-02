@@ -20,13 +20,17 @@ Run `pnpm db:seed` after migration to add three fictional teams and 18 players f
 
 Management tabs support deep links and retain unsaved drafts. Each section saves separately; stale saves keep the submitted draft until you explicitly reload it. Editing requires JavaScript. Reopen terminal games before changing their map, sides, or lineup; normal score corrections recalculate the series directly. Removing a player from a current roster preserves their saved historical lineups.
 
+Game preparation follows **Info → Lineup → Map Veto → Agent Select → Post-Game Report**. Agent Select owns the saved player-to-agent mapping; Post-Game Report displays it read-only. Match → Games offers **Duplicate Game** with an unused target number and target-derived label. It copies the lineup, optionally agents (OFF by default), and derives map/starting sides from the target veto. It leaves scores, results, statistics, MVP and import metadata empty and preserves the source game and tournament roster.
+
 Run the management browser journeys with `pnpm exec playwright test tests/phase3-management.e2e.ts tests/phase3-conflicts.e2e.ts`. The runner migrates a temporary database, uses a temporary asset directory, builds and starts its own app, and removes the test data after shutdown. For installed Google Chrome, set `PLAYWRIGHT_CHANNEL=chrome` before running Playwright or client Vitest tests. Rebuild with your normal environment before running the app after a browser test build.
 
 The Game Resources page syncs tactical maps, playable agents, and weapons from [VALORANT-API](https://valorant-api.com/). The server needs internet access only during refresh; saved records and downloaded images remain available locally afterward. The management routes currently have no sign-in gate, so keep the app on a trusted network until the planned account and session work is implemented.
 
 ## Broadcast operation and production
 
-`/admin/graphics` owns one persisted on-air game. Choose Tournament → Match → Game and **Take game live**; parent dropdown drafts and ordinary management browsing retain the old on-air game. Other operators receive shared updates; stale drafts require an explicit reload. Each graphic has its own Show control. Player Stats supports Single and Head-to-Head in game/match/tournament scopes; MVP uses the saved operator pick. Missing preparation stays visibly unavailable.
+The sidebar separates **Preparation** (Teams, Players, Game Resources, Tournaments) from **GFX Control** (Global Settings and all seven graphics). `/admin/graphics` opens Global Settings; the seven `/admin/graphics/<graphic>` pages share Global Setup and edit the same canonical preparation as normal management. Choose Tournament → Match → Game and **Take game live**; partial selector drafts and management browsing retain the live game. Hide every shown graphic before changing or clearing the selection; the server enforces this across controllers.
+
+Each page has an embedded 16:9 Preview and **Large Preview** dialog using the actual output renderer. Preview follows the latest saved data, including while program is hidden. **Show** publishes a persisted capture of that graphic's saved preparation and content controls. Saves update Preview while shown program retains its capture. Repeating Show preserves it; **Hide → Show** publishes the latest saved version. Explicit presentation/current-side changes still act live. Dirty editors retain their original record and revision across refresh or a remote selection change. Player Stats supports Single and Head-to-Head in game/match/tournament scopes; MVP uses the saved operator pick. Missing preparation stays visibly unavailable.
 
 Use these stable, read-only OBS URLs, all on a transparent 1920×1080 canvas:
 
@@ -52,11 +56,13 @@ $env:PORT = '3000'
 node --env-file=.env build
 ```
 
-Keep `DATABASE_URL` and `ASSET_DIR` persistent and set `BODY_SIZE_LIMIT=32M` for uploads. Run **one Node process**: publication is process-local; shared pub/sub is required before multiple workers/replicas. Authentication is intentionally deferred for trusted-LAN operation. Output pages contain no controls, but anyone who can reach management routes can write; they are not protected by sign-in or authorization.
+Keep `DATABASE_URL` and `ASSET_DIR` persistent and set `BODY_SIZE_LIMIT=32M` for uploads. Run **one Node process**: SSE delivery is process-local; shared pub/sub is required before multiple workers/replicas. Prepared graphic captures persist in the database across restart. Authentication is intentionally deferred for trusted-LAN operation. Output pages contain no controls, but anyone who can reach management routes can write; they are not protected by sign-in or authorization.
 
-Existing installations need reviewed forward migrations **0004** (broadcast state), **0005** (prepared-data broadcast invalidation), and **0006** (independent broadcast-control revision). Back up the database and assets together, stop the app, confirm `DATABASE_URL`, rehearse `pnpm db:migrate` against a disposable copy, then apply reviewed migrations during a planned event upgrade. Do not use `db:push` on event data. This phase's verification did not migrate the local/event database.
+Existing installations need reviewed forward migrations **0004** (broadcast state), **0005** (prepared-data broadcast invalidation), **0006** (independent broadcast-control revision), and **0007** (persisted graphic captures). Migration 0007 hides previously shown graphics because no reviewed capture exists yet; Show them again after reviewing preparation. Back up the database and assets together, stop the app, confirm `DATABASE_URL`, rehearse `pnpm db:migrate` against a disposable copy, then apply reviewed migrations during a planned event upgrade. Do not use `db:push` on event data. This phase's verification did not migrate the local/event database.
 
 Run `PLAYWRIGHT_CHANNEL=chrome` and `pnpm exec playwright test tests/phase5-broadcast.e2e.ts tests/phase5-controller.e2e.ts tests/phase5-graphics.e2e.ts tests/team-a-veto-order.e2e.ts --workers 1` for production Node browser journeys. Run check/build/E2E sequentially because they share generated files. See [Phase 5 evidence and screenshots](./docs/2026-10-01-phase-5-verification.md); automated verification is complete, while actual OBS alpha, clipping, native-HUD compatibility and LAN rehearsal remain pending. Full Phase 5 acceptance and broadcast readiness are not yet claimed.
+
+Phase 5.1 journeys are `tests/phase5.1-workflow.e2e.ts`, `tests/phase5.1-duplication.e2e.ts`, and `tests/phase5.1-visuals.e2e.ts`. See [Phase 5.1 verification](./docs/2026-10-02-phase-5.1-verification.md) for the current workflow and Test GFX v2 screenshots. Test GFX v2 is generic test artwork. Its reserved attribution footer has a development-only test label; conditional provider attribution remains Phase 6.
 
 ## Expected features includes
 

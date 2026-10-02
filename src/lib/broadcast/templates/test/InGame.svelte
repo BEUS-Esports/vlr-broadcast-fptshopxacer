@@ -62,8 +62,11 @@
 		align-items: center;
 		overflow: hidden;
 		color: white;
-		background: #111c;
-		font: 16px/1.25 sans-serif;
+		background: #101d30e8;
+		font:
+			16px/1.25 'Segoe UI',
+			sans-serif;
+		border-block: 1px solid #38526d;
 		--asset-width: 40px;
 		--asset-height: 40px;
 	}

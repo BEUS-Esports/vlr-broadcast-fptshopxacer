@@ -1,6 +1,45 @@
 import type { BroadcastSnapshot } from './types';
-import type { BroadcastScope } from './controls';
+import type { BroadcastScope, GraphicId } from './controls';
+import { isBroadcastPublication } from './types';
 import type { Metric, StatisticValues } from '../server/services/statistics-aggregation';
+
+/** Fail closed; program never substitutes the latest saved data for a missing capture. */
+export function programSnapshot(
+	latest: BroadcastSnapshot,
+	graphic: GraphicId
+): BroadcastSnapshot | null {
+	const prepared = latest.publications?.[graphic];
+	if (
+		!latest.controls.visibility[graphic] ||
+		!isBroadcastPublication(prepared) ||
+		prepared.selection?.gameId !== latest.selection?.gameId
+	)
+		return null;
+	const { teamAEntryId, teamBEntryId } = prepared.competition;
+	const attackers =
+		latest.liveControls.currentAttackersEntryId ?? prepared.sides.preparedAttackersEntryId;
+	return {
+		...prepared,
+		publications: latest.publications,
+		liveControls: latest.liveControls,
+		controls: { ...prepared.controls, visibility: latest.controls.visibility },
+		presentation: {
+			leftEntryId: latest.liveControls.swapped ? teamBEntryId : teamAEntryId,
+			rightEntryId: latest.liveControls.swapped ? teamAEntryId : teamBEntryId
+		},
+		sides: {
+			...prepared.sides,
+			attackersEntryId: attackers,
+			defendersEntryId:
+				attackers === null ? null : attackers === teamAEntryId ? teamBEntryId : teamAEntryId,
+			source: latest.liveControls.currentAttackersEntryId
+				? 'manual'
+				: attackers
+					? 'prepared'
+					: 'unknown'
+		}
+	};
+}
 
 export function teamByEntryId(snapshot: BroadcastSnapshot, entryId: string | null) {
 	return snapshot.teams.find((team) => team.entryId === entryId) ?? null;

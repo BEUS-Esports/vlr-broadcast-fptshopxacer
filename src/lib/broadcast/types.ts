@@ -44,12 +44,13 @@ export type BroadcastScopeView = {
 	candidates: Array<BroadcastPlayer & { entryIds: string[] }>;
 	mvpPlayerId: string | null;
 };
-export type BroadcastSnapshot = {
-	version: 1;
+export type BroadcastPreparedSnapshot = {
+	version: 2;
 	/** Optimistic-lock revision for operator broadcast controls only. */
 	controlRevision: number;
 	/** Persisted invalidation revision for prepared tournament/match/game data. */
 	dataRevision: number;
+	liveControls: { swapped: boolean; currentAttackersEntryId: string | null };
 	selection: { tournamentId: string; matchId: string; gameId: string } | null;
 	tournament: { id: string; name: string; slug: string } | null;
 	match:
@@ -110,6 +111,13 @@ export type BroadcastSnapshot = {
 		result: boolean;
 	};
 };
+
+/** Latest saved projection plus independent, non-recursive program captures. */
+export type BroadcastPublications = Record<
+	import('./controls').GraphicId,
+	BroadcastPreparedSnapshot | null
+>;
+export type BroadcastSnapshot = BroadcastPreparedSnapshot & { publications: BroadcastPublications };
 
 export type BroadcastStreamCursor = {
 	epoch: string;
@@ -194,10 +202,11 @@ const result = {
 	resultType: nullable(oneOf('normal', 'forfeit', 'walkover', 'cancelled')),
 	winnerEntryId: text
 };
-const snapshotCheck = object({
-	version: oneOf(1),
-	controlRevision: (v) => integer(v) && (v as number) > 0,
-	dataRevision: (v) => integer(v) && (v as number) > 0,
+const preparedFields = {
+	version: oneOf(2),
+	controlRevision: (v: unknown) => integer(v) && (v as number) > 0,
+	dataRevision: (v: unknown) => integer(v) && (v as number) > 0,
+	liveControls: object({ swapped: boolean, currentAttackersEntryId: text }),
 	selection: nullable(object({ tournamentId: string, matchId: string, gameId: string })),
 	tournament: nullable(object({ id: string, name: string, slug: string })),
 	match: nullable(
@@ -289,6 +298,37 @@ const snapshotCheck = object({
 		agents: boolean,
 		result: boolean
 	})
+};
+const preparedCheck = object(preparedFields);
+
+/** Publication captures require a selected render payload and never contain publications. */
+export function isBroadcastPublication(value: unknown): value is BroadcastPreparedSnapshot {
+	if (!preparedCheck(value)) return false;
+	const prepared = value as BroadcastPreparedSnapshot;
+	return (
+		prepared.selection !== null &&
+		prepared.game?.id === prepared.selection.gameId &&
+		prepared.match?.id === prepared.selection.matchId &&
+		prepared.tournament?.id === prepared.selection.tournamentId
+	);
+}
+
+/** Repair malformed persisted slots without ever substituting latest saved render data. */
+export function validatedPublications(value: unknown): BroadcastPublications {
+	const record =
+		value && typeof value === 'object' && !Array.isArray(value)
+			? (value as Record<string, unknown>)
+			: {};
+	return Object.fromEntries(
+		graphicIds.map((id) => [id, isBroadcastPublication(record[id]) ? record[id] : null])
+	) as BroadcastPublications;
+}
+
+const snapshotCheck = object({
+	...preparedFields,
+	publications: object(
+		Object.fromEntries(graphicIds.map((id) => [id, nullable(isBroadcastPublication)]))
+	)
 });
 
 /** Reject the entire envelope on malformed nested data; consumers only see complete snapshots. */

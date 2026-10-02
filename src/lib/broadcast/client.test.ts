@@ -47,10 +47,7 @@ it('orders complete snapshots by stream cursor rather than persisted revisions',
 		client.connect();
 		client.connect();
 		events.dispatchEvent(new Event('open'));
-		const send = (
-			stream: { epoch: string; sequence: number },
-			next = snapshot
-		) =>
+		const send = (stream: { epoch: string; sequence: number }, next = snapshot) =>
 			events.dispatchEvent(
 				new MessageEvent('snapshot', {
 					data: JSON.stringify({ version: 1, stream, snapshot: next })
@@ -60,7 +57,10 @@ it('orders complete snapshots by stream cursor rather than persisted revisions',
 		// Same persisted revisions are valid for volatile provider updates when stream ordering advances.
 		send({ epoch: 'one', sequence: 3 });
 		send({ epoch: 'one', sequence: 2 }, { ...snapshot, controlRevision: 99 });
-		send({ epoch: 'one', sequence: 4 }, { ...snapshot, lineups: [null] } as typeof snapshot);
+		send({ epoch: 'one', sequence: 4 }, {
+			...snapshot,
+			lineups: [null]
+		} as unknown as typeof snapshot);
 		expect(client.getState().cursor).toEqual({ epoch: 'one', sequence: 3 });
 		expect(client.getState().snapshot?.controlRevision).toBe(snapshot.controlRevision);
 		events.dispatchEvent(new Event('error'));

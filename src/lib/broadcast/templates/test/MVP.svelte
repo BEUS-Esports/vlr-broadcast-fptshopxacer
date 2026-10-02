@@ -26,4 +26,10 @@
 		max-width: 1000px;
 		margin: 24px auto 0;
 	}
+	p:first-of-type {
+		font:
+			600 28px Bahnschrift,
+			sans-serif;
+		color: #54c5c0;
+	}
 </style>

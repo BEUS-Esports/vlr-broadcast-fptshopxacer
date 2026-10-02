@@ -1,5 +1,7 @@
 # Phase 5 verification — 2026-10-01
 
+Phase 5.1 extends this historical evidence with routed Graphics Control, persisted per-graphic captures, selection safety, canonical Agent Select, duplication, previews and Test GFX v2. The current checks and screenshots are recorded in [Phase 5.1 verification](./2026-10-02-phase-5.1-verification.md). The Phase 5 browser journeys were updated for the new routes and Show/Hide actions.
+
 Phase 5 implementation and automated verification are complete. Full acceptance and broadcast readiness remain pending a real OBS/Valorant rehearsal. Authentication is deferred by user decision: run on a trusted LAN; anyone who can reach management routes can currently mutate data. Read-only output pages are not an authorization boundary.
 
 ## Reproduce

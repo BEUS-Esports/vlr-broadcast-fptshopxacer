@@ -10,6 +10,8 @@ import {
 	type PlayerStatsControl
 } from '#lib/broadcast/controls.ts';
 import { SaveError } from './save-error';
+import { buildBroadcastPreparedSnapshot } from '../broadcast/snapshot';
+import { validatedPublications } from '#lib/broadcast/types.ts';
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type State = typeof broadcastState.$inferSelect;
@@ -78,10 +80,7 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			.update(broadcastState)
 			.set({ controlRevision: sql`${broadcastState.controlRevision} + 1` })
 			.where(
-				and(
-					eq(broadcastState.id, 1),
-					eq(broadcastState.controlRevision, input.expectedRevision)
-				)
+				and(eq(broadcastState.id, 1), eq(broadcastState.controlRevision, input.expectedRevision))
 			)
 			.returning();
 		if (!current) throw new SaveError('stale', 'Broadcast controls changed. Reload before saving.');
@@ -89,6 +88,11 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			input.selectedGameId === undefined ? current.selectedGameId : input.selectedGameId;
 		const selected = await selection(tx, selectedGameId);
 		const changedGame = selectedGameId !== current.selectedGameId;
+		if (changedGame && Object.values(current.visibility).some(Boolean))
+			throw new SaveError(
+				'blocked',
+				'Hide all shown graphics before changing or clearing the live selection.'
+			);
 		const state = {
 			selectedGameId,
 			// Presentation order is an explicit operator override, not game-owned state.
@@ -136,6 +140,7 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			)
 		)
 			throw new SaveError('invalid', 'Choose valid graphic visibility controls.');
+		const showing = graphicIds.filter((id) => state.visibility[id] && !current.visibility[id]);
 		const stats = state.playerStats;
 		if (
 			!stats ||
@@ -149,7 +154,10 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			(stats.playerId !== null && stats.playerId === stats.opponentPlayerId)
 		)
 			throw new SaveError('invalid', 'Choose valid stats mode, scope, and distinct players.');
-		for (const playerId of [stats.playerId, stats.opponentPlayerId]) {
+		// Saved lineup edits may invalidate retained picks; they must not prevent Hide or live axes.
+		const validateStatsPlayers =
+			input.playerStats !== undefined || showing.includes('player-stats');
+		for (const playerId of validateStatsPlayers ? [stats.playerId, stats.opponentPlayerId] : []) {
 			if (playerId === null) continue;
 			if (typeof playerId !== 'string' || !playerId || !selected)
 				throw new SaveError('invalid', 'Select a game before choosing participating players.');
@@ -177,6 +185,21 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			.set(state)
 			.where(eq(broadcastState.id, 1))
 			.returning();
-		return withParents(tx, saved);
+		if (showing.length && !selected)
+			throw new SaveError('blocked', 'Select a valid live game before showing a graphic.');
+		const publications = validatedPublications(current.publications);
+		for (const id of graphicIds) if (!saved.visibility[id]) publications[id] = null;
+		if (showing.length) {
+			const prepared = await buildBroadcastPreparedSnapshot(tx, saved);
+			if (!prepared.selection)
+				throw new SaveError('blocked', 'Select a valid live game before showing a graphic.');
+			for (const id of showing) publications[id] = prepared;
+		}
+		const [published] = await tx
+			.update(broadcastState)
+			.set({ publications })
+			.where(eq(broadcastState.id, 1))
+			.returning();
+		return withParents(tx, published);
 	});
 }

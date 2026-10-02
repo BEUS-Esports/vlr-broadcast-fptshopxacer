@@ -16,7 +16,6 @@ function row(overrides: Record<string, unknown> = {}) {
 	return {
 		playerId: 'a1',
 		entryId: 'entry-a',
-		agentId: null,
 		kills: null,
 		deaths: null,
 		assists: null,
@@ -29,17 +28,18 @@ function row(overrides: Record<string, unknown> = {}) {
 	};
 }
 
-it('saves partial values, keeps zero distinct, corrects agents, and removes explicit blank rows', async () => {
+it('saves partial values, keeps zero distinct, ignores crafted agents, and removes explicit blank rows', async () => {
 	await withManagementFixture(async ({ db }) => {
 		const { replaceGameLineups } = await import('./lineups');
 		const { saveGameStatistics } = await import('./statistics');
 		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'One' });
 		await db.insert(s.agents).values({ id: 'jett', key: 'jett', displayName: 'Jett' });
 		await replaceGameLineups({ gameId: 'g', expectedGameRevision: 1, teams: lineup() });
+		await db.update(s.gameLineups).set({ agentId: 'jett' }).where(eq(s.gameLineups.playerId, 'a1'));
 		const saved = await saveGameStatistics({
 			gameId: 'g',
 			expectedGameRevision: 2,
-			players: [row({ kills: '0', deaths: '2', agentId: 'jett' })]
+			players: [row({ kills: '0', deaths: '2', agentId: 'crafted-missing-agent' })]
 		});
 		expect(saved.gameRevision).toBe(3);
 		expect(saved.scoreboard[0]).toMatchObject({
@@ -68,6 +68,41 @@ it('saves partial values, keeps zero distinct, corrects agents, and removes expl
 		expect(
 			(await db.select().from(s.gameLineups).where(eq(s.gameLineups.playerId, 'a1')))[0].agentId
 		).toBe('jett');
+	});
+});
+
+it('ignores crafted agent-only fields without changing statistics timestamps or provenance', async () => {
+	await withManagementFixture(async ({ db }) => {
+		const { replaceGameLineups } = await import('./lineups');
+		const { saveGameStatistics } = await import('./statistics');
+		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'One' });
+		await db.insert(s.agents).values({ id: 'jett', key: 'jett', displayName: 'Jett' });
+		await replaceGameLineups({ gameId: 'g', expectedGameRevision: 1, teams: lineup() });
+		const importedAt = new Date('2026-09-01T00:00:00Z');
+		await db
+			.insert(s.gameStatisticsMeta)
+			.values({ gameId: 'g', importSource: 'fixture', importedAt });
+		await db
+			.insert(s.gamePlayerStatistics)
+			.values({ gameId: 'g', playerId: 'a1', entryId: 'entry-a', kills: 1 });
+		const beforeStats = await db.select().from(s.gamePlayerStatistics);
+		const beforeMeta = await db.select().from(s.gameStatisticsMeta);
+		await saveGameStatistics({
+			gameId: 'g',
+			expectedGameRevision: 2,
+			players: [row({ kills: 1, agentId: 'jett' })]
+		});
+		expect(
+			(await db.select().from(s.gameLineups).where(eq(s.gameLineups.playerId, 'a1')))[0].agentId
+		).toBeNull();
+		expect(await db.select().from(s.gamePlayerStatistics)).toEqual(beforeStats);
+		expect(await db.select().from(s.gameStatisticsMeta)).toEqual(beforeMeta);
+		await saveGameStatistics({
+			gameId: 'g',
+			expectedGameRevision: 3,
+			players: [row({ kills: 1, agentId: { crafted: true } })]
+		});
+		expect(await db.select().from(s.gameStatisticsMeta)).toEqual(beforeMeta);
 	});
 });
 
@@ -100,7 +135,7 @@ it('rejects wrong identity, invalid counts, and stale saves without partial writ
 	});
 });
 
-it('protects a stats-bearing lineup player and rolls back agent/stat changes together', async () => {
+it('protects a stats-bearing lineup player and rolls back failed statistics writes', async () => {
 	await withManagementFixture(async ({ db, client }) => {
 		const { replaceGameLineups } = await import('./lineups');
 		const { saveGameStatistics: save } = await import('./statistics');

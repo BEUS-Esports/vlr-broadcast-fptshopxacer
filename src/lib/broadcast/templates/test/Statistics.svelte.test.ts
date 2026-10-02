@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Graphic from './Graphic.svelte';
 import type { BroadcastSnapshot } from '../../types';
-import { defaultVisibility, defaultPlayerStats } from '../../controls';
+import { defaultVisibility, defaultPlayerStats, graphicIds } from '../../controls';
 
 function preparedSnapshot(): BroadcastSnapshot {
 	const team = (entryId: string) => ({
@@ -29,8 +29,13 @@ function preparedSnapshot(): BroadcastSnapshot {
 		stylizedBackgroundPath: null
 	};
 	return {
-		version: 1,
-		revision: 1,
+		version: 2,
+		controlRevision: 1,
+		dataRevision: 1,
+		liveControls: { swapped: true, currentAttackersEntryId: 'b' },
+		publications: Object.fromEntries(
+			graphicIds.map((id) => [id, null])
+		) as BroadcastSnapshot['publications'],
 		selection: { tournamentId: 't', matchId: 'm', gameId: 'g' },
 		tournament: null,
 		match: null,

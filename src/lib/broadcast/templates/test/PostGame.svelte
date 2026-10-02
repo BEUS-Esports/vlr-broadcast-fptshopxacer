@@ -54,12 +54,27 @@
 <style>
 	.header {
 		height: 140px;
-		font: 18px/1.2 sans-serif;
+		font:
+			18px/1.2 'Segoe UI',
+			sans-serif;
 		--asset-width: 48px;
 		--asset-height: 48px;
 	}
 	.header :global(strong) {
 		font-size: 20px;
+	}
+	.header :global(.score) {
+		font:
+			600 52px/1 Bahnschrift,
+			sans-serif;
+		color: #54c5c0;
+	}
+	.header :global(.teams > div) {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 8px 20px;
+		background: #101d30f2;
 	}
 	.header :global(small) {
 		font-size: 16px;
@@ -96,7 +111,8 @@
 		margin-bottom: 0;
 		min-height: 136px;
 		box-sizing: border-box;
-		background: #111c;
+		background: #101d30f2;
+		border-bottom: 1px solid #38526d;
 		--asset-width: 36px;
 		--asset-height: 36px;
 	}
@@ -116,7 +132,7 @@
 		margin-top: 0;
 	}
 	article[data-mvp='true'] {
-		outline: 2px solid #f2cb64;
+		outline: 2px solid #54c5c0;
 		outline-offset: -2px;
 	}
 </style>

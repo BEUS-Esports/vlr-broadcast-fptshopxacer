@@ -14,7 +14,7 @@ import {
 import { formError, readPayload } from '#lib/server/services/form-error.ts';
 import { replaceMatchVeto, type VetoActionInput } from '#lib/server/services/vetoes.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
-import { createGame } from '#lib/server/services/games.ts';
+import { createGame, duplicateGame } from '#lib/server/services/games.ts';
 import {
 	clearMatchOutcome,
 	deleteMatch,
@@ -116,6 +116,27 @@ export const actions: Actions = {
 		} catch (cause) {
 			return formError(cause, form, draft);
 		}
+	},
+	duplicateGame: async ({ request, params }) => {
+		const form = await request.formData();
+		let draft: Record<string, unknown> = {};
+		let gameId: string;
+		try {
+			draft = readPayload(form);
+			const saved = await duplicateGame({
+				matchId: params.matchId,
+				expectedMatchRevision: draft.expectedMatchRevision as number,
+				sourceGameId: draft.sourceGameId as string,
+				expectedSourceGameRevision: draft.expectedSourceGameRevision as number,
+				number: draft.number as number,
+				name: draft.name as string,
+				copyAgents: draft.copyAgents as boolean
+			});
+			gameId = saved.gameId;
+		} catch (cause) {
+			return formError(cause, form, draft);
+		}
+		redirect(303, `/admin/games/${gameId}`);
 	},
 	createGame: async ({ request, params }) => {
 		const form = await request.formData();

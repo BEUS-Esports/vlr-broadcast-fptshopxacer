@@ -2,6 +2,7 @@ import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
 	broadcastState,
+	agents,
 	games,
 	gameLineups,
 	matches,
@@ -13,6 +14,7 @@ import { hasDatabaseError, SaveError } from './save-error';
 import { assertOrdinaryMatch, bumpMatchRevision, recomputeMatchResult } from './matches';
 import { findVetoGameConflicts, projectVetoGame } from './game-preparation';
 import type { SeriesSummary } from './series-results';
+import { validateLineupPlayers } from './lineup-eligibility';
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Game = typeof games.$inferSelect;
@@ -104,29 +106,49 @@ async function mutateGame(
 	});
 }
 
-export async function createGame(input: {
+type CreateGameInput = {
 	matchId: string;
 	expectedMatchRevision: number;
 	number: number;
 	name: string;
-}): Promise<GameSaved> {
+};
+
+async function insertPreparedGame(tx: Transaction, match: Match, number: number, name: string) {
+	if (!Number.isSafeInteger(number) || number < 1 || number > match.bestOf)
+		throw new SaveError('invalid', `Game number must be between 1 and ${match.bestOf}.`);
+	const [existing] = await tx
+		.select({ id: games.id })
+		.from(games)
+		.where(and(eq(games.matchId, match.id), eq(games.number, number)));
+	if (existing)
+		throw new SaveError(
+			'invalid',
+			'That game number already exists. Reload the match and choose an unused slot.'
+		);
+	const actions = await tx
+		.select()
+		.from(matchVetoActions)
+		.where(eq(matchVetoActions.matchId, match.id));
+	const preparation = projectVetoGame({ ...match, number, actions });
+	await validateMap(tx, match, preparation.mapId);
+	const [game] = await tx
+		.insert(games)
+		.values({ matchId: match.id, number, name, ...preparation })
+		.returning();
+	return game;
+}
+
+async function createGameTransaction(
+	input: CreateGameInput,
+	copy?: (tx: Transaction, match: Match, game: Game) => Promise<void>
+): Promise<GameSaved> {
 	const name = gameName(input.name);
 	try {
 		return await db.transaction(async (tx) => {
 			const match = await bumpMatchRevision(tx, input.matchId, input.expectedMatchRevision);
 			assertOrdinaryMatch(match);
-			if (!Number.isSafeInteger(input.number) || input.number < 1 || input.number > match.bestOf)
-				throw new SaveError('invalid', `Game number must be between 1 and ${match.bestOf}.`);
-			const actions = await tx
-				.select()
-				.from(matchVetoActions)
-				.where(eq(matchVetoActions.matchId, match.id));
-			const preparation = projectVetoGame({ ...match, number: input.number, actions });
-			await validateMap(tx, match, preparation.mapId);
-			const [game] = await tx
-				.insert(games)
-				.values({ matchId: match.id, number: input.number, name, ...preparation })
-				.returning();
+			const game = await insertPreparedGame(tx, match, input.number, name);
+			await copy?.(tx, match, game);
 			const series = await recomputeMatchResult(tx, match.id);
 			return {
 				gameId: game.id,
@@ -144,6 +166,71 @@ export async function createGame(input: {
 			);
 		throw cause;
 	}
+}
+
+export function createGame(input: CreateGameInput) {
+	return createGameTransaction(input);
+}
+
+export async function duplicateGame(
+	input: CreateGameInput & {
+		sourceGameId: string;
+		expectedSourceGameRevision: number;
+		copyAgents?: boolean;
+	}
+): Promise<GameSaved> {
+	if (
+		typeof input.sourceGameId !== 'string' ||
+		!input.sourceGameId ||
+		!Number.isSafeInteger(input.expectedSourceGameRevision) ||
+		input.expectedSourceGameRevision < 1 ||
+		(input.copyAgents !== undefined && typeof input.copyAgents !== 'boolean')
+	)
+		throw new SaveError(
+			'invalid',
+			'A reviewed source game, valid revision and Agent Select choice are required.'
+		);
+	return createGameTransaction(input, async (tx, match, game) => {
+		// The match write lock protects the read without mutating the reviewed source.
+		const [source] = await tx.select().from(games).where(eq(games.id, input.sourceGameId));
+		if (!source) throw new SaveError('not-found', 'Source game not found.');
+		if (source.matchId !== match.id)
+			throw new SaveError('invalid', 'The source game must belong to this match.');
+		if (source.revision !== input.expectedSourceGameRevision)
+			throw new SaveError(
+				'stale',
+				'The source game changed. Reload and review before duplicating. Your duplication draft is still here.'
+			);
+		const lineup = await tx.select().from(gameLineups).where(eq(gameLineups.gameId, source.id));
+		if (lineup.some((row) => ![match.teamAEntryId, match.teamBEntryId].includes(row.entryId)))
+			throw new SaveError('invalid', 'Source lineups must belong to this match’s two teams.');
+		await validateLineupPlayers(tx, lineup);
+		if (input.copyAgents) {
+			const ids = [...new Set(lineup.flatMap((row) => (row.agentId ? [row.agentId] : [])))];
+			const available = ids.length
+				? await tx.select().from(agents).where(inArray(agents.id, ids))
+				: [];
+			const unavailable = lineup.find(
+				(row) =>
+					row.agentId && !available.some((agent) => agent.id === row.agentId && agent.isActive)
+			);
+			if (unavailable)
+				throw new SaveError(
+					'invalid',
+					`Player ${unavailable.playerId ?? 'empty slot'} has an inactive agent. Disable Agent Select copying or update the source assignment.`
+				);
+		}
+		if (lineup.length)
+			await tx.insert(gameLineups).values(
+				lineup.map((row) => ({
+					gameId: game.id,
+					entryId: row.entryId,
+					slot: row.slot,
+					playerId: row.playerId,
+					agentId: input.copyAgents ? row.agentId : null
+				}))
+			);
+	});
 }
 
 export async function saveGameInfo(

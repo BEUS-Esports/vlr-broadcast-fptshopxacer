@@ -9,6 +9,7 @@
 		agents,
 		provenance,
 		resultType,
+		action = '?/statistics',
 		disabled = false
 	}: {
 		revision: number;
@@ -37,6 +38,7 @@
 			manuallyChangedPlayerIds: string[];
 		};
 		resultType: string | null;
+		action?: string;
 		disabled?: boolean;
 	} = $props();
 
@@ -71,36 +73,43 @@
 	{/if}
 </p>
 
-{#if !scoreboard.length}
-	<p>Save lineup players before entering post-game statistics.</p>
-{:else}
-	<ManagementForm
-		action="?/statistics"
-		initial={{
-			expectedGameRevision: revision,
-			players: scoreboard.map((row) => ({
-				playerId: row.playerId!,
-				entryId: row.entryId,
-				agentId: row.agentId ?? '',
-				kills: row.kills == null ? '' : String(row.kills),
-				deaths: row.deaths == null ? '' : String(row.deaths),
-				assists: row.assists == null ? '' : String(row.assists),
-				performanceScore: row.performanceScore == null ? '' : String(row.performanceScore),
-				trades: row.trades == null ? '' : String(row.trades),
-				firstBloods: row.firstBloods == null ? '' : String(row.firstBloods),
-				plants: row.plants == null ? '' : String(row.plants),
-				defuses: row.defuses == null ? '' : String(row.defuses)
-			}))
-		}}
-	>
-		{#snippet children(draft, pending)}
+<ManagementForm
+	{action}
+	initial={{
+		expectedGameRevision: revision,
+		entries,
+		identity: scoreboard.map((row) => ({
+			playerId: row.playerId,
+			name: players.find((player) => player.id === row.playerId)?.displayName ?? row.playerId,
+			agentName: row.agentId
+				? (agents.find((agent) => agent.id === row.agentId)?.displayName ?? 'Missing')
+				: 'Unknown'
+		})),
+		players: scoreboard.map((row) => ({
+			playerId: row.playerId!,
+			entryId: row.entryId,
+			kills: row.kills == null ? '' : String(row.kills),
+			deaths: row.deaths == null ? '' : String(row.deaths),
+			assists: row.assists == null ? '' : String(row.assists),
+			performanceScore: row.performanceScore == null ? '' : String(row.performanceScore),
+			trades: row.trades == null ? '' : String(row.trades),
+			firstBloods: row.firstBloods == null ? '' : String(row.firstBloods),
+			plants: row.plants == null ? '' : String(row.plants),
+			defuses: row.defuses == null ? '' : String(row.defuses)
+		}))
+	}}
+>
+	{#snippet children(draft, pending)}
+		{#if !draft.players.length}
+			<p>Save lineup players before entering post-game statistics.</p>
+		{:else}
 			<fieldset disabled={disabled || pending} class="space-y-5">
 				<legend class="sr-only">Post-game player statistics</legend>
 				<p class="text-sm text-surface-600-400">
 					Blank means unknown; enter 0 for a measured zero. Statistics stay with the saved player
 					and Team A or Team B when sides change.
 				</p>
-				{#each entries as entry, teamIndex (entry.id)}
+				{#each draft.entries as entry, teamIndex (entry.id)}
 					<section class="space-y-3" aria-label={`Team ${teamIndex === 0 ? 'A' : 'B'} statistics`}>
 						<h3 class="h4">Team {teamIndex === 0 ? 'A' : 'B'} · {entry.name}</h3>
 						<div class="overflow-x-auto">
@@ -113,25 +122,15 @@
 								>
 								<tbody>
 									{#each draft.players.filter((row) => row.entryId === entry.id) as row (row.playerId)}
-										{@const name =
-											players.find((player) => player.id === row.playerId)?.displayName ??
-											row.playerId}
+										{@const identity = draft.identity.find(
+											(player) => player.playerId === row.playerId
+										)}
+										{@const name = identity?.name ?? row.playerId}
 										<tr>
 											<th scope="row" class="whitespace-nowrap">{name}</th>
-											<td
-												><select
-													class="select min-w-32"
-													aria-label={`${name} Agent`}
-													bind:value={row.agentId}
-												>
-													<option value="">Unknown</option>
-													{#each agents.filter((agent) => agent.isActive || agent.id === row.agentId) as agent (agent.id)}
-														<option value={agent.id}
-															>{agent.displayName}{agent.isActive ? '' : ' · Historical'}</option
-														>
-													{/each}
-												</select></td
-											>
+											<td aria-label={`${name} Agent`}>
+												{identity?.agentName ?? 'Unknown'}
+											</td>
 											{#each fields as [field, label] (field)}
 												<td
 													><input
@@ -154,6 +153,6 @@
 					>Save post-game statistics</button
 				>
 			</fieldset>
-		{/snippet}
-	</ManagementForm>
-{/if}
+		{/if}
+	{/snippet}
+</ManagementForm>

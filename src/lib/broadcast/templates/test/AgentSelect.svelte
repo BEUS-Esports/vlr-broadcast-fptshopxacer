@@ -30,8 +30,16 @@
 				{#each [1, 2, 3, 4, 5] as slot (slot)}
 					{@const saved = lineup.find((saved) => saved.slot === slot)}
 					<li data-slot={slot}>
-						<ResourceCard resource={{ kind: 'player', value: saved?.player ?? null }} />
-						<ResourceCard resource={{ kind: 'agent', value: saved?.agent ?? null }} />
+						<div class="player">
+							<small>Player · Slot {slot}</small><ResourceCard
+								resource={{ kind: 'player', value: saved?.player ?? null }}
+							/>
+						</div>
+						<div class="agent">
+							<small>Agent</small><ResourceCard
+								resource={{ kind: 'agent', value: saved?.agent ?? null }}
+							/>
+						</div>
 					</li>
 				{/each}
 			</ol>
@@ -41,36 +49,54 @@
 
 <style>
 	.map {
-		position: absolute;
-		top: 0;
-		right: 0;
-		width: 560px;
+		margin-bottom: 16px;
+		padding: 8px 16px;
+		background: #101d30f2;
 		--asset-width: 140px;
 		--asset-height: 64px;
 	}
 	.teams {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 40px;
+		gap: 32px;
 	}
 	.team {
 		min-width: 0;
-		--asset-width: 80px;
-		--asset-height: 80px;
+		--asset-width: 60px;
+		--asset-height: 60px;
 	}
 	ol {
 		display: grid;
-		gap: 16px;
+		gap: 10px;
 		list-style: none;
 		padding: 0;
-		margin: 24px 0 0;
+		margin: 12px 0 0;
 	}
 	li {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 16px;
 		padding: 8px;
-		background: #111e;
+		background: #101d30f2;
+		border-bottom: 1px solid #38526d;
+	}
+	small {
+		display: block;
+		padding: 4px 8px 0;
+		font-size: 13px;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: #9fb2c8;
+	}
+	.agent {
+		background: #162b43;
+		--asset-width: 56px;
+		--asset-height: 56px;
+	}
+	.player {
+		--asset-width: 56px;
+		--asset-height: 56px;
+		min-width: 0;
 	}
 	p {
 		margin: 0;
