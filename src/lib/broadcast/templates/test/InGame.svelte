@@ -1,37 +1,69 @@
 <script lang="ts">
 	import type { BroadcastSnapshot } from '../../types';
-	import { presentationTeams, gameplaySide } from '../../selectors';
+	import { presentationTeams, gameplaySide, teamScore } from '../../selectors';
 	import Identity from '../../primitives/Identity.svelte';
 
 	let { snapshot }: { snapshot: BroadcastSnapshot } = $props();
 	const teams = $derived(presentationTeams(snapshot));
+	const winSlots = $derived(
+		snapshot.match
+			? Array.from({ length: Math.floor(snapshot.match.bestOf / 2) + 1 }, (_, index) => index)
+			: []
+	);
 </script>
 
 <section aria-label="In-Game" data-side-source={snapshot.sides.source}>
 	{#if snapshot.selection}
-		{#each ['left', 'right'] as position (position)}
-			{@const team = position === 'left' ? teams.left : teams.right}
-			{@const entryId =
-				position === 'left'
-					? snapshot.presentation.leftEntryId
-					: snapshot.presentation.rightEntryId}
-			{@const side = gameplaySide(snapshot, entryId)}
-			<div class="team" data-position={position} data-entry-id={entryId ?? ''} data-side={side ?? 'neutral'}>
-				<Identity
-					name={team?.name ?? null}
-					detail={team?.tag}
-					assetPath={team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null}
-					unavailable="Team unavailable"
-					{side}
-				/>
+		<div class="top-wrap">
+			{#each ['left', 'right'] as position (position)}
+				{@const team = position === 'left' ? teams.left : teams.right}
+				{@const entryId =
+					position === 'left'
+						? snapshot.presentation.leftEntryId
+						: snapshot.presentation.rightEntryId}
+				{@const side = gameplaySide(snapshot, entryId)}
+				{@const wins = teamScore(snapshot, entryId, 'match') ?? 0}
+
+				<div
+					class="team-rail"
+					data-position={position}
+					data-entry-id={entryId ?? ''}
+					data-side={side ?? 'neutral'}
+				>
+					{#if position === 'right'}
+						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+							{#each winSlots as index (index)}
+								<span class:won={index < wins}></span>
+							{/each}
+						</div>
+					{/if}
+
+					<Identity
+						name={team?.name ?? null}
+						assetPath={team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null}
+						unavailable="Team unavailable"
+					/>
+
+					{#if position === 'left'}
+						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+							{#each winSlots as index (index)}
+								<span class:won={index < wins}></span>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/each}
+
+			<div class="center-mark" aria-hidden="true"></div>
+			<div class="sponsor-slot" data-sponsor-safe-area aria-label="Reserved sponsor logo loop">
+				<span>SPONSOR LOOP</span>
 			</div>
-		{/each}
-		<div class="context">
-			<strong>{snapshot.game?.map?.displayName ?? 'MAP TBD'}</strong>
-			<p>
-				GAME {snapshot.game?.number ?? '—'}{#if snapshot.match}
-					<span aria-hidden="true"> // </span>BO{snapshot.match.bestOf}{/if}
-			</p>
+		</div>
+
+		<div class="match-bug">
+			<strong>{snapshot.match?.label ?? 'MATCH'}</strong>
+			<span>{snapshot.game?.name ?? `GAME ${snapshot.game?.number ?? '—'}`}</span>
+			<p>{snapshot.game?.map?.displayName ?? 'MAP TBD'}</p>
 		</div>
 	{:else}
 		<p class="empty">No game selected</p>
@@ -39,134 +71,231 @@
 </section>
 
 <style>
-	/* Provisional 1920x1080 rehearsal geometry: protect minimap x0–460/y0–420,
-	   timer x460–1460/y0–200, killfeed x1460–1920/y0–420 and all y680–1080.
-	   OBS/Valorant rehearsal must confirm or revise these bounds. */
 	section {
 		position: absolute;
-		left: 480px;
-		top: 224px;
-		width: 960px;
-		height: 112px;
+		inset: 0;
+		width: 1920px;
+		height: 1080px;
 		box-sizing: border-box;
-		display: grid;
-		grid-template-columns: 310px 340px 310px;
-		align-items: stretch;
 		overflow: hidden;
+		pointer-events: none;
 		color: #f7f4eb;
-		background: linear-gradient(90deg, #0b0f15ee, #151b24f2 50%, #0b0f15ee);
 		font:
 			15px/1.2 'Segoe UI',
 			sans-serif;
-		border-block: 1px solid #303947;
-		clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
-		--gfx-accent: #63e6d7;
+		--gfx-bg: #090c11;
+		--gfx-panel: #10151df2;
+		--gfx-line: #303947;
 		--gfx-muted: #97a2b0;
+		--gfx-ink: #f7f4eb;
+		--gfx-accent: #63e6d7;
 		--gfx-attack: #248bff;
 		--gfx-defense: #ff4655;
-		--asset-width: 46px;
-		--asset-height: 46px;
 	}
-	.team,
-	.context {
-		min-width: 0;
-		overflow: hidden;
+
+	.top-wrap {
+		position: absolute;
+		inset: 0 0 auto;
+		height: 96px;
 	}
-	.team {
+
+	.team-rail {
+		position: absolute;
+		top: 10px;
+		width: 505px;
+		height: 48px;
+		box-sizing: border-box;
 		display: flex;
 		align-items: center;
-		padding: 10px 14px;
-		border-bottom: 4px solid #303947;
+		gap: 14px;
+		padding: 0 22px;
+		background: linear-gradient(180deg, #141b26f7, #090d14f4);
+		border-top: 2px solid #465160;
+		border-bottom: 3px solid var(--gfx-line);
 	}
-	.team[data-position='left'] {
-		grid-column: 1;
-		grid-row: 1;
+
+	.team-rail[data-position='left'] {
+		left: 342px;
+		justify-content: flex-end;
+		clip-path: polygon(24px 0, 100% 0, calc(100% - 18px) 100%, 0 100%, 14px 50%);
 	}
-	.team[data-position='right'] {
-		grid-column: 3;
-		grid-row: 1;
+
+	.team-rail[data-position='right'] {
+		right: 342px;
+		justify-content: flex-start;
+		clip-path: polygon(0 0, calc(100% - 24px) 0, calc(100% - 14px) 50%, 100% 100%, 18px 100%);
 	}
-	.team[data-side='attack'] {
+
+	.team-rail[data-side='attack'] {
 		border-bottom-color: var(--gfx-attack);
 	}
-	.team[data-side='defense'] {
+
+	.team-rail[data-side='defense'] {
 		border-bottom-color: var(--gfx-defense);
 	}
-	.team[data-position='right'] {
-		justify-content: end;
-	}
-	.team :global(.identity) {
-		width: 100%;
+
+	.team-rail :global(.identity) {
+		min-width: 0;
+		max-width: 330px;
+		flex: 0 1 auto;
 		border: 0;
 		padding: 0;
 		gap: 10px;
+		--asset-width: 30px;
+		--asset-height: 30px;
 	}
-	.team[data-position='right'] :global(.identity) {
+
+	.team-rail[data-position='left'] :global(.identity) {
 		flex-direction: row-reverse;
 		text-align: right;
 	}
-	.team :global(.identity strong) {
-		font:
-			800 18px/1 Bahnschrift,
-			'Arial Narrow',
-			sans-serif;
-		text-transform: uppercase;
-	}
-	.team :global(.identity small) {
-		margin-top: 4px;
-		color: var(--gfx-muted);
-		font:
-			700 9px/1 Bahnschrift,
-			'Arial Narrow',
-			sans-serif;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-	.context {
-		grid-column: 2;
-		grid-row: 1;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		padding: 8px 18px;
-		text-align: center;
-		background: #090d13c9;
-		border-inline: 1px solid #303947;
-	}
-	.context strong {
-		color: var(--gfx-accent);
-		font:
-			900 23px/1 Bahnschrift,
-			'Arial Narrow',
-			sans-serif;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-	.context p {
-		margin: 7px 0 0;
-		color: var(--gfx-muted);
-		font:
-			700 10px/1 Bahnschrift,
-			'Arial Narrow',
-			sans-serif;
-		letter-spacing: 0.11em;
-	}
-	.empty {
-		grid-column: 1 / -1;
-		align-self: center;
-		text-align: center;
-	}
-	section :global(.identity),
-	section :global(.identity > div) {
-		min-width: 0;
+
+	.team-rail :global(.identity strong) {
+		display: block;
+		max-width: 270px;
 		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font:
+			800 17px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.045em;
+		text-transform: uppercase;
 	}
-	section :global(strong),
-	section :global(small),
-	p {
+
+	.team-rail :global(.identity small) {
+		display: none;
+	}
+
+	.win-dots {
+		flex: 0 0 auto;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.win-dots span {
+		width: 10px;
+		height: 10px;
+		box-sizing: border-box;
+		display: block;
+		transform: rotate(45deg);
+		background: #0a0e14;
+		border: 1px solid #788392;
+	}
+
+	.win-dots span.won {
+		background: var(--gfx-ink);
+		border-color: var(--gfx-ink);
+		box-shadow: 0 0 0 2px #f7f4eb18;
+	}
+
+	.center-mark {
+		position: absolute;
+		left: 50%;
+		top: 51px;
+		width: 74px;
+		height: 22px;
+		transform: translateX(-50%);
+		background: linear-gradient(180deg, #171f2b, #0b1017);
+		clip-path: polygon(0 0, 24px 0, 37px 12px, 50px 0, 74px 0, 51px 22px, 23px 22px);
+		border-top: 1px solid var(--gfx-line);
+	}
+
+	.sponsor-slot {
+		position: absolute;
+		top: 10px;
+		right: 30px;
+		width: 218px;
+		height: 66px;
+		box-sizing: border-box;
+		display: grid;
+		place-items: center;
+		overflow: hidden;
+		color: var(--gfx-muted);
+		background: linear-gradient(135deg, #10151dd9, #171e28bf);
+		border: 1px solid #465160;
+		clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+	}
+
+	.sponsor-slot span {
+		font:
+			800 10px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.16em;
+	}
+
+	.match-bug {
+		position: absolute;
+		left: 30px;
+		bottom: 34px;
+		width: 360px;
+		min-height: 124px;
+		box-sizing: border-box;
+		padding: 18px 24px 17px;
+		overflow: hidden;
+		background:
+			linear-gradient(135deg, #63e6d719, transparent 44%),
+			linear-gradient(180deg, #141b26f2, #090d14f2);
+		border-left: 4px solid var(--gfx-accent);
+		border-bottom: 1px solid var(--gfx-line);
+		clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+	}
+
+	.match-bug strong,
+	.match-bug span,
+	.match-bug p {
 		display: block;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.match-bug strong {
+		font:
+			800 18px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.045em;
+		text-transform: uppercase;
+	}
+
+	.match-bug span {
+		margin-top: 7px;
+		color: var(--gfx-muted);
+		font:
+			700 11px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
+
+	.match-bug p {
+		margin: 13px 0 0;
+		color: var(--gfx-accent);
+		font:
+			900 29px/0.95 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.055em;
+		text-transform: uppercase;
+	}
+
+	.empty {
+		position: absolute;
+		left: 50%;
+		top: 48px;
+		margin: 0;
+		transform: translateX(-50%);
+		color: var(--gfx-muted);
+		font:
+			700 12px/1 Bahnschrift,
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
 	}
 </style>

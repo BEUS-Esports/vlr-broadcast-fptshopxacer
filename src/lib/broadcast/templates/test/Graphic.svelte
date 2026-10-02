@@ -240,8 +240,16 @@
 		border-right: 2px solid #63e6d7;
 	}
 	footer.in-game {
-		top: 350px;
-		right: 480px;
+		top: 1014px;
+		right: 30px;
+		background: transparent;
+		border-right: 0;
+	}
+	footer.in-game span {
+		display: inline-block;
+		padding: 0 10px;
+		background: linear-gradient(90deg, transparent, #10151db8);
+		border-right: 2px solid #63e6d7;
 	}
 	.pregame :global(.identity) {
 		min-width: 0;
