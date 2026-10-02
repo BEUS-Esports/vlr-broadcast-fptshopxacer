@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import { syncResourceKind, type ResourceKind } from '#lib/server/services/resources.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
+import { broadcastPublisher } from '#lib/server/broadcast/publisher.ts';
 
 const encoder = new TextEncoder();
 
@@ -11,10 +12,13 @@ function validKind(value: string | null): value is ResourceKind {
 export const POST: RequestHandler = async ({ url }) => {
 	const kind = url.searchParams.get('kind');
 	if (!validKind(kind)) {
-		return new Response(JSON.stringify({ type: 'error', message: 'Invalid resource kind.' }) + '\n', {
-			status: 400,
-			headers: { 'content-type': 'application/x-ndjson; charset=utf-8' }
-		});
+		return new Response(
+			JSON.stringify({ type: 'error', message: 'Invalid resource kind.' }) + '\n',
+			{
+				status: 400,
+				headers: { 'content-type': 'application/x-ndjson; charset=utf-8' }
+			}
+		);
 	}
 
 	const stream = new ReadableStream<Uint8Array>({
@@ -27,6 +31,14 @@ export const POST: RequestHandler = async ({ url }) => {
 				const result = await syncResourceKind(kind, (progress) =>
 					send({ type: 'progress', ...progress })
 				);
+				try {
+					await broadcastPublisher.publish();
+				} catch (cause) {
+					console.error(
+						'Catalogue saved, but broadcast publication failed; clients will resynchronize.',
+						cause
+					);
+				}
 				send({
 					type: 'done',
 					kind,

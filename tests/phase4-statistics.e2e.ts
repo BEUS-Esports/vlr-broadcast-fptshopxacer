@@ -16,7 +16,7 @@ test('manual statistics, derived scopes, MVPs, and stale drafts survive navigati
 	await page.getByRole('combobox', { name: 'Alpha slot 1', exact: true }).selectOption('Alpha-1');
 	await page.getByRole('combobox', { name: 'Bravo slot 1', exact: true }).selectOption('Bravo-1');
 	await save(page, 'Save lineup');
-	await page.getByRole('tab', { name: 'Post-Game', exact: true }).click();
+	await page.getByRole('tab', { name: 'Post-Game Report', exact: true }).click();
 	await page.getByRole('textbox', { name: 'Alpha 1 Kills' }).fill('0');
 	await page.getByRole('textbox', { name: 'Alpha 1 Performance Score' }).fill('200');
 	await page.getByRole('textbox', { name: 'Alpha 1 Trades' }).fill('0');
@@ -111,7 +111,7 @@ test('substitutes count only their played games and reopening removes contributi
 	await page.getByRole('combobox', { name: 'Alpha slot 1', exact: true }).selectOption('Alpha-1');
 	await page.getByRole('combobox', { name: 'Bravo slot 1', exact: true }).selectOption('Bravo-1');
 	await save(page, 'Save lineup');
-	await page.getByRole('tab', { name: 'Post-Game', exact: true }).click();
+	await page.getByRole('tab', { name: 'Post-Game Report', exact: true }).click();
 	await page.getByRole('textbox', { name: 'Alpha 1 Kills' }).fill('2');
 	await page.getByRole('textbox', { name: 'Bravo 1 Kills' }).fill('1');
 	await save(page, 'Save post-game statistics');
@@ -124,7 +124,7 @@ test('substitutes count only their played games and reopening removes contributi
 	await page.getByRole('combobox', { name: 'Alpha slot 1', exact: true }).selectOption('Alpha-6');
 	await page.getByRole('combobox', { name: 'Bravo slot 1', exact: true }).selectOption('Bravo-1');
 	await save(page, 'Save lineup');
-	await page.getByRole('tab', { name: 'Post-Game', exact: true }).click();
+	await page.getByRole('tab', { name: 'Post-Game Report', exact: true }).click();
 	await page.getByRole('textbox', { name: 'Alpha 6 Kills' }).fill('0');
 	await save(page, 'Save post-game statistics');
 	await scores(page, '8', '13');
@@ -136,7 +136,7 @@ test('substitutes count only their played games and reopening removes contributi
 	await expect(row('Bravo 1').getByRole('cell').nth(2)).toContainText('partial coverage');
 	await page.goto(second);
 	await save(page, 'Reopen game');
-	await page.getByRole('tab', { name: 'Post-Game', exact: true }).click();
+	await page.getByRole('tab', { name: 'Post-Game Report', exact: true }).click();
 	await expect(page.getByRole('textbox', { name: 'Alpha 6 Kills' })).toHaveValue('0');
 	await page.goto(`${match}?tab=statistics`);
 	await expect(row('Alpha 6')).toHaveCount(0);

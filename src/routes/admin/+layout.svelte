@@ -2,7 +2,16 @@
 	import './layout.css';
 	import { page } from '$app/state';
 	import { AppBar, Navigation, Toast } from '@skeletonlabs/skeleton-svelte';
-	import { LayoutDashboard, Users, UserRound, Map, Trophy } from '@lucide/svelte';
+	import {
+		LayoutDashboard,
+		Users,
+		UserRound,
+		Map,
+		Trophy,
+		Monitor,
+		Settings2
+	} from '@lucide/svelte';
+	import { graphicIds, graphicLabels } from '#lib/broadcast/controls.ts';
 	import { toaster } from '#lib/toaster.ts';
 
 	let { children } = $props();
@@ -37,7 +46,7 @@
 			layout="sidebar"
 			role="navigation"
 			aria-label="Management"
-			class="h-auto w-full shrink-0 border-b border-surface-200-800 preset-filled-surface-50-950 p-0 md:h-full md:w-56 md:border-r md:border-b-0"
+			class="h-auto w-full shrink-0 border-b border-surface-200-800 preset-filled-surface-50-950 p-0 md:h-full md:w-56 md:overflow-y-auto md:border-r md:border-b-0"
 		>
 			<Navigation.Content
 				class="flex w-full flex-row flex-wrap gap-1 px-3 py-2 md:flex-col md:gap-4 md:py-4"
@@ -58,22 +67,24 @@
 						<LayoutDashboard size={18} aria-hidden="true" /> Dashboard
 					</Navigation.TriggerAnchor>
 				</Navigation.Group>
-				<Navigation.Group class="contents md:flex md:w-full md:flex-col md:gap-1">
-					<Navigation.Label
-						class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"
-						>Preparation</Navigation.Label
-					>
-					{#each [{ href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game resources', active: resourcesActive, icon: Map }, { href: '/admin/tournaments', label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] as item (item.href)}
-						<Navigation.TriggerAnchor
-							href={item.href}
-							aria-current={item.active ? 'page' : undefined}
-							class="flex w-auto items-center gap-2 rounded-base px-3 py-2 text-sm font-medium transition-colors md:w-full {item.active
-								? 'preset-filled-primary-500'
-								: 'text-surface-700-300 hover:preset-tonal-primary'}"
-							><item.icon size={18} aria-hidden="true" />{item.label}</Navigation.TriggerAnchor
+				{#each [{ label: 'Preparation', items: [{ href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game Resources', active: resourcesActive, icon: Map }, { href: '/admin/tournaments', label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] }, { label: 'GFX Control', items: [{ href: '/admin/graphics', label: 'Global Settings', active: page.url.pathname === '/admin/graphics', icon: Settings2 }, ...graphicIds.map( (id) => ({ href: `/admin/graphics/${id}`, label: graphicLabels[id], active: page.url.pathname === `/admin/graphics/${id}`, icon: Monitor }) )] }] as group (group.label)}
+					<Navigation.Group class="contents md:flex md:w-full md:flex-col md:gap-1">
+						<Navigation.Label
+							class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"
+							>{group.label}</Navigation.Label
 						>
-					{/each}
-				</Navigation.Group>
+						{#each group.items as item (item.href)}
+							<Navigation.TriggerAnchor
+								href={item.href}
+								aria-current={item.active ? 'page' : undefined}
+								class="flex w-auto items-center gap-2 rounded-base px-3 py-2 text-sm font-medium transition-colors md:w-full {item.active
+									? 'preset-filled-primary-500'
+									: 'text-surface-700-300 hover:preset-tonal-primary'}"
+								><item.icon size={18} aria-hidden="true" />{item.label}</Navigation.TriggerAnchor
+							>
+						{/each}
+					</Navigation.Group>
+				{/each}
 			</Navigation.Content>
 		</Navigation>
 		<main id="main-content" class="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

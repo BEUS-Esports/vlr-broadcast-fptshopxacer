@@ -1,7 +1,6 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
-	agents,
 	gameLineups,
 	gamePlayerStatistics,
 	gameStatisticsMeta,
@@ -13,7 +12,7 @@ import { SaveError } from './save-error';
 import { assertTournamentWritable } from './tournaments';
 
 type Stats = Pick<typeof gamePlayerStatistics.$inferInsert, (typeof statisticFields)[number]>;
-type Draft = Stats & { playerId: string; entryId: string; agentId: string | null };
+type Draft = Stats & { playerId: string; entryId: string };
 
 function parseMetric(value: unknown, name: string): number | null {
 	if (value === null || value === undefined || (typeof value === 'string' && !value.trim()))
@@ -36,13 +35,9 @@ function parsePlayers(value: unknown): Draft[] {
 			!row.playerId ||
 			typeof row.entryId !== 'string' ||
 			!row.entryId ||
-			!(row.agentId === null || row.agentId === '' || typeof row.agentId === 'string') ||
 			seen.has(row.playerId)
 		)
-			throw new SaveError(
-				'invalid',
-				'Each saved lineup player may appear once with a valid team and agent.'
-			);
+			throw new SaveError('invalid', 'Each saved lineup player may appear once with a valid team.');
 		seen.add(row.playerId);
 		const metrics = Object.fromEntries(
 			statisticFields.map((field) => [field, parseMetric(row[field], field)])
@@ -50,7 +45,6 @@ function parsePlayers(value: unknown): Draft[] {
 		return {
 			playerId: row.playerId,
 			entryId: row.entryId,
-			agentId: row.agentId === '' ? null : row.agentId,
 			...metrics
 		};
 	});
@@ -112,20 +106,6 @@ export async function saveGameStatistics(input: {
 			.where(eq(gameStatisticsMeta.gameId, game.id))
 			.limit(1);
 		const imported = !!meta?.importedAt;
-		const newAgentIds = [
-			...new Set(
-				players
-					.filter(
-						(player) =>
-							player.agentId &&
-							player.agentId !== lineup.find((row) => row.playerId === player.playerId)?.agentId
-					)
-					.map((player) => player.agentId!)
-			)
-		];
-		const availableAgents = newAgentIds.length
-			? await tx.select().from(agents).where(inArray(agents.id, newAgentIds))
-			: [];
 		for (const player of players) {
 			const selected = lineup.find((row) => row.playerId === player.playerId);
 			if (!selected || selected.entryId !== player.entryId)
@@ -133,29 +113,16 @@ export async function saveGameStatistics(input: {
 					'invalid',
 					'Statistics must use players and teams from this game’s saved lineup.'
 				);
-			if (
-				player.agentId &&
-				player.agentId !== selected.agentId &&
-				!availableAgents.some((agent) => agent.id === player.agentId && agent.isActive)
-			)
-				throw new SaveError('invalid', 'Choose an available agent, or retain the saved agent.');
 		}
 		let changed = false;
 		const now = new Date();
 		for (const player of players) {
-			const selected = lineup.find((row) => row.playerId === player.playerId)!;
 			const saved = current.find((row) => row.playerId === player.playerId);
-			const agentChanged = selected.agentId !== player.agentId;
 			const statsChanged = statisticsDiffer(saved ?? null, player);
 			const hasStats = statisticFields.some((field) => player[field] !== null);
 			const shouldDelete = !!saved && !hasStats && !imported;
-			if (!agentChanged && !statsChanged && !shouldDelete) continue;
+			if (!statsChanged && !shouldDelete) continue;
 			changed = true;
-			if (agentChanged)
-				await tx
-					.update(gameLineups)
-					.set({ agentId: player.agentId })
-					.where(and(eq(gameLineups.gameId, game.id), eq(gameLineups.playerId, player.playerId)));
 			if (!hasStats) {
 				if (saved && imported && statsChanged)
 					await tx

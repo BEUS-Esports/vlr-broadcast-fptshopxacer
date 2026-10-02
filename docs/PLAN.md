@@ -4,19 +4,19 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5 onward remains open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5 implementation and automated Node/browser verification are complete; actual OBS/Valorant acceptance remains pending. Phases 6 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
 ## Starting point
 
-| Existing item          | Current state / implication                                                                                                                                                                  |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.       |
-| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; reviewed forward migrations through `0003` recreate the current schema.  |
-| Routes                 | `/admin` has Team, Player, and Game Resources CRUD screens. `/gfx` remains a transparent 1920×1080 canvas.                                                                                   |
-| Production graphics    | `src/routes/gfx/+layout.js` currently sets `ssr = false` and `csr = dev`, disabling client rendering in production. Resolve this when building actual outputs and verify a production build. |
-| Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.           |
+| Existing item          | Current state / implication                                                                                                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.        |
+| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; reviewed forward migrations through `0006` recreate the current schema.   |
+| Routes                 | `/admin` has Team, Player, and Game Resources CRUD screens. `/gfx` remains a transparent 1920×1080 canvas.                                                                                    |
+| Production graphics    | Seven stable live routes render in the built Node app, with shared SSE and template fallback. Configure the intended `ORIGIN` before building; actual OBS/Valorant rehearsal remains pending. |
+| Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.            |
 
 Real GStack game payloads and successful Spectra hosted post-game reports are not available yet. Documented/synthetic fixtures can support implementation; only actual captures can establish live-provider compatibility. Preserve unrelated working-tree changes and example files throughout.
 
@@ -133,24 +133,26 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 ### Work
 
 - [x] Complete the management/domain Team A / Team B veto-order correction before building the Map Veto output: Team A starts the standard map veto preset, grand-final upper-bracket bans may start from A or B, and saved veto order remains editable. Broadcast left/right isolation is verified with its Phase 5 control. See [the corrective note](./2026-10-01-team-a-b-veto-order-correction.md).
-- [ ] Add the single persistent live-game selection with a revision/version check. Build the shared Tournament → Match → Game selector; partial dropdown changes retain the prior on-air game, while a complete valid selection updates the broadcast.
-- [ ] Add a server-owned broadcast snapshot/update path, initially using the specification's SSE default with ordinary authenticated control actions. Reconnecting clients obtain the latest snapshot. Expose only explicit broadcast fields.
-- [ ] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
-- [ ] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Player Stats supports both a single Player-to-Watch mode and a head-to-head comparison from one shared control/read model. Agent preparation and the native-HUD fallback must work manually.
+- [x] Add the single persistent live-game selection with a revision/version check. Build the shared Tournament → Match → Game selector; partial dropdown changes retain the prior on-air game, while a complete valid selection updates the broadcast.
+- [x] Add a server-owned broadcast snapshot/update path, initially using the specification's SSE default with ordinary revision-checked control actions (authentication explicitly deferred to trusted LAN). Reconnecting clients obtain the latest snapshot. Expose only explicit broadcast fields.
+- [x] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
+- [x] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Player Stats supports both a single Player-to-Watch mode and a head-to-head comparison from one shared control/read model. Agent preparation and the native-HUD fallback must work manually.
   - This allows the Graphics Controller to double as the specific Lineup/Map Veto/Agent Select/Ingame/Post-Game/MVP Control (where possible) just like in the tournaments/matches/games page, making the workflow even faster.
-- [ ] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Use a 1920×1080 transparent canvas. Default broadcast presentation is Team A left / Team B right with an explicit presentation-only left/right swap; Attacker is always blue and Defender is always red, independent of screen position. Prioritize a native-HUD-safe In-Game test graphic before the provider-backed custom HUD. Validate composition in OBS.
+- [x] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Use a 1920×1080 transparent canvas. Default broadcast presentation is Team A left / Team B right with an explicit presentation-only left/right swap; Attacker is always blue and Defender is always red, independent of screen position. Prioritize a native-HUD-safe In-Game test graphic before the provider-backed custom HUD. Actual OBS/Valorant composition remains pending.
 
 ### Done when
 
 - Changing the shared selector updates open controller pages and OBS outputs without replacing browser-source URLs. Ordinary management browsing does not switch the live game.
 - All seven test templates render with saved/manual data. Data/control behavior is independent of the final supplied layout.
-- Two operators and multiple browser outputs reconnect correctly, and anonymous output clients cannot invoke mutations or read credentials.
+- Two operators and multiple browser outputs reconnect correctly; read-only outputs expose no credentials or mutation controls. Authentication is deferred: management writes remain reachable to anyone on the trusted LAN.
 
 ### Focused proof
 
 Run a browser scenario with two controller sessions and at least one output: select, edit, reconnect, recover from a stale selection write, swap presentation left/right without mutating Match A/B, and change attacker/defender colors without moving team positions. Verify the standard Team A preset, a Team B upper-bracket double-ban, manually edited saved veto order, a production build, an unknown custom slug falling back to a test template, incomplete lineups, and outputs without operator cookies. Record an actual OBS visual check separately from browser-test results.
 
-Progress, 2026-10-01: Match creation and editing explain standard A/B order, the participant form offers a revision-checked swap before dependencies exist, and the Map Veto editor fills editable seven-map BO1/BO3/BO5 or grand-final drafts. The service preserves operator-chosen actors, including a Team B grand-final opening, while validating participants and map relationships. Broadcast left/right and its isolation test remain in the next Phase 5 work.
+Progress, 2026-10-01: Tasks 0-8 are implemented and reviewed. Task 9 proves production adapter-node rendering, shared selection, stale multi-controller writes, all seven visibility/update/refresh/no-selection states, template fallback and saved identity/statistics isolation. See [verification evidence and screenshots](./2026-10-01-phase-5-verification.md). The Node-runtime proof found and corrected an adapter static-path packaging bug and build-origin configuration. Forward migrations 0004/0005/0006 are required for existing installations; no event/local database was migrated.
+
+- [ ] Finish actual OBS alpha, scaling/clipping, native Valorant HUD, side/presentation and reconnect rehearsal from the target LAN machine. Full Phase 5 acceptance remains pending.
 
 ## Phase 6 — Integrate live providers and the HUD recovery rules
 
@@ -240,7 +242,7 @@ Use the existing tooling and the smallest checks that prove the changed slice. D
 | Formatting / lint               | `pnpm exec prettier --check <changed-files>` / `pnpm lint`                                    |
 | Production output               | `pnpm build`, followed by preview/Node-runtime and OBS verification as appropriate            |
 
-Playwright's current configuration builds and previews the app and discovers `*.e2e.ts`/`*.e2e.js` files. Install browser dependencies when required by the test environment; do not treat their absence as a product failure. Current package scripts also expose `pnpm test:unit`, `pnpm test:e2e`, and the Drizzle migration commands.
+Playwright's current configuration builds and starts the adapter-node entrypoint and discovers `*.e2e.ts`/`*.e2e.js` files. Install browser dependencies when required by the test environment; do not treat their absence as a product failure. Current package scripts also expose `pnpm test:unit`, `pnpm test:e2e`, and the Drizzle migration commands.
 
 When implementing Svelte components, follow `AGENTS.md`: consult the relevant Svelte documentation and use the Svelte autofixer before handing off component changes. These two planning files contain no Svelte implementation.
 
@@ -258,4 +260,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, build **Phase 5: shared broadcast controls and the seven functional test graphics** using [the detailed Phase 5 plan](./2026-10-01-phase-5-broadcast-controls-test-graphics.md). Verify the broadcast left/right control cannot change Match A/B or saved veto actors. Reuse the Phase 3 management records and Phase 4 statistics/MVP read models rather than creating graphics-only copies. Real provider captures are not required to begin Phase 5.
+Next, complete the pending **Phase 5 OBS/Valorant rehearsal** in [the verification report](./2026-10-01-phase-5-verification.md), then begin provider-backed Phase 6. Preserve the now-tested competition/presentation/side separation and the shared typed broadcast contract. Real provider captures remain necessary to establish provider compatibility.

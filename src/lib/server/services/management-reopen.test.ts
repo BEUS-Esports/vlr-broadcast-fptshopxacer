@@ -33,8 +33,8 @@ it.skipIf(role !== 'writer')(
 			const { addTournamentEntry, replaceTournamentRoster } = await import('./tournament-entries');
 			const { createMatch } = await import('./matches');
 			const { replaceMatchVeto } = await import('./vetoes');
-			const { createGame, saveGameResult } = await import('./games');
-			const { replaceGameLineups } = await import('./lineups');
+			const { createGame, saveGameResult, saveGameInfo } = await import('./games');
+			const { replaceGameLineups, saveGameAgents } = await import('./lineups');
 			const { saveGameStatistics } = await import('./statistics');
 			const { setGameMvp, setMatchMvp, setTournamentMvp } = await import('./mvp');
 
@@ -129,23 +129,37 @@ it.skipIf(role !== 'writer')(
 			});
 			expect(final.series).toMatchObject({ state: 'completed', winnerEntryId: entries[0] });
 			await db.insert(s.agents).values({ id: 'agent', key: 'agent', displayName: 'Agent' });
-			await saveGameStatistics({
+			const selectedAgents = await saveGameAgents({
 				gameId: game.gameId,
-				expectedGameRevision: 3,
+				expectedGameRevision: final.gameRevision,
+				players: entries.flatMap((entryId, i) =>
+					players[i].map((player) => ({
+						playerId: player.id,
+						entryId,
+						agentId: player.id === players[0][0].id ? 'agent' : null
+					}))
+				)
+			});
+			const statistics = await saveGameStatistics({
+				gameId: game.gameId,
+				expectedGameRevision: selectedAgents.gameRevision,
 				players: [
 					{
 						playerId: players[0][0].id,
 						entryId: entries[0],
-						agentId: 'agent',
 						kills: 0,
 						deaths: 2,
 						performanceScore: 200,
 						trades: 0
 					},
-					{ playerId: players[1][0].id, entryId: entries[1], agentId: null, kills: 10 }
+					{ playerId: players[1][0].id, entryId: entries[1], kills: 10 }
 				]
 			});
-			await setGameMvp({ gameId: game.gameId, expectedRevision: 4, playerId: players[0][0].id });
+			await setGameMvp({
+				gameId: game.gameId,
+				expectedRevision: statistics.gameRevision,
+				playerId: players[0][0].id
+			});
 			await setMatchMvp({
 				matchId: match.id,
 				expectedRevision: final.matchRevision,
@@ -155,6 +169,21 @@ it.skipIf(role !== 'writer')(
 				tournamentId: tournament.id,
 				expectedRevision: 6,
 				playerId: players[0][0].id
+			});
+			const { updateBroadcastState } = await import('./broadcast');
+			await updateBroadcastState({
+				expectedRevision: 1,
+				selectedGameId: game.gameId,
+				visibility: { mvp: true }
+			});
+			await saveGameInfo({
+				gameId: game.gameId,
+				expectedGameRevision: 6,
+				expectedMatchRevision: 5,
+				name: 'Newer saved game',
+				mapId: map.id,
+				startingAttackersEntryId: entries[1],
+				startingDefendersEntryId: entries[0]
 			});
 		} finally {
 			vi.doUnmock('#lib/server/db/index.ts');
@@ -202,7 +231,7 @@ it.skipIf(role !== 'reader')(
 				bestOf: 1,
 				resultType: 'normal',
 				winnerEntryId: entries[0].id,
-				revision: 5,
+				revision: 6,
 				mvpPlayerId: players[0].id
 			});
 			expect(veto).toMatchObject({
@@ -218,10 +247,23 @@ it.skipIf(role !== 'reader')(
 				scoreB: 9,
 				resultType: 'normal',
 				winnerEntryId: entries[0].id,
-				revision: 5,
+				revision: 7,
 				mvpPlayerId: players[0].id
 			});
 			expect(game.startingAttackersEntryId).toBe(entries[1].id);
+			const { buildBroadcastSnapshot } = await import('../broadcast/snapshot');
+			const { programSnapshot } = await import('../../broadcast/selectors');
+			const { updateBroadcastState } = await import('./broadcast');
+			const latest = await buildBroadcastSnapshot();
+			expect(latest.game?.name).toBe('Newer saved game');
+			expect(latest.controls.visibility.mvp).toBe(true);
+			expect(programSnapshot(latest, 'mvp')?.game?.name).toBe('Persistent game');
+			expect(latest.dataRevision).toBeGreaterThan(latest.publications.mvp!.dataRevision);
+			await updateBroadcastState({
+				expectedRevision: latest.controlRevision,
+				visibility: { mvp: true }
+			});
+			expect((await buildBroadcastSnapshot()).publications.mvp).toEqual(latest.publications.mvp);
 			expect(lineups).toHaveLength(10);
 			expect(new Set(lineups.map((row) => row.playerId)).size).toBe(10);
 			expect(lineups.find((row) => row.playerId === players[0].id)?.agentId).toBe('agent');

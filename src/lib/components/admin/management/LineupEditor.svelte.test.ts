@@ -25,6 +25,9 @@ it('offers five slots per team, distinct names and historical players, and retai
 	await page.getByRole('combobox', { name: 'Alpha slot 2', exact: true }).selectOptions('p2');
 	await page.getByRole('button', { name: 'Alpha slot 2 Move Up', exact: true }).click();
 	await view.rerender({ ...props, revision: 2, lineup: [] });
+	await expect
+		.element(page.getByRole('combobox', { name: 'Alpha slot 2', exact: true }))
+		.toHaveValue('p1');
 	const payload = JSON.parse(
 		view.container.querySelector<HTMLInputElement>('input[name="payload"]')!.value
 	);

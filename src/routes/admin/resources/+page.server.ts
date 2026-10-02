@@ -54,10 +54,7 @@ export const actions: Actions = {
 		} catch (cause) {
 			return formError(cause, form);
 		}
-		redirect(
-			303,
-			`/admin/resources?tab=${tabFor(kind)}&${kind}=${encodeURIComponent(id)}`
-		);
+		redirect(303, `/admin/resources?tab=${tabFor(kind)}&${kind}=${encodeURIComponent(id)}`);
 	},
 	delete: async ({ request }) => {
 		const form = await request.formData();

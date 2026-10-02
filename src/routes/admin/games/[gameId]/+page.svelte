@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
+	import AgentSelectEditor from '#lib/components/admin/management/AgentSelectEditor.svelte';
 	import LineupEditor from '#lib/components/admin/management/LineupEditor.svelte';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import ManagementWorkspace from '#lib/components/admin/management/ManagementWorkspace.svelte';
@@ -12,7 +13,8 @@
 		{ value: 'info', label: 'Info' },
 		{ value: 'lineup', label: 'Lineup' },
 		{ value: 'veto', label: 'Map Veto' },
-		{ value: 'statistics', label: 'Post-Game' }
+		{ value: 'agents', label: 'Agent Select' },
+		{ value: 'statistics', label: 'Post-Game Report' }
 	];
 	const revisions = $derived({
 		expectedGameRevision: data.game.revision,
@@ -293,8 +295,19 @@
 					disabled={!!data.tournament.archivedAt}
 				/></Tabs.Content
 			>
-			<Tabs.Content value="statistics" class="admin-editor" aria-label="Post-game statistics">
-				<h2 class="h3">Post-Game Statistics</h2>
+			<Tabs.Content value="agents" class="admin-editor" aria-label="Agent Select">
+				<h2 class="h3">Agent Select</h2>
+				<AgentSelectEditor
+					revision={data.game.revision}
+					entries={[teamA, teamB]}
+					lineup={data.lineup}
+					players={data.players}
+					agents={data.agents}
+					disabled={!!data.tournament.archivedAt}
+				/>
+			</Tabs.Content>
+			<Tabs.Content value="statistics" class="admin-editor" aria-label="Post-Game Report">
+				<h2 class="h3">Post-Game Report</h2>
 				<PostGameEditor
 					revision={data.game.revision}
 					entries={[teamA, teamB]}

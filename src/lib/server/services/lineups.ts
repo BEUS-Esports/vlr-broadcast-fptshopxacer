@@ -1,17 +1,17 @@
-import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import {
+	agents,
 	gameLineups,
 	gamePlayerStatistics,
 	games,
-	matches,
-	players,
-	tournamentEntryPlayers
+	matches
 } from '#lib/server/db/schema/index.ts';
 import { bumpGameRevision } from './games';
 import { assertOrdinaryMatch } from './matches';
 import { assertTournamentWritable } from './tournaments';
 import { SaveError } from './save-error';
+import { validateLineupPlayers } from './lineup-eligibility';
 
 export type LineupTeam = {
 	entryId: string;
@@ -77,14 +77,6 @@ export async function replaceGameLineups(input: {
 		)
 			throw new SaveError('invalid', 'Lineups must belong to this game’s two teams.');
 		const saved = await tx.select().from(gameLineups).where(eq(gameLineups.gameId, game.id));
-		const roster = await tx
-			.select({
-				entryId: tournamentEntryPlayers.entryId,
-				playerId: tournamentEntryPlayers.playerId
-			})
-			.from(tournamentEntryPlayers)
-			.innerJoin(players, eq(players.id, tournamentEntryPlayers.playerId))
-			.where(and(inArray(tournamentEntryPlayers.entryId, entries), isNull(players.archivedAt)));
 		const selected = new Map<string, string>();
 		const rows = teams.flatMap((team) =>
 			team.slots.map((slot) => {
@@ -94,14 +86,6 @@ export async function replaceGameLineups(input: {
 				if (slot.playerId) {
 					if (selected.has(slot.playerId))
 						throw new SaveError('invalid', 'A player may appear only once in this game.');
-					if (
-						!retained &&
-						!roster.some((row) => row.entryId === team.entryId && row.playerId === slot.playerId)
-					)
-						throw new SaveError(
-							'invalid',
-							'New selections must be active players on that team’s current roster.'
-						);
 					selected.set(slot.playerId, team.entryId);
 				}
 				return {
@@ -113,6 +97,7 @@ export async function replaceGameLineups(input: {
 				};
 			})
 		);
+		await validateLineupPlayers(tx, rows, saved);
 		const statistics = await tx
 			.select({ playerId: gamePlayerStatistics.playerId, entryId: gamePlayerStatistics.entryId })
 			.from(gamePlayerStatistics)
@@ -170,5 +155,76 @@ export async function replaceGameLineups(input: {
 			readyA: rows.filter((row) => row.entryId === match.teamAEntryId && row.playerId).length === 5,
 			readyB: rows.filter((row) => row.entryId === match.teamBEntryId && row.playerId).length === 5
 		};
+	});
+}
+
+export async function saveGameAgents(input: {
+	gameId: string;
+	expectedGameRevision: number;
+	players: unknown;
+}) {
+	if (!Array.isArray(input.players))
+		throw new SaveError('invalid', 'Submit agent assignments for all saved lineup players.');
+	const seen = new Set<string>();
+	const selections = input.players.map((item) => {
+		if (!item || typeof item !== 'object' || Array.isArray(item))
+			throw new SaveError('invalid', 'Each agent assignment needs a saved lineup player.');
+		const row = item as Record<string, unknown>;
+		if (
+			typeof row.playerId !== 'string' ||
+			!row.playerId ||
+			typeof row.entryId !== 'string' ||
+			!row.entryId ||
+			!(row.agentId === null || typeof row.agentId === 'string') ||
+			seen.has(row.playerId) ||
+			Object.keys(row).some((key) => !['playerId', 'entryId', 'agentId'].includes(key))
+		)
+			throw new SaveError('invalid', 'Each saved player needs one team and agent assignment.');
+		seen.add(row.playerId);
+		return {
+			playerId: row.playerId,
+			entryId: row.entryId,
+			agentId: row.agentId === '' ? null : row.agentId
+		};
+	});
+	return db.transaction(async (tx) => {
+		const game = await bumpGameRevision(tx, input.gameId, input.expectedGameRevision);
+		const [match] = await tx.select().from(matches).where(eq(matches.id, game.matchId));
+		await assertTournamentWritable(tx, match.tournamentId);
+		const lineup = (
+			await tx.select().from(gameLineups).where(eq(gameLineups.gameId, game.id))
+		).filter((row) => row.playerId);
+		if (selections.length !== lineup.length)
+			throw new SaveError(
+				'invalid',
+				'Save agent assignments for every saved lineup player together.'
+			);
+		const agentIds = [...new Set(selections.flatMap((row) => (row.agentId ? [row.agentId] : [])))];
+		const available = agentIds.length
+			? await tx.select().from(agents).where(inArray(agents.id, agentIds))
+			: [];
+		for (const row of selections) {
+			const saved = lineup.find((player) => player.playerId === row.playerId);
+			if (!saved || saved.entryId !== row.entryId)
+				throw new SaveError(
+					'invalid',
+					'Agent assignments must use this game’s saved players and teams.'
+				);
+			if (
+				row.agentId &&
+				row.agentId !== saved.agentId &&
+				!available.some((agent) => agent.id === row.agentId && agent.isActive)
+			)
+				throw new SaveError(
+					'invalid',
+					'Choose an active agent, or retain this player’s saved agent.'
+				);
+			if (row.agentId !== saved.agentId)
+				await tx
+					.update(gameLineups)
+					.set({ agentId: row.agentId })
+					.where(and(eq(gameLineups.gameId, game.id), eq(gameLineups.playerId, row.playerId)));
+		}
+		return { gameId: game.id, gameRevision: game.revision };
 	});
 }

@@ -9,6 +9,7 @@
 		actions,
 		entries,
 		maps,
+		action = '?/veto',
 		disabled = false
 	}: {
 		matchId: string;
@@ -18,6 +19,7 @@
 		actions: VetoActionInput[];
 		entries: Array<{ id: string; name: string }>;
 		maps: Array<{ id: string; displayName: string }>;
+		action?: string;
 		disabled?: boolean;
 	} = $props();
 	type Row = VetoActionInput & { key: string };
@@ -95,7 +97,7 @@
 	twice first in a grand final. Every action remains editable.
 </p>
 <ManagementForm
-	action="?/veto"
+	{action}
 	initial={{
 		matchId,
 		expectedMatchRevision: revision,

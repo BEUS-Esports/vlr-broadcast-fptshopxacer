@@ -269,6 +269,67 @@
 										: 'Draft')} →</span
 							></a
 						>
+						{#if nextNumber && !data.tournament.archivedAt && !exceptional}
+							<details class="mt-2 rounded-container border border-surface-200-800 p-3">
+								<summary class="cursor-pointer font-medium">Duplicate Game {game.number}</summary>
+								<section class="mt-4" aria-label={`Duplicate Game ${game.number}`}>
+									<p class="mb-3 text-sm text-surface-600-400">
+										Copy the saved lineup. The target veto sets the map and starting sides. Scores,
+										results, statistics and MVP stay empty.
+									</p>
+									<ManagementForm
+										action="?/duplicateGame"
+										initial={{
+											expectedMatchRevision: data.match.revision,
+											sourceGameId: game.id,
+											expectedSourceGameRevision: game.revision,
+											number: nextNumber,
+											name: `Game ${nextNumber}`,
+											copyAgents: false
+										}}
+										confirmMessage="Create a new game with this saved lineup? The source game and live selection stay unchanged."
+									>
+										{#snippet children(draft, pending)}
+											<div class="grid gap-4 sm:grid-cols-2">
+												<label class="block text-sm font-medium"
+													>Target Game No.
+													<select
+														class="select mt-1 w-full"
+														bind:value={draft.number}
+														onchange={(event) => {
+															draft.name = `Game ${event.currentTarget.value}`;
+														}}
+													>
+														{#each [1, 2, 3, 4, 5].filter((number) => number <= data.match.bestOf && !data.games.some((game) => game.number === number)) as number (number)}
+															<option value={number}>{number}</option>
+														{/each}
+													</select>
+												</label>
+												<label class="block text-sm font-medium"
+													>New Game label
+													<input
+														class="mt-1 input w-full"
+														required
+														maxlength="150"
+														bind:value={draft.name}
+													/>
+												</label>
+											</div>
+											<label class="flex items-center gap-2"
+												><input
+													class="checkbox"
+													type="checkbox"
+													bind:checked={draft.copyAgents}
+												/>Copy Agent Select</label
+											>
+											<button class="btn preset-filled-primary-500" disabled={pending}
+												>Duplicate game</button
+											>
+										{/snippet}
+									</ManagementForm>
+								</section>
+							</details>
+						{/if}
 					{:else}<p class="mt-2 text-sm text-surface-600-400">No games saved yet.</p>{/each}
 				</div>
 				{#if nextNumber && !data.tournament.archivedAt && !exceptional}

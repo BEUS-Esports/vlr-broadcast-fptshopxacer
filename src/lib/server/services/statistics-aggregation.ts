@@ -130,11 +130,12 @@ export function aggregateStatistics(
 	};
 }
 
-async function loadStatisticsGames(
-	gameRows: Array<Pick<typeof games.$inferSelect, 'id' | 'resultType'>>
+export async function loadStatisticsGames(
+	gameRows: Array<Pick<typeof games.$inferSelect, 'id' | 'resultType'>>,
+	reader?: Pick<typeof import('#lib/server/db/index.ts').db, 'select'>
 ) {
 	if (!gameRows.length) return [];
-	const { db } = await import('#lib/server/db/index.ts');
+	const db = reader ?? (await import('#lib/server/db/index.ts')).db;
 	const rows = await db
 		.select({
 			gameId: gameLineups.gameId,

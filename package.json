@@ -23,7 +23,6 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
-		"@libsql/client": "^0.17.3",
 		"@playwright/test": "^1.60.0",
 		"@skeletonlabs/skeleton": "^5.0.1",
 		"@skeletonlabs/skeleton-svelte": "^5.0.1",
@@ -58,6 +57,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@libsql/client": "^0.17.3",
 		"@lucide/svelte": "^1.48.0"
 	}
 }

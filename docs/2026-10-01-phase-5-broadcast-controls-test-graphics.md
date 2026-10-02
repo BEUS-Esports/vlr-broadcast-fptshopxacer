@@ -8,7 +8,15 @@
 
 **Spec:** `docs/TECH-SPEC.md`, especially sections 3, 4.3-4.4, 5, and 6. The Team A/B prerequisite is tracked separately in [2026-10-01-team-a-b-veto-order-correction.md](./2026-10-01-team-a-b-veto-order-correction.md).
 
-**Status:** Planned 2026-10-01. Phase 1-4 application data is implemented. Final tournament artwork remains Phase 8.
+**Status:** Tasks 0–8 implemented and reviewed; Task 9 automated browser/production verification completed on 2026-10-01. Actual OBS/Valorant composition remains pending, so full Phase 5 acceptance and broadcast readiness are not yet claimed. See [verification evidence and screenshots](./2026-10-01-phase-5-verification.md). Final tournament artwork remains Phase 8; authentication is explicitly deferred to trusted-LAN operation.
+
+| Tasks                                                                    | Status                                                 |
+| ------------------------------------------------------------------------ | ------------------------------------------------------ |
+| 0–3: Team A/B, persisted control, controller, typed snapshot/SSE library | Complete and tested                                    |
+| 4–5: Stable routes/templates and presentation primitives                 | Complete and tested                                    |
+| 6–8: All seven saved/manual generic outputs                              | Complete and tested                                    |
+| 9: Browser journeys, production Node, screenshots and operator guidance  | Automated verification complete                        |
+| 9: Actual OBS/Valorant and target LAN rehearsal                          | Pending; separate checklist in the verification report |
 
 ---
 
@@ -103,7 +111,7 @@ Do not create a generic arbitrary styling/settings database.
 
 ### Required service behavior
 
-- transaction + revision checked update;
+- transaction + control-revision checked update; prepared-data invalidation uses a separate data revision so ordinary domain edits do not stale control drafts;
 - selecting a valid game changes the shared broadcast selection;
 - changing only the parent dropdown draft does not;
 - selecting another game resets or validates game-specific temporary controls;
@@ -185,7 +193,8 @@ The browser-side library owns:
 - connection/reconnection state exposed to graphics and controllers;
 - decoding/validating the shared snapshot envelope;
 - retaining the newest accepted snapshot;
-- ignoring duplicate or older revisions;
+- ordering SSE snapshots by a transport cursor (process epoch + sequence), independent of persisted control/data revisions;
+- ignoring duplicate or older events from the same stream epoch;
 - resynchronizing from a complete snapshot after reconnect;
 - a small typed API/store that graphics import rather than touching raw SSE events;
 - framework-neutral selectors/helpers where possible so test templates and later custom templates share data interpretation.
@@ -202,8 +211,8 @@ and then consume typed broadcast state. It should not need to know the SSE wire 
 
 - one shared server-owned publication path;
 - new/reconnecting client receives the latest complete snapshot immediately;
-- subsequent mutations publish a new revision;
-- clients ignore older revisions through the shared library;
+- subsequent control or prepared-data mutations publish a new ordered stream event; later provider telemetry may do the same without mutating control revision;
+- clients ignore duplicate/older stream events through the shared library;
 - browser reconnect is separate from Phase 6 provider reconnect;
 - multiple OBS pages may each consume the app-level SSE stream, but must not create multiple upstream provider connections later;
 - transport errors must not cause each graphic to invent its own retry/backoff implementation.
