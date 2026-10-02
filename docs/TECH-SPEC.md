@@ -48,16 +48,16 @@ Authorization must be enforced on the server for every protected read/write, not
 
 ## 3. Terminology and ownership
 
-| Term                      | Meaning and responsibility |
-| ------------------------- | -------------------------- |
-| Player / Team             | Reusable profiles and branding, identified by stable application IDs. |
-| Tournament entry / roster | A team's participation in one tournament and its plain list of available players. |
-| Match                     | A series between two tournament entries, including its best-of format and series-wide map veto. |
+| Term                      | Meaning and responsibility                                                                                                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Player / Team             | Reusable profiles and branding, identified by stable application IDs.                                                                                                                                                                                  |
+| Tournament entry / roster | A team's participation in one tournament and its plain list of available players.                                                                                                                                                                      |
+| Match                     | A series between two tournament entries, including its best-of format and series-wide map veto.                                                                                                                                                        |
 | Match Team A / Team B     | Competition-order slots. Team A starts the standard map veto; a grand-final upper-bracket team may ban twice first as A or B. Saved veto actors remain editable. These identities are not attacker/defender colors or a broadcast left/right override. |
-| Game / lineup             | One played map within a match, with its own selected five players per team, sides, scores, and result. |
-| Broadcast left / right    | Presentation order. Default A-left/B-right; an operator may swap presentation without changing Match A/B identity, veto ownership, scores, or lineups. |
-| Attacker / Defender       | Current gameplay side. Attacker is always blue and Defender is always red in broadcast graphics; color changes do not move a team between left and right. |
-| Broadcast selection       | The shared game currently selected for graphics. Its match and tournament follow from the game relationship. |
+| Game / lineup             | One played map within a match, with its own selected five players per team, sides, scores, and result.                                                                                                                                                 |
+| Broadcast left / right    | Presentation order. Default A-left/B-right; an operator may swap presentation without changing Match A/B identity, veto ownership, scores, or lineups.                                                                                                 |
+| Attacker / Defender       | Current gameplay side. Attacker is always blue and Defender is always red in broadcast graphics; color changes do not move a team between left and right.                                                                                              |
+| Broadcast selection       | The shared game currently selected for graphics. Its match and tournament follow from the game relationship.                                                                                                                                           |
 
 Tournament rosters have **no main/substitute classification**. A player's inclusion in a game's five-player lineup does not change tournament membership or another game's lineup.
 
@@ -125,15 +125,15 @@ The game setup flow is **Info → Lineup → Map Veto**. The Map Veto view edits
 
 ### 5.1 Graphics inventory
 
-| Graphic       | Data and operator controls                                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Player Lineup | Selected game's ordered five-player lineups, names, portraits, and team branding.                                  |
+| Graphic       | Data and operator controls                                                                                                                                |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Player Lineup | Selected game's ordered five-player lineups, names, portraits, and team branding.                                                                         |
 | Player Stats  | Operator-selected game/series/tournament scope using saved statistics, with single Player-to-Watch and head-to-head modes sharing one read/control model. |
-| Map Veto      | Selected match's ordered bans/picks/decider, acting teams, and map assets.                                         |
-| Agent Select  | Selected game's players and agent selections; provider updates where supported, with manual preparation available. |
-| In-Game       | Provider-backed live HUD or the native-spectator-HUD fallback.                                                     |
-| Post-Game     | Saved game result and statistics, imported or manually entered.                                                    |
-| MVP           | Operator-selected player and relevant statistics for the chosen scope. No automatic candidate selection.           |
+| Map Veto      | Selected match's ordered bans/picks/decider, acting teams, and map assets.                                                                                |
+| Agent Select  | Selected game's players and agent selections; provider updates where supported, with manual preparation available.                                        |
+| In-Game       | Provider-backed live HUD or the native-spectator-HUD fallback.                                                                                            |
+| Post-Game     | Saved game result and statistics, imported or manually entered.                                                                                           |
+| MVP           | Operator-selected player and relevant statistics for the chosen scope. No automatic candidate selection.                                                  |
 
 Each graphic receives an authenticated control page and a separate read-only OBS output. Only expose controls needed by that graphic, including content selection and visibility where applicable. Operator control of a graphic must not require editing source code.
 
@@ -189,12 +189,12 @@ Use small provider-specific readers/mappers feeding shared application data shap
 
 ### 6.2 Provider contracts and verification status
 
-| Source            | Source-code/documentation evidence                                                                                                                                                                                     | What remains unverified                                                                                   |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| ValoSpectra live  | The public server exposes Socket.IO output, `logon` with a group code, and `match_data`.                                                                                                                               | A working connection and actual supported fields for our observer setup.                                  |
-| GStack live       | VHUD documents HTTP and WebSocket access on port 57780, including `/livenow`. Samples contain numbered left/right slots, many string values, and pipe-separated round history.                                         | Actual payload formats, cadence, disconnect behavior, side changes, and field availability during a game. |
-| Spectra post-game | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint. | Hosted-service availability/access for the chosen setup and a successful completed-game response.         |
-|HenrikDev System's Third Party API| Includes: Get MMR, MMR History, *Live and Cached Match List*, *Live and Historical Match Detail (positions, round detail, etc...)*, etc..., fit for Post-Match, generous Free Tier (30 req/s), requires API Key. | Nothing yet |
+| Source                             | Source-code/documentation evidence                                                                                                                                                                                     | What remains unverified                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| ValoSpectra live                   | The public server exposes Socket.IO output, `logon` with a group code, and `match_data`.                                                                                                                               | A working connection and actual supported fields for our observer setup.                                  |
+| GStack live                        | VHUD documents HTTP and WebSocket access on port 57780, including `/livenow`. Samples contain numbered left/right slots, many string values, and pipe-separated round history.                                         | Actual payload formats, cadence, disconnect behavior, side changes, and field availability during a game. |
+| Spectra post-game                  | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint. | Hosted-service availability/access for the chosen setup and a successful completed-game response.         |
+| HenrikDev System's Third Party API | Includes: Get MMR, MMR History, _Live and Cached Match List_, _Live and Historical Match Detail (positions, round detail, etc...)_, etc..., fit for Post-Match, generous Free Tier (30 req/s), requires API Key.       | Nothing yet                                                                                               |
 
 #### ValoSpectra's Post-Match
 
@@ -212,9 +212,9 @@ There are a few ways to verify Spectra Plus state:
 
 ```json
 {
-  "id": "organization-id",
-  "name": "Organization Name",
-  "isSupporter": true
+	"id": "organization-id",
+	"name": "Organization Name",
+	"isSupporter": true
 }
 ```
 
@@ -223,297 +223,296 @@ There are a few ways to verify Spectra Plus state:
 
 ```js
 socket.emit(
-  "logon",
-  JSON.stringify({
-    groupCode,
-  }),
+	'logon',
+	JSON.stringify({
+		groupCode
+	})
 );
 ```
-  
-  - It should emit `logon_success`, with the group code and a success banner.
-  - From now on, on listening to the `match_data` event, it should contain this payload:
+
+- It should emit `logon_success`, with the group code and a success banner.
+- From now on, on listening to the `match_data` event, it should contain this payload:
 
 ```json
 {
-  "groupCode": "EXAMPLE",
-  "organizationId": "organization-id",
-  "orgIsSupporter": true
+	"groupCode": "EXAMPLE",
+	"organizationId": "organization-id",
+	"orgIsSupporter": true
 }
 ```
 
 #### HenriksDev Third Party Valorant API
 
-Serves as ***almost*** a replacement for the Riot's Official APIs. Provides a lot of match data. Example schema (`https://api.henrikdev.xyz/valorant/v4/match/{region}/{matchUuid}`), fetched from my own game data:
+Serves as _**almost**_ a replacement for the Riot's Official APIs. Provides a lot of match data. Example schema (`https://api.henrikdev.xyz/valorant/v4/match/{region}/{matchUuid}`), fetched from my own game data:
 
 ```typescript
 export interface JSONSchema {
-    status: number;
-    data:   Data;
+	status: number;
+	data: Data;
 }
 
 export interface Data {
-    metadata:  Metadata;
-    players:   Player[];
-    observers: any[];
-    coaches:   any[];
-    teams:     Team[];
-    rounds:    Round[];
-    kills:     Kill[];
+	metadata: Metadata;
+	players: Player[];
+	observers: any[];
+	coaches: any[];
+	teams: Team[];
+	rounds: Round[];
+	kills: Kill[];
 }
 
 export interface Kill {
-    time_in_round_in_ms: number;
-    time_in_match_in_ms: number;
-    round:               number;
-    killer:              Killer;
-    victim:              Killer;
-    assistants:          Killer[];
-    location:            Location;
-    weapon:              Weapon;
-    secondary_fire_mode: boolean;
-    player_locations:    PlayerLocation[];
+	time_in_round_in_ms: number;
+	time_in_match_in_ms: number;
+	round: number;
+	killer: Killer;
+	victim: Killer;
+	assistants: Killer[];
+	location: Location;
+	weapon: Weapon;
+	secondary_fire_mode: boolean;
+	player_locations: PlayerLocation[];
 }
 
 export interface Killer {
-    puuid: string;
-    name:  Name;
-    tag:   string;
-    team:  TeamID;
+	puuid: string;
+	name: Name;
+	tag: string;
+	team: TeamID;
 }
 
 export enum Name {
-    REDACTED1 = "Player1Redacted",
-    REDACTED2 = "Player2Redacted",
-    REDACTED3 = "Player3Redacted",
-    REDACTED4 = "Player4Redacted",
-    REDACTED5 = "Player5Redacted",
-    REDACTED6 = "Player6Redacted",
-    REDACTED7 = "Player7Redacted",
-    REDACTED8 = "Player8Redacted",
-    REDACTED9 = "Player9Redacted",
-    USECRookieNguyen = "USECRookieNguyen",
+	REDACTED1 = 'Player1Redacted',
+	REDACTED2 = 'Player2Redacted',
+	REDACTED3 = 'Player3Redacted',
+	REDACTED4 = 'Player4Redacted',
+	REDACTED5 = 'Player5Redacted',
+	REDACTED6 = 'Player6Redacted',
+	REDACTED7 = 'Player7Redacted',
+	REDACTED8 = 'Player8Redacted',
+	REDACTED9 = 'Player9Redacted',
+	USECRookieNguyen = 'USECRookieNguyen'
 }
 
 export enum TeamID {
-    Blue = "Blue",
-    Red = "Red",
+	Blue = 'Blue',
+	Red = 'Red'
 }
 
 export interface Location {
-    x: number;
-    y: number;
+	x: number;
+	y: number;
 }
 
 export interface PlayerLocation {
-    player:       Killer;
-    view_radians: number;
-    location:     Location;
+	player: Killer;
+	view_radians: number;
+	location: Location;
 }
 
 export interface Weapon {
-    id:   string;
-    name: null | string;
-    type: Type;
+	id: string;
+	name: null | string;
+	type: Type;
 }
 
 export enum Type {
-    Ability = "Ability",
-    Bomb = "Bomb",
-    Weapon = "Weapon",
+	Ability = 'Ability',
+	Bomb = 'Bomb',
+	Weapon = 'Weapon'
 }
 
 export interface Metadata {
-    match_id:          string;
-    map:               Map;
-    game_version:      string;
-    game_length_in_ms: number;
-    started_at:        Date;
-    is_completed:      boolean;
-    queue:             Queue;
-    season:            Season;
-    platform:          Platform;
-    premier:           null;
-    party_rr_penaltys: PartyRrPenalty[];
-    region:            string;
-    cluster:           string;
+	match_id: string;
+	map: Map;
+	game_version: string;
+	game_length_in_ms: number;
+	started_at: Date;
+	is_completed: boolean;
+	queue: Queue;
+	season: Season;
+	platform: Platform;
+	premier: null;
+	party_rr_penaltys: PartyRrPenalty[];
+	region: string;
+	cluster: string;
 }
 
 export interface Map {
-    id:   string;
-    name: string;
+	id: string;
+	name: string;
 }
 
 export interface PartyRrPenalty {
-    party_id: string;
-    penalty:  number;
+	party_id: string;
+	penalty: number;
 }
 
 export enum Platform {
-    PC = "pc",
+	PC = 'pc'
 }
 
 export interface Queue {
-    id:        string;
-    name:      string;
-    mode_type: string;
+	id: string;
+	name: string;
+	mode_type: string;
 }
 
 export interface Season {
-    id:    string;
-    short: string;
+	id: string;
+	short: string;
 }
 
 export interface Player {
-    puuid:                  string;
-    name:                   Name;
-    tag:                    string;
-    team_id:                TeamID;
-    platform:               Platform;
-    party_id:               string;
-    agent:                  Map;
-    stats:                  PlayerStats;
-    ability_casts:          PlayerAbilityCasts;
-    tier:                   Tier;
-    customization:          Customization;
-    account_level:          number;
-    session_playtime_in_ms: number;
-    behavior:               Behavior;
-    economy:                PlayerEconomy;
+	puuid: string;
+	name: Name;
+	tag: string;
+	team_id: TeamID;
+	platform: Platform;
+	party_id: string;
+	agent: Map;
+	stats: PlayerStats;
+	ability_casts: PlayerAbilityCasts;
+	tier: Tier;
+	customization: Customization;
+	account_level: number;
+	session_playtime_in_ms: number;
+	behavior: Behavior;
+	economy: PlayerEconomy;
 }
 
 export interface PlayerAbilityCasts {
-    grenade:  number;
-    ability1: number;
-    ability2: number;
-    ultimate: number;
+	grenade: number;
+	ability1: number;
+	ability2: number;
+	ultimate: number;
 }
 
 export interface Behavior {
-    afk_rounds:      number;
-    friendly_fire:   FriendlyFire;
-    rounds_in_spawn: number;
+	afk_rounds: number;
+	friendly_fire: FriendlyFire;
+	rounds_in_spawn: number;
 }
 
 export interface FriendlyFire {
-    incoming: number;
-    outgoing: number;
+	incoming: number;
+	outgoing: number;
 }
 
 export interface Customization {
-    card:                   string;
-    title:                  string;
-    preferred_level_border: null | string;
+	card: string;
+	title: string;
+	preferred_level_border: null | string;
 }
 
 export interface PlayerEconomy {
-    spent:         LoadoutValue;
-    loadout_value: LoadoutValue;
+	spent: LoadoutValue;
+	loadout_value: LoadoutValue;
 }
 
 export interface LoadoutValue {
-    overall: number;
-    average: number;
+	overall: number;
+	average: number;
 }
 
 export interface PlayerStats {
-    score:     number;
-    kills:     number;
-    deaths:    number;
-    assists:   number;
-    headshots: number;
-    bodyshots: number;
-    legshots:  number;
-    damage:    Damage;
+	score: number;
+	kills: number;
+	deaths: number;
+	assists: number;
+	headshots: number;
+	bodyshots: number;
+	legshots: number;
+	damage: Damage;
 }
 
 export interface Damage {
-    dealt:    number;
-    received: number;
+	dealt: number;
+	received: number;
 }
 
 export interface Tier {
-    id:   number;
-    name: string;
+	id: number;
+	name: string;
 }
 
 export interface Round {
-    id:           number;
-    result:       Result;
-    ceremony:     string;
-    winning_team: TeamID;
-    plant:        Defuse | null;
-    defuse:       Defuse | null;
-    stats:        Stat[];
+	id: number;
+	result: Result;
+	ceremony: string;
+	winning_team: TeamID;
+	plant: Defuse | null;
+	defuse: Defuse | null;
+	stats: Stat[];
 }
 
 export interface Defuse {
-    round_time_in_ms: number;
-    location:         Location;
-    player:           Killer;
-    player_locations: PlayerLocation[];
-    site?:            string;
+	round_time_in_ms: number;
+	location: Location;
+	player: Killer;
+	player_locations: PlayerLocation[];
+	site?: string;
 }
 
 export enum Result {
-    Defuse = "Defuse",
-    Detonate = "Detonate",
-    Elimination = "Elimination",
-    Surrendered = "Surrendered",
+	Defuse = 'Defuse',
+	Detonate = 'Detonate',
+	Elimination = 'Elimination',
+	Surrendered = 'Surrendered'
 }
 
 export interface Stat {
-    player:           Killer;
-    ability_casts:    StatAbilityCasts;
-    damage_events:    DamageEvent[];
-    stats:            StatStats;
-    economy:          StatEconomy;
-    was_afk:          boolean;
-    received_penalty: boolean;
-    stayed_in_spawn:  boolean;
+	player: Killer;
+	ability_casts: StatAbilityCasts;
+	damage_events: DamageEvent[];
+	stats: StatStats;
+	economy: StatEconomy;
+	was_afk: boolean;
+	received_penalty: boolean;
+	stayed_in_spawn: boolean;
 }
 
 export interface StatAbilityCasts {
-    grenade:   null;
-    ability_1: null;
-    ability_2: null;
-    ultimate:  null;
+	grenade: null;
+	ability_1: null;
+	ability_2: null;
+	ultimate: null;
 }
 
 export interface DamageEvent {
-    player:    Killer;
-    bodyshots: number;
-    headshots: number;
-    legshots:  number;
-    damage:    number;
+	player: Killer;
+	bodyshots: number;
+	headshots: number;
+	legshots: number;
+	damage: number;
 }
 
 export interface StatEconomy {
-    loadout_value: number;
-    remaining:     number;
-    weapon:        Weapon | null;
-    armor:         Map | null;
+	loadout_value: number;
+	remaining: number;
+	weapon: Weapon | null;
+	armor: Map | null;
 }
 
 export interface StatStats {
-    score:     number;
-    kills:     number;
-    headshots: number;
-    bodyshots: number;
-    legshots:  number;
+	score: number;
+	kills: number;
+	headshots: number;
+	bodyshots: number;
+	legshots: number;
 }
 
 export interface Team {
-    team_id:        TeamID;
-    rounds:         Rounds;
-    won:            boolean;
-    premier_roster: null;
+	team_id: TeamID;
+	rounds: Rounds;
+	won: boolean;
+	premier_roster: null;
 }
 
 export interface Rounds {
-    won:  number;
-    lost: number;
+	won: number;
+	lost: number;
 }
-
 ```
 
 #### General Notes
@@ -534,14 +533,14 @@ Keep missing values nullable. An absent OCR/provider field is not zero. Invalid 
 
 Support **individual game, complete series, and tournament-wide** views. Broader views derive from saved game records rather than independently editable aggregate copies. Draft games and duplicate imports must not inflate totals.
 
-| Metric family                        | Aggregation rule                                                                                                                                               |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Counts, such as K/D/A, trades, first bloods, plants, and defuses | Sum the relevant recorded values. Report incomplete coverage when contributing games are missing data. |
-| Performance Score                    | Display the saved value directly for game scope. Leave it unavailable for series/tournament scope until an authoritative aggregation rule is approved. |
-| Future ACS / ADR                     | If added later, use total combat score / rounds and total damage / rounds respectively when those inputs exist. Do not take an unweighted mean of displayed per-game averages. |
-| Future hit-based headshot percentage | If added later, divide total headshots by total recorded hits using a consistent definition. Do not average game percentages. |
-| Only a rounded manual average exists | Preserve its reported precision. Any aggregate derived from rounded values must be marked approximate; do not invent exact raw totals. |
-| Event-derived metrics                | Require the necessary round/kill events or explicit manual values. Do not infer clutches, trades, or retakes from aggregate K/D/A. |
+| Metric family                                                    | Aggregation rule                                                                                                                                                               |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Counts, such as K/D/A, trades, first bloods, plants, and defuses | Sum the relevant recorded values. Report incomplete coverage when contributing games are missing data.                                                                         |
+| Performance Score                                                | Display the saved value directly for game scope. Leave it unavailable for series/tournament scope until an authoritative aggregation rule is approved.                         |
+| Future ACS / ADR                                                 | If added later, use total combat score / rounds and total damage / rounds respectively when those inputs exist. Do not take an unweighted mean of displayed per-game averages. |
+| Future hit-based headshot percentage                             | If added later, divide total headshots by total recorded hits using a consistent definition. Do not average game percentages.                                                  |
+| Only a rounded manual average exists                             | Preserve its reported precision. Any aggregate derived from rounded values must be marked approximate; do not invent exact raw totals.                                         |
+| Event-derived metrics                                            | Require the necessary round/kill events or explicit manual values. Do not infer clutches, trades, or retakes from aggregate K/D/A.                                             |
 
 Zero denominators and unavailable inputs produce an unavailable/empty metric rather than a division error or fabricated value. MVP remains an operator's selection regardless of any statistical ranking displayed elsewhere.
 

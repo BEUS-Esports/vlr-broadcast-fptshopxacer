@@ -65,17 +65,17 @@ The detailed checklists below are retained as the implementation design record. 
 
 ## 1. Existing Foundation to Preserve
 
-| Existing file / behavior | Reuse or implication |
-| --- | --- |
-| `src/lib/server/db/schema/games.ts` | `games` already owns result state and revisions. `game_lineups` already stores `(gameId, entryId, slot, playerId, agentId)` and therefore owns participation + agent selection. |
-| `src/lib/server/services/games.ts` | `bumpGameRevision()` provides the stale-write primitive for game-owned edits. Reuse it for a statistics save. |
-| `src/lib/server/services/lineups.ts` | Existing lineup replacement validates roster membership and historical retention. Extend its protection so a player with saved statistics cannot be silently removed from a draft lineup. |
-| `src/lib/server/services/matches.ts` / `series-results.ts` | Match result state already derives from games. Statistics aggregation must not duplicate or replace this result logic. |
-| `/admin/games/[gameId]` | Existing Info -> Lineup -> Map Veto workspace is the natural parent for a Post-Game tab. |
-| `/admin/matches/[matchId]` | Add a read-oriented Statistics tab using derived match-scope statistics. |
-| `/admin/tournaments/[tournamentId]` | Add a read-oriented Statistics tab using derived tournament-scope statistics. |
-| Phase 3 form behavior | Preserve deep links, enhanced saves, dirty drafts, stale-save feedback, and section-local pending state. |
-| HenrikDev v4 schema documented in `TECH-SPEC.md` | Use the provider shape as a compatibility input, not as the database schema. Persist only the Phase 4 subset. |
+| Existing file / behavior                                   | Reuse or implication                                                                                                                                                                      |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/server/db/schema/games.ts`                        | `games` already owns result state and revisions. `game_lineups` already stores `(gameId, entryId, slot, playerId, agentId)` and therefore owns participation + agent selection.           |
+| `src/lib/server/services/games.ts`                         | `bumpGameRevision()` provides the stale-write primitive for game-owned edits. Reuse it for a statistics save.                                                                             |
+| `src/lib/server/services/lineups.ts`                       | Existing lineup replacement validates roster membership and historical retention. Extend its protection so a player with saved statistics cannot be silently removed from a draft lineup. |
+| `src/lib/server/services/matches.ts` / `series-results.ts` | Match result state already derives from games. Statistics aggregation must not duplicate or replace this result logic.                                                                    |
+| `/admin/games/[gameId]`                                    | Existing Info -> Lineup -> Map Veto workspace is the natural parent for a Post-Game tab.                                                                                                  |
+| `/admin/matches/[matchId]`                                 | Add a read-oriented Statistics tab using derived match-scope statistics.                                                                                                                  |
+| `/admin/tournaments/[tournamentId]`                        | Add a read-oriented Statistics tab using derived tournament-scope statistics.                                                                                                             |
+| Phase 3 form behavior                                      | Preserve deep links, enhanced saves, dirty drafts, stale-save feedback, and section-local pending state.                                                                                  |
+| HenrikDev v4 schema documented in `TECH-SPEC.md`           | Use the provider shape as a compatibility input, not as the database schema. Persist only the Phase 4 subset.                                                                             |
 
 Do not redesign Phase 3 records or build a provider-oriented mirror of the HenrikDev response.
 
@@ -139,17 +139,17 @@ Database constraints should enforce non-negative stored numeric values where pos
 
 Persist and expose the values that are conveniently available on the spectator end-game screen:
 
-| Field | Manual | Future provider mapping | Aggregation |
-| --- | --- | --- | --- |
-| Agent | Yes | `players[].agent` where available | Not aggregated; per-game presentation |
-| Kills | Yes | HenrikDev `players[].stats.kills` | sum |
-| Deaths | Yes | HenrikDev `players[].stats.deaths` | sum |
-| Assists | Yes | HenrikDev `players[].stats.assists` | sum |
-| Performance Score | Yes | Treat as provider-specific unless an authoritative mapping exists | game scope only initially |
-| Trades | Yes | Provider/event-derived when available | sum |
-| First Bloods | Yes | Provider/event-derived when available | sum |
-| Plants | Yes | Provider/event-derived when available | sum |
-| Defuses | Yes | Provider/event-derived when available | sum |
+| Field             | Manual | Future provider mapping                                           | Aggregation                           |
+| ----------------- | ------ | ----------------------------------------------------------------- | ------------------------------------- |
+| Agent             | Yes    | `players[].agent` where available                                 | Not aggregated; per-game presentation |
+| Kills             | Yes    | HenrikDev `players[].stats.kills`                                 | sum                                   |
+| Deaths            | Yes    | HenrikDev `players[].stats.deaths`                                | sum                                   |
+| Assists           | Yes    | HenrikDev `players[].stats.assists`                               | sum                                   |
+| Performance Score | Yes    | Treat as provider-specific unless an authoritative mapping exists | game scope only initially             |
+| Trades            | Yes    | Provider/event-derived when available                             | sum                                   |
+| First Bloods      | Yes    | Provider/event-derived when available                             | sum                                   |
+| Plants            | Yes    | Provider/event-derived when available                             | sum                                   |
+| Defuses           | Yes    | Provider/event-derived when available                             | sum                                   |
 
 All values are independently nullable.
 
@@ -220,23 +220,23 @@ Suggested read model:
 
 ```ts
 type Metric<T = number> = {
-  value: T | null;
-  coverage: 'complete' | 'partial' | 'none';
+	value: T | null;
+	coverage: 'complete' | 'partial' | 'none';
 };
 
 type PlayerStatisticsView = {
-  playerId: string;
-  entryIds: string[];
-  gamesPlayed: number;
-  gamesWithStatistics: number;
-  kills: Metric;
-  deaths: Metric;
-  assists: Metric;
-  trades: Metric;
-  firstBloods: Metric;
-  plants: Metric;
-  defuses: Metric;
-  performanceScore: Metric;
+	playerId: string;
+	entryIds: string[];
+	gamesPlayed: number;
+	gamesWithStatistics: number;
+	kills: Metric;
+	deaths: Metric;
+	assists: Metric;
+	trades: Metric;
+	firstBloods: Metric;
+	plants: Metric;
+	defuses: Metric;
+	performanceScore: Metric;
 };
 ```
 
@@ -459,23 +459,23 @@ Suggested input shape:
 
 ```ts
 type PlayerStatsDraft = {
-  playerId: string;
-  entryId: string;
-  agentId: string | null;
-  kills: number | null;
-  deaths: number | null;
-  assists: number | null;
-  performanceScore: number | null;
-  trades: number | null;
-  firstBloods: number | null;
-  plants: number | null;
-  defuses: number | null;
+	playerId: string;
+	entryId: string;
+	agentId: string | null;
+	kills: number | null;
+	deaths: number | null;
+	assists: number | null;
+	performanceScore: number | null;
+	trades: number | null;
+	firstBloods: number | null;
+	plants: number | null;
+	defuses: number | null;
 };
 
 saveGameStatistics({
-  gameId,
-  expectedGameRevision,
-  players
+	gameId,
+	expectedGameRevision,
+	players
 });
 ```
 

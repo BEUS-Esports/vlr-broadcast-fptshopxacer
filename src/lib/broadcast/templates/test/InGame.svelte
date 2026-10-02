@@ -216,7 +216,14 @@
 		color: var(--gfx-muted);
 		background: linear-gradient(135deg, #10151dd9, #171e28bf);
 		border: 1px solid #465160;
-		clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+		clip-path: polygon(
+			12px 0,
+			100% 0,
+			100% calc(100% - 12px),
+			calc(100% - 12px) 100%,
+			0 100%,
+			0 12px
+		);
 	}
 
 	.sponsor-slot span {

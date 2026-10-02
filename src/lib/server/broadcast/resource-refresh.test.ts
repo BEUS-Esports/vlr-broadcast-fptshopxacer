@@ -19,7 +19,10 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 		const snapshots: Array<{ dataRevision: number; name: string | undefined }> = [];
 		const stop = await broadcastPublisher.subscribe({
 			send: (snapshot) =>
-				snapshots.push({ dataRevision: snapshot.dataRevision, name: snapshot.game?.map?.displayName }),
+				snapshots.push({
+					dataRevision: snapshot.dataRevision,
+					name: snapshot.game?.map?.displayName
+				}),
 			close() {}
 		});
 		vi.stubGlobal(
