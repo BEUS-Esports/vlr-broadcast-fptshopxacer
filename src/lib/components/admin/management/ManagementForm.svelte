@@ -60,18 +60,15 @@
 			cancel();
 			return;
 		}
-		if (changesContext) {
-			const affected = [...(drafts?.entries() ?? [])].filter(
-				([key, form]) => key !== id && form.record && form.dirty
-			);
-			if (
-				affected.length &&
-				!window.confirm('Discard unsaved preparation before changing the live game?')
-			) {
-				cancel();
-				return;
-			}
-			for (const [, form] of affected) form.reset();
+		const affected = [...(drafts?.entries() ?? [])].filter(
+			([key, form]) => changesContext && key !== id && form.record && form.dirty
+		);
+		if (
+			affected.length &&
+			!window.confirm('Discard unsaved preparation before changing the live game?')
+		) {
+			cancel();
+			return;
 		}
 		formData.set('payload', JSON.stringify(formState.draft));
 		pending = true;
@@ -79,6 +76,7 @@
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success' || result.type === 'redirect') {
+					for (const [, form] of affected) form.reset();
 					formState.baseline = JSON.stringify(formState.draft);
 					await update({ reset: false, navigate: false });
 					resetToSaved();

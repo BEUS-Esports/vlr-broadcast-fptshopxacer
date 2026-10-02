@@ -14,9 +14,11 @@
 		matchId: live.selection?.matchId ?? '',
 		gameId: live.selection?.gameId ?? ''
 	});
-	const presentationInitial = $derived({
+	const swapped = $derived(
+		!!live.selection && live.presentation.leftEntryId === live.competition.teamBEntryId
+	);
+	const sidesInitial = $derived({
 		expectedRevision: live.controlRevision,
-		swapped: !!live.selection && live.presentation.leftEntryId === live.competition.teamBEntryId,
 		currentAttackersEntryId:
 			live.sides.source === 'manual' ? (live.sides.attackersEntryId ?? '') : ''
 	});
@@ -138,13 +140,18 @@
 		</section>
 		<section aria-label="Presentation controls" class="space-y-3">
 			<h2 class="h3">Presentation and current side</h2>
+			<p>Screen positions: {swapped ? 'B-left / A-right' : 'A-left / B-right'}</p>
 			<ManagementForm
 				action="/admin/graphics?/controls"
 				recordDraft={false}
-				initial={presentationInitial}
+				initial={{ expectedRevision: live.controlRevision, swapped: !swapped }}
 			>
+				<button type="submit" class="btn preset-tonal-primary" disabled={!live.selection}
+					>Swap Left/Right</button
+				>
+			</ManagementForm>
+			<ManagementForm action="/admin/graphics?/controls" recordDraft={false} initial={sidesInitial}>
 				{#snippet children(draft)}
-					<p>Presentation draft: {draft.swapped ? 'B-left / A-right' : 'A-left / B-right'}</p>
 					<label class="label"
 						><span>Current attackers</span><select
 							class="select"
@@ -160,18 +167,9 @@
 						Manual current sides change colors. Screen positions and saved starting sides are
 						independent.
 					</p>
-					<div class="flex flex-wrap gap-3">
-						<button
-							class="btn preset-tonal-primary"
-							disabled={!live.selection}
-							onclick={() => {
-								draft.swapped = !draft.swapped;
-							}}>Swap Left/Right</button
-						>
-						<button class="btn preset-filled-primary-500" disabled={!live.selection}
-							>Save presentation</button
-						>
-					</div>
+					<button type="submit" class="btn preset-filled-primary-500" disabled={!live.selection}
+						>Save presentation</button
+					>
 				{/snippet}
 			</ManagementForm>
 		</section>
