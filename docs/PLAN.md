@@ -18,7 +18,7 @@ The specification owns product behavior. This file owns build order, concrete wo
 | Production graphics    | Seven stable live routes render in the built Node app, with shared SSE and template fallback. Real Valorant/OBS composition testing passed for the Phase 5/5.1 test package; the native-HUD-safe In-Game treatment is retained as Phase 6 fallback. |
 | Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.            |
 
-Real GStack game payloads and successful Spectra hosted post-game reports are not available yet. Documented/synthetic fixtures can support implementation; only actual captures can establish live-provider compatibility. Preserve unrelated working-tree changes and example files throughout.
+A concrete GStack `/livenow` payload/schema is now available, while successful Spectra hosted post-game reports are still unavailable. Provider fixtures can support implementation, but each live provider still needs its own recorded real event-session verification before broadcast-ready status. Preserve unrelated working-tree changes and example files throughout.
 
 ## Build sequence
 
@@ -138,7 +138,7 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 - [x] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
 - [x] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Player Stats supports both a single Player-to-Watch mode and a head-to-head comparison from one shared control/read model. Agent preparation and the native-HUD fallback must work manually.
   - This allows the Graphics Controller to double as the specific Lineup/Map Veto/Agent Select/Ingame/Post-Game/MVP Control (where possible) just like in the tournaments/matches/games page, making the workflow even faster.
-- [x] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Use a 1920×1080 transparent canvas. Default broadcast presentation is Team A left / Team B right with an explicit presentation-only left/right swap; Attacker is always blue and Defender is always red, independent of screen position. Prioritize a native-HUD-safe In-Game test graphic before the provider-backed custom HUD. Actual OBS/Valorant composition remains pending.
+- [x] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Use a 1920×1080 transparent canvas. Default broadcast presentation is Team A left / Team B right with an explicit presentation-only left/right swap; Attacker is always blue and Defender is always red, independent of screen position. Prioritize a native-HUD-safe In-Game test graphic before the provider-backed custom HUD. Real OBS/Valorant composition testing for this Phase 5/5.1 package has now passed.
 
 ### Done when
 
