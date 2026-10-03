@@ -28,83 +28,22 @@ This plan is intentionally provider-specific at the ingestion edge and provider-
 12. Spectra-Frontend-VAL26 is the main presentation/layout reference for the external-data HUD, adapted to Svelte and our own normalized model. Do not inherit its Angular data plumbing.
 13. View Data is part of the Phase 6 operator workflow. It must expose enough current data to distinguish a provider problem from an adapter/mapping/rendering problem.
 
-## Provider evidence available now
+## Provider transport reference
 
-### ValoSpectra
+Protocol-level details now live in [LIVE-PROVIDER-TRANSPORT.md](./LIVE-PROVIDER-TRANSPORT.md).
 
-Live output uses Socket.IO on the Spectra outgoing service, normally port 5200.
+That document owns:
 
-The consumer:
+- ValoSpectra Socket.IO logon/`match_data` behavior;
+- Spectra extras/supporter lookup;
+- GStack `/livenow` full-state snapshots;
+- GStack VHUD WebSocket ports and `[ExecuteScript]` / `[ExecuteJSON]` messages;
+- the strict allowlisted GStack command parser;
+- confirmed GStack shield and round-history encodings;
+- snapshot + delta accumulator/reconnect behavior;
+- remaining provider-specific verification items.
 
-1. connects with a Socket.IO-compatible client;
-2. emits logon containing JSON with groupCode;
-3. receives logon_success;
-4. listens to match_data.
-
-The public Spectra frontend receives match state repeatedly and exposes per-player auxiliary availability for health, abilities, and auxiliary scoreboard information. HP/ability detail therefore depends on the relevant player-side auxiliary/Player Client being available.
-
-Supporter/license lookup is separate:
-
-~~~text
-GET <spectra-extras>:5101/getOrgForKey?key=<ACCESS_KEY>
-~~~
-
-Successful response:
-
-~~~ts
-type SpectraOrganization = {
-  id: string;
-  name: string;
-  isSupporter: boolean;
-};
-~~~
-
-If supporter status cannot be positively established, use the attribution-required path. A self-hosted server without the backend-enabled lookup must therefore not silently suppress required Spectra attribution.
-
-### GStack
-
-Concrete current HTTP payloads are available for:
-
-~~~text
-GET http://localhost:57780/livenow
-GET http://localhost:57780/mapbans
-GET http://localhost:57780/controlpanel
-~~~
-
-/livenow is the live telemetry contract. Its player fields include:
-
-- Name
-- Agent
-- Weapon
-- Shield
-- HP%
-- KDA
-- Creds
-- Ultimate
-- Ultimate Points
-- Skill 1 Points
-- Skill 2 Points
-- Skill 3 Points
-- XHP
-- XShield
-
-and game-level values include:
-
-- ScoreTeamLeft / ScoreTeamRight
-- SpikeState
-- SpikeCarrier
-- RoundHistoryTeam1 / RoundHistoryTeam2
-- PlayerPOV
-
-Many values are strings and unavailable data is commonly an empty string.
-
-Observed Shield values include numeric strings as well as R and X. Preserve raw shield representation and only normalize semantics that are known. Do not coerce every Shield value to a number.
-
-XHP and XShield are enhanced telemetry fields. XHP is used for additional/overheal health states; XShield is used for additional shield state such as the Regen Shield reserve. GStack's Expansion Client is required for the enhanced health/shield values and ability-charge values. Without it, those fields can remain blank while the provider is otherwise healthy.
-
-The current GStack product describes a real-time WebSocket path in addition to REST. During Task 4, verify the exact WebSocket endpoint and payload contract against the build used for the event. Use that one WebSocket transport if verified. If the shipped build does not expose a stable documented live event contract, use one server-owned bounded /livenow HTTP reader instead. Do not implement two runtime modes just because both technologies exist.
-
-/controlpanel is optional mapping/diagnostic input. /mapbans is diagnostic/comparison input only. Neither may overwrite our canonical team/veto/map records.
+This Phase 6 plan should reference that contract rather than duplicate wire-level protocol details.
 
 ## Architecture
 
@@ -449,14 +388,17 @@ Group code alone is not sufficient evidence that every received state belongs to
 
 ## Task 4 — Implement GStack
 
-### Transport decision
+### Transport
 
-First verify the exact WebSocket URL/message contract in the event build.
+Follow [LIVE-PROVIDER-TRANSPORT.md](./LIVE-PROVIDER-TRANSPORT.md).
 
-- If the current GStack WebSocket exposes the same usable live state reliably, use one server-owned WebSocket connection.
-- Otherwise use one server-owned HTTP reader of /livenow at a measured bounded cadence.
-- Do not ship both as operator-selectable modes.
-- Browser/OBS clients never poll GStack themselves.
+Use GStack as a snapshot + delta source:
+
+- `/livenow` seeds/resynchronizes the full state;
+- the VHUD WebSocket supplies low-latency incremental `[ExecuteScript]` / `[ExecuteJSON]` updates;
+- parse `[ExecuteScript]` through a strict static allowlist; never execute vendor script text;
+- reconnect/resync with `/livenow` before considering the accumulator fully synchronized;
+- browser/OBS clients never connect to GStack directly.
 
 ### /livenow normalization
 
@@ -473,11 +415,11 @@ Specific requirements:
 - Skill 1/2/3 -> null when blank;
 - XHP/XShield -> null when blank;
 - Shield raw value is always preserved;
-- R/X/numeric Shield values are not forced into an undocumented meaning;
+- confirmed Shield mapping is `X` none, `25` Light, `50` Heavy, `R` Regen;
 - ScoreTeamLeft/Right -> nullable numeric score;
 - SpikeState -> preserve raw until codes are verified;
 - SpikeCarrier -> preserve raw until mask/slot encoding is verified;
-- RoundHistoryTeam1/2 -> preserve raw until codes are verified;
+- RoundHistoryTeam1/2 -> parse the confirmed `0/1/2/3/4` mapping (`0` none, `1` defuse, `2` elimination, `3` time, `4` detonation) while retaining raw strings;
 - PlayerPOV -> diagnostic/live observation only unless a concrete graphic consumes it.
 
 ### Expansion Client semantics
