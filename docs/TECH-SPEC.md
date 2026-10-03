@@ -6,7 +6,7 @@
 - This specification records the approved planning baseline. Implementation began after a separate explicit request on 2026-09-27.
 - [PLAN.md](./PLAN.md) describes the implementation sequence and acceptance checks.
 - The requirements below supersede older README suggestions where they differ, particularly direct Riot API integration and roster roles.
-- Technical defaults and unresolved integration checks are identified explicitly. No real Spectra post-game response or GStack game capture has been tested for this project yet.
+- Technical defaults and unresolved integration checks are identified explicitly. Phase 5/5.1 graphics have passed real Valorant/OBS composition testing. Spectra live source behavior has been inspected from the current public server/frontend source, and a real GStack `/livenow` payload/schema has been supplied; each provider still requires a recorded real Phase 6 session before broadcast-ready status.
 
 ## 1. Overall goal
 
@@ -191,8 +191,8 @@ Use small provider-specific readers/mappers feeding shared application data shap
 
 | Source            | Source-code/documentation evidence                                                                                                                                                                                     | What remains unverified                                                                                   |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| ValoSpectra live  | The public server exposes Socket.IO output, `logon` with a group code, and `match_data`.                                                                                                                               | A working connection and actual supported fields for our observer setup.                                  |
-| GStack live       | VHUD documents HTTP and WebSocket access on port 57780, including `/livenow`. Samples contain numbered left/right slots, many string values, and pipe-separated round history.                                         | Actual payload formats, cadence, disconnect behavior, side changes, and field availability during a game. |
+| ValoSpectra live  | The current public server exposes Socket.IO output on the outgoing service: emit `logon` with a group code, receive `logon_success`, then consume `match_data`. The current frontend models per-player auxiliary availability for health/abilities/scoreboard. | Real event-session field availability, side changes, disconnect/recovery behavior, and Player Client coverage. |
+| GStack live       | A concrete `/livenow` schema and real sample are available from port 57780. Player/game values are largely strings; enhanced `Skill * Points`, `XHP`, and `XShield` may remain blank without the Expansion Client. `/controlpanel` and `/mapbans` schemas are also known. | Exact live WebSocket contract for the event build, cadence/disconnect behavior, and verified meanings for remaining encoded fields such as round history/spike masks. |
 | Spectra post-game | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint. | Hosted-service availability/access for the chosen setup and a successful completed-game response.         |
 |HenrikDev System's Third Party API| Includes: Get MMR, MMR History, *Live and Cached Match List*, *Live and Historical Match Detail (positions, round detail, etc...)*, etc..., fit for Post-Match, generous Free Tier (30 req/s), requires API Key. | Nothing yet |
 
@@ -204,42 +204,55 @@ Use the group code to locate a candidate report, then verify returned match iden
 
 Spectra post-game polling is distinct from live-HUD reconnect/backoff. A report that is still pending must not change the current on-air HUD mode. Retrieval timeouts or unavailable reports leave manual entry usable.
 
-**NOTE**: Free Tier or Self-Hosted instances are required to display Spectra's Watermark on the HUD and other places in the HUD routes and others. Refer to [ValoSpectra Frontend](https://github.com/ValoSpectra/Spectra-Frontend) for exact placements. If Spectra's datasource is used, watermarks must show, no matter what.
+**NOTE**: Spectra attribution/watermark behavior must follow the applicable Spectra license/service rules. Phase 6 handles this through one centralized provider-attribution policy rather than hard-coding provider checks throughout the HUD.
 
-There are a few ways to verify Spectra Plus state:
+Use the extras service to verify the access key/supporter state:
 
-1. `GET /getOrgForKey?key=<ACCESS_KEY>`, service port 5101, returns:
+~~~text
+GET /getOrgForKey?key=<ACCESS_KEY>
+~~~
 
-```json
+Default extras-service port is 5101. A successful response is:
+
+~~~json
 {
   "id": "organization-id",
   "name": "Organization Name",
   "isSupporter": true
 }
-```
+~~~
 
-1. When getting the live match data via WebSockets, service port 5200:
-   - Emit a login to the ValoSpectra server of choice with this:
+The access key is server-only. HTTP 200 with `isSupporter: true` confirms supporter state; false, 401, unavailable, or unknown state must not silently suppress required attribution.
 
-```js
+Live match data remains a separate Socket.IO contract on the outgoing service, normally port 5200:
+
+~~~js
 socket.emit(
   "logon",
   JSON.stringify({
     groupCode,
   }),
 );
-```
-  
-  - It should emit `logon_success`, with the group code and a success banner.
-  - From now on, on listening to the `match_data` event, it should contain this payload:
+~~~
 
-```json
-{
-  "groupCode": "EXAMPLE",
-  "organizationId": "organization-id",
-  "orgIsSupporter": true
-}
-```
+Listen for `logon_success`, then `match_data`. Do **not** require `match_data` to expose organization/supporter fields merely because current server object serialization may contain them.
+
+The Phase 6 external-data HUD uses [Spectra-Frontend-VAL26](https://github.com/nobiiVAL/Spectra-Frontend-VAL26/) as a layout/behavior reference while adapting the presentation to our Svelte components and provider-neutral live-data contract. Missing Player Client auxiliary data is a per-player capability condition: HP/ability information can be unavailable while the Spectra source remains healthy.
+
+#### GStack live-data details
+
+Treat `/livenow` as the telemetry source. It contains left/right player slots, score, spike state/carrier, round-history strings, and POV, with many values represented as strings.
+
+Rules:
+
+- blank strings normalize to unknown/null, never zero;
+- numeric strings may normalize to numbers where the field meaning is established;
+- `Shield` must preserve raw values because observed values include `R`, `X`, and numeric strings;
+- `XHP`, `XShield`, and `Skill 1/2/3 Points` are enhanced fields supplied when the Expansion Client provides them;
+- missing enhanced fields are not a provider failure;
+- `/controlpanel` can assist team/slot mapping and diagnostics but cannot overwrite local team/map records;
+- `/mapbans` is diagnostic/comparison input only because the app's saved veto is authoritative;
+- preserve spike/round-history encodings raw until confirmed by real captures.
 
 #### HenriksDev Third Party Valorant API
 
