@@ -189,6 +189,8 @@ Use small provider-specific readers/mappers feeding shared application data shap
 
 ### 6.2 Provider contracts and verification status
 
+Transport-level details, ports, wire formats, command mappings, snapshot/delta behavior, and provider-specific parser requirements are maintained in [LIVE-PROVIDER-TRANSPORT.md](./LIVE-PROVIDER-TRANSPORT.md). This specification keeps the product ownership, capability, security, and acceptance rules.
+
 | Source            | Source-code/documentation evidence                                                                                                                                                                                     | What remains unverified                                                                                   |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | ValoSpectra live  | The current public server exposes Socket.IO output on the outgoing service: emit `logon` with a group code, receive `logon_success`, then consume `match_data`. The current frontend models per-player auxiliary availability for health/abilities/scoreboard. | Real event-session field availability, side changes, disconnect/recovery behavior, and Player Client coverage. |
@@ -252,7 +254,7 @@ Rules:
 - missing enhanced fields are not a provider failure;
 - `/controlpanel` can assist team/slot mapping and diagnostics but cannot overwrite local team/map records;
 - `/mapbans` is diagnostic/comparison input only because the app's saved veto is authoritative;
-- preserve spike/round-history encodings raw until confirmed by real captures.
+- preserve unresolved spike encodings raw until confirmed; GStack round-history codes are now confirmed and documented in the live-provider transport reference.
 
 #### HenriksDev Third Party Valorant API
 
