@@ -313,15 +313,12 @@ Separate infrastructure credentials from show operation.
 
 ### Server-only configuration
 
-Recommended environment configuration:
+Make a new Settings link at the Sidebar. Allow the user to configure between:
 
-~~~text
-SPECTRA_SOCKET_URL=http://localhost:5200
-SPECTRA_EXTRAS_URL=http://localhost:5101
-SPECTRA_ACCESS_KEY=
+- ValoSpectra: either `eu.valospectra.com`, `na.valospectra.com`, and custom. From there, allow the user to set the key (allow blanks if self-hosted/custom) and the Group Code (must not be empty), hit Connect, it will check if we can get the connection. If not, then something is wrong.
+  - Once set, the ports are: 5100 for ingesting data from the Spectra Client to the Server (this is not needed); 5200 for the frontend to connect to the frontend (this is used to get the game data from the server); and 5101 is Status Check and other stuff (does not do much if self-hosted).
 
-GSTACK_BASE_URL=http://localhost:57780
-~~~
+- GStack: default to `http://localhost:57780`.
 
 Names may be adjusted to project conventions.
 
@@ -350,6 +347,8 @@ Do not expose secrets in load data, form responses, SSE, logs, or client-side HT
 ## Task 3 — Implement ValoSpectra
 
 Add the Socket.IO client dependency deliberately; raw WebSocket is not protocol-compatible.
+
+Reference repo: <https://github.com/ValoSpectra/Spectra-Server>
 
 ### Live session
 
@@ -383,6 +382,8 @@ Cache the result for a reasonable session/configuration lifetime; do not call it
 The access key must never enter View Data.
 
 ### Session identity
+
+A single Group Code can be used for multiple matches and tournaments; after all, it only helps to distinguish other users in Spectra.
 
 Group code alone is not sufficient evidence that every received state belongs to the selected local game. Require the configured provider session + selected local game binding and verified team/player mapping before enabling the external HUD.
 
