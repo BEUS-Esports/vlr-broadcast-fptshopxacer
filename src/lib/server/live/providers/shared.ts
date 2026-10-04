@@ -120,7 +120,11 @@ export function emptyPlayer(providerKey: string, providerSlot: number | null): L
 		assists: null,
 		credits: null,
 		ultimate: { ready: null, current: null, required: null },
-		abilities: { grenade: null, ability1: null, ability2: null },
+		abilities: {
+			grenade: { current: null, capacity: null },
+			ability1: { current: null, capacity: null },
+			ability2: { current: null, capacity: null }
+		},
 		capabilities: {
 			health: false,
 			abilities: false,

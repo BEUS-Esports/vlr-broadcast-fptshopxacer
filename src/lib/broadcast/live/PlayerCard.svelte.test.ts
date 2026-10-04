@@ -45,10 +45,56 @@ it('keeps local identity, omits unavailable measurements and retains known abili
 	await view.rerender({
 		saved,
 		resources,
-		live: livePlayerFixture({ health: 0, abilities: { grenade: 0, ability1: null, ability2: 2 } })
+		live: livePlayerFixture({
+			health: 0,
+			abilities: {
+				grenade: { current: 0, capacity: 2 },
+				ability1: { current: null, capacity: null },
+				ability2: { current: 2, capacity: null }
+			}
+		})
 	});
 	expect(view.container.querySelector('[data-health]')?.textContent).toContain('0');
 	expect(view.container.querySelectorAll('[data-ability-charges]')).toHaveLength(2);
+});
+
+it('renders available and spent dots only when ability capacity is known', async () => {
+	const view = render(PlayerCard, {
+		saved,
+		resources,
+		live: livePlayerFixture({
+			abilities: {
+				grenade: { current: 1, capacity: 2 },
+				ability1: { current: 0, capacity: 1 },
+				ability2: { current: 2, capacity: null }
+			}
+		})
+	});
+	const cloudburst = view.container.querySelector('[aria-label="Cloudburst: 1 of 2 charges"]')!;
+	expect(cloudburst).not.toBeNull();
+	expect(cloudburst.querySelectorAll('[data-ability-dot]')).toHaveLength(2);
+	expect(cloudburst.querySelectorAll('[data-ability-dot].available')).toHaveLength(1);
+	const spent = view.container.querySelector('[aria-label="Ability 2: 0 of 1 charges"]')!;
+	expect(spent.querySelectorAll('[data-ability-dot]')).toHaveLength(1);
+	expect(spent.querySelectorAll('[data-ability-dot].available')).toHaveLength(0);
+	const unknown = view.container.querySelector(
+		'[aria-label="Ability 3: 2 charges, capacity unavailable"]'
+	)!;
+	expect(unknown.querySelectorAll('[data-ability-dot]')).toHaveLength(0);
+	expect(unknown.textContent).toContain('2');
+	await view.rerender({
+		saved,
+		resources,
+		live: livePlayerFixture({
+			abilities: {
+				grenade: { current: 1, capacity: 100_000 },
+				ability1: { current: null, capacity: null },
+				ability2: { current: null, capacity: null }
+			}
+		})
+	});
+	expect(view.container.querySelectorAll('[data-ability-dot]')).toHaveLength(0);
+	expect(view.container.querySelector('[data-ability-charges]')?.textContent).toBe('1/100000');
 });
 
 it('shows conservative provider attribution unless Spectra supporter status is confirmed', async () => {

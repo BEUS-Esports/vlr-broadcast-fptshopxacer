@@ -76,7 +76,7 @@ export function normalizeSpectra(
 					player.health = numeric(rawPlayer.health, issues, `${field}.health`, 1000, true);
 				if (aux.abilities === true && record(rawPlayer.abilities)) {
 					for (const key of ['grenade', 'ability1', 'ability2'] as const)
-						player.abilities[key] = numeric(
+						player.abilities[key].current = numeric(
 							rawPlayer.abilities[key],
 							issues,
 							`${field}.abilities.${key}`
@@ -110,7 +110,9 @@ export function normalizeSpectra(
 					// Spectra reports purchased equipment, not a measured remaining shield amount.
 				}
 				player.capabilities.health = player.health !== null;
-				player.capabilities.abilities = Object.values(player.abilities).some((v) => v !== null);
+				player.capabilities.abilities = Object.values(player.abilities).some(
+					(v) => v.current !== null
+				);
 				player.capabilities.scoreboard = scoreboard;
 				return player;
 			})

@@ -3,7 +3,16 @@
 	import { presentationTeams, gameplaySide, teamScore } from '../../selectors';
 	import Identity from '../../primitives/Identity.svelte';
 
-	let { snapshot }: { snapshot: BroadcastSnapshot } = $props();
+	let {
+		snapshot,
+		teamPresentation = null
+	}: {
+		snapshot: BroadcastSnapshot;
+		teamPresentation?: Record<
+			'left' | 'right',
+			{ name: string; side: 'attack' | 'defense' | null }
+		> | null;
+	} = $props();
 	const teams = $derived(presentationTeams(snapshot));
 	const winSlots = $derived(
 		snapshot.match
@@ -12,16 +21,21 @@
 	);
 </script>
 
-<section aria-label="In-Game" data-side-source={snapshot.sides.source}>
-	{#if snapshot.selection}
+<section
+	aria-label="In-Game"
+	data-side-source={teamPresentation ? 'provider' : snapshot.sides.source}
+>
+	{#if snapshot.selection || teamPresentation}
 		<div class="top-wrap">
-			{#each ['left', 'right'] as position (position)}
+			{#each ['left', 'right'] as const as position (position)}
 				{@const team = position === 'left' ? teams.left : teams.right}
-				{@const entryId =
-					position === 'left'
+				{@const presented = teamPresentation?.[position]}
+				{@const entryId = presented
+					? null
+					: position === 'left'
 						? snapshot.presentation.leftEntryId
 						: snapshot.presentation.rightEntryId}
-				{@const side = gameplaySide(snapshot, entryId)}
+				{@const side = presented ? presented.side : gameplaySide(snapshot, entryId)}
 				{@const wins = teamScore(snapshot, entryId, 'match') ?? 0}
 
 				<div
@@ -30,7 +44,7 @@
 					data-entry-id={entryId ?? ''}
 					data-side={side ?? 'neutral'}
 				>
-					{#if position === 'right'}
+					{#if position === 'right' && !presented}
 						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
 							{#each winSlots as index (index)}
 								<span class:won={index < wins}></span>
@@ -39,12 +53,14 @@
 					{/if}
 
 					<Identity
-						name={team?.name ?? null}
-						assetPath={team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null}
+						name={presented?.name ?? team?.name ?? null}
+						assetPath={presented
+							? null
+							: (team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null)}
 						unavailable="Team unavailable"
 					/>
 
-					{#if position === 'left'}
+					{#if position === 'left' && !presented}
 						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
 							{#each winSlots as index (index)}
 								<span class:won={index < wins}></span>
@@ -216,7 +232,14 @@
 		color: var(--gfx-muted);
 		background: linear-gradient(135deg, #10151dd9, #171e28bf);
 		border: 1px solid #465160;
-		clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+		clip-path: polygon(
+			12px 0,
+			100% 0,
+			100% calc(100% - 12px),
+			calc(100% - 12px) 100%,
+			0 100%,
+			0 12px
+		);
 	}
 
 	.sponsor-slot span {

@@ -30,6 +30,12 @@ function object(value: unknown, fields: Record<string, Check>): value is Record<
 	);
 }
 
+const ability: Check = (value) =>
+	object(value, { current: nullable(count), capacity: nullable(count) }) &&
+	(value.capacity === null ||
+		((value.capacity as number) > 0 &&
+			(value.current === null || (value.current as number) <= (value.capacity as number))));
+
 const player: Check = (value) =>
 	object(value, {
 		providerKey: string,
@@ -65,8 +71,7 @@ const player: Check = (value) =>
 			(v.current === null ||
 				v.required === null ||
 				((v.required as number) > 0 && (v.current as number) <= (v.required as number))),
-		abilities: (v) =>
-			object(v, { grenade: nullable(count), ability1: nullable(count), ability2: nullable(count) }),
+		abilities: (v) => object(v, { grenade: ability, ability1: ability, ability2: ability }),
 		capabilities: (v) =>
 			object(v, {
 				health: boolean,

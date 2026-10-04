@@ -228,11 +228,7 @@ export function startProviderSession(
 				const result = accumulator.apply(message);
 				if (!result.accepted) {
 					diagnostics(result.issues);
-					const knownName =
-						/^\[ExecuteScript\]:\s*(SetNamePlayer|SetPlayerAgent|SetPlayerWeapon|SetPlayerShield|SetPlayerHP|SetPlayerKDA|SetPlayerCreds|SetUltiActive|SetUltiPoints|SetSkillsPoints|SetExtraData|SetRound|SlideSpike|SpikeTeam|SpikePlayer)\s*\(/.test(
-							message
-						);
-					if (knownName || message.startsWith('[ExecuteJSON]:')) malformedMessage();
+					if (parsed.kind === 'invalid') malformedMessage();
 					return;
 				}
 				if (emit) publish();

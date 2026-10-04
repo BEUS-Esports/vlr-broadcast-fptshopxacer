@@ -20,7 +20,11 @@ export function livePlayerFixture(overrides: Partial<LivePlayerState> = {}): Liv
 		assists: 0,
 		credits: 800,
 		ultimate: { ready: false, current: 0, required: 8 },
-		abilities: { grenade: null, ability1: null, ability2: null },
+		abilities: {
+			grenade: { current: null, capacity: null },
+			ability1: { current: null, capacity: null },
+			ability2: { current: null, capacity: null }
+		},
 		capabilities: {
 			health: true,
 			abilities: false,

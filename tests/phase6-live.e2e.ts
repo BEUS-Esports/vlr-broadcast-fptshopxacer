@@ -51,6 +51,8 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 	fixture.TeamLeft[0].Name = 'Observed Alpha';
 	fixture.TeamRight[0].Name = 'Observed Bravo';
 	fixture.TeamRight[0]['HP%'] = '';
+	fixture.RoundHistoryTeam1 = '1|0';
+	fixture.RoundHistoryTeam2 = '0|2';
 	const payload = {
 		...fixture,
 		accessKey: secret,
@@ -156,6 +158,24 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await page.goto('/admin/graphics/in-game');
 		const controls = page.getByRole('region', { name: 'Live provider', exact: true });
 		await expect(controls.getByRole('status')).toContainText('ready');
+		const preview = page.getByRole('region', { name: 'Preview', exact: true });
+		const livePreview = page.getByRole('region', { name: 'Preview Live Data HUD', exact: true });
+		await expect(preview.getByRole('region', { name: 'In-Game', exact: true })).toBeVisible();
+		await expect(livePreview.locator('[data-live-hud]')).toBeVisible();
+		await expect(livePreview.locator('[data-live-hud]')).toContainText('Observed Alpha');
+		await expect(livePreview.locator('[data-live-hud]')).toContainText('Observed Bravo');
+		await expect(livePreview.locator('[data-health]')).toHaveText('100 HP');
+		await expect(livePreview.locator('[data-player-id="Alpha-1"]')).toHaveCount(0);
+		await livePreview.getByRole('button', { name: 'Large Preview', exact: true }).click();
+		const unmappedPreview = page.getByRole('dialog', {
+			name: 'Large Preview · Live Data HUD',
+			exact: true
+		});
+		await expect(unmappedPreview.locator('[data-live-hud]')).toContainText('Observed Alpha');
+		await unmappedPreview.screenshot({
+			path: testInfo.outputPath('unmapped-provider-preview.png')
+		});
+		await unmappedPreview.getByRole('button', { name: 'Close Preview', exact: true }).click();
 		await expect(
 			controls.getByRole('button', { name: 'Enable external HUD', exact: true })
 		).toBeDisabled();
@@ -165,6 +185,16 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await controls
 			.getByRole('combobox', { name: 'Local team for right', exact: true })
 			.selectOption(String(entries.team_b_entry_id));
+		await controls
+			.getByRole('button', { name: 'Confirm mapping for selected game', exact: true })
+			.click();
+		await expect(controls.getByRole('status')).toContainText('Mapping confirmed');
+		await expect(livePreview.locator('[data-live-hud]')).toHaveAttribute(
+			'data-identity',
+			'provider'
+		);
+		await expect(livePreview.locator('[data-live-hud]')).toContainText('Observed Alpha');
+		await expect(livePreview.locator('[data-health]')).toHaveText('100 HP');
 		await controls
 			.getByRole('combobox', { name: /Slot 1 · Observed Alpha/ })
 			.selectOption('Alpha-1');
@@ -188,7 +218,29 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 			output.on('websocket', (socket) => browserSockets.push(socket.url()));
 			await output.goto('/gfx/live/in-game');
 		}
+		await expect(preview.locator('[data-live-hud]')).toHaveCount(0);
+		await expect(livePreview.locator('[data-live-hud]')).toBeVisible();
+		await preview.getByRole('button', { name: 'Large Preview', exact: true }).click();
+		const largePreview = page.getByRole('dialog', { name: 'Large Preview · In-Game', exact: true });
+		await expect(largePreview.getByRole('region', { name: 'In-Game', exact: true })).toBeVisible();
+		await expect(largePreview.locator('[data-live-hud]')).toHaveCount(0);
+		await largePreview.getByRole('button', { name: 'Close Preview', exact: true }).click();
+		await livePreview.getByRole('button', { name: 'Large Preview', exact: true }).click();
+		const largeLivePreview = page.getByRole('dialog', {
+			name: 'Large Preview · Live Data HUD',
+			exact: true
+		});
+		await expect(largeLivePreview.locator('[data-live-hud]')).toBeVisible();
+		expect((await latestTelemetry(outputs[0])).status.mode).toBe('native');
+		for (const output of outputs) await expect(output.locator('[data-live-hud]')).toHaveCount(0);
+		await largeLivePreview.screenshot({ path: testInfo.outputPath('external-hud-preview.png') });
+		await largeLivePreview.getByRole('button', { name: 'Close Preview', exact: true }).click();
+		await page
+			.locator('[data-hud-previews]')
+			.screenshot({ path: testInfo.outputPath('dual-hud-previews.png') });
 		await controls.getByRole('button', { name: 'Enable external HUD', exact: true }).click();
+		await expect(preview.locator('[data-live-hud]')).toHaveCount(0);
+		await expect(livePreview.locator('[data-live-hud]')).toBeVisible();
 		await expect(
 			other.getByRole('region', { name: 'Live provider', exact: true }).getByRole('status')
 		).toContainText('External HUD');
@@ -214,8 +266,21 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		expect(JSON.stringify(envelope)).not.toContain('diagnostics');
 		expect(JSON.stringify(envelope)).not.toContain('TeamLeft');
 		for (const peer of upstream.clients) peer.send('[ExecuteScript]: SetPlayerHP(0,1,73)');
+		for (const peer of upstream.clients) peer.send('[ExecuteScript]: SetSkillsPoints(0,0,1,1,2)');
 		for (const output of outputs)
 			await expect(output.locator('[data-player-id="Alpha-1"] [data-health]')).toHaveText('73 HP');
+		await expect(outputs[0].locator('[data-player-id="Alpha-1"] [data-ability-dot]')).toHaveCount(
+			2
+		);
+		await expect(
+			outputs[0].locator('[data-player-id="Alpha-1"] [data-ability-dot].available')
+		).toHaveCount(1);
+		const history = outputs[0].getByRole('group', { name: 'Round history' });
+		const leftWinner = history.locator('[data-winner-position="left"]');
+		const rightWinner = history.locator('[data-winner-position="right"]');
+		await expect(leftWinner).toHaveAttribute('title', /alp/i);
+		await expect(rightWinner).toHaveAttribute('title', /bra/i);
+		expect((await leftWinner.boundingBox())!.y).toBeLessThan((await rightWinner.boundingBox())!.y);
 		await outputs[0].screenshot({ path: testInfo.outputPath('external-hud.png') });
 
 		await controls.getByRole('button', { name: 'View Data', exact: true }).click();
@@ -253,6 +318,7 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		for (const peer of upstream.clients)
 			peer.send("[ExecuteScript]: SetNamePlayer(0,1,'Replacement player')");
 		await expect(controls.getByRole('status')).toContainText('Mapping needs review');
+		await expect(livePreview.locator('[data-live-hud]')).toContainText('Replacement player');
 		for (const output of outputs) await expect(output.locator('[data-live-hud]')).toHaveCount(0);
 		await controls.getByRole('button', { name: 'Disconnect / None', exact: true }).click();
 		await expect(controls.getByRole('status')).toContainText('disabled');

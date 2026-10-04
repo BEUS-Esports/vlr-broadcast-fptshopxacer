@@ -6,7 +6,12 @@
 	import { programSnapshot } from './selectors';
 	import { resolveGraphicTemplate } from './templates';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
-	import { externalGame, withObservedAgents, type LiveResources } from '#lib/live/selectors.ts';
+	import {
+		externalGame,
+		mappedGame,
+		withObservedAgents,
+		type LiveResources
+	} from '#lib/live/selectors.ts';
 	import InGameHud from './live/InGameHud.svelte';
 	import ProviderAttribution from './live/ProviderAttribution.svelte';
 
@@ -19,17 +24,27 @@
 	}: {
 		snapshot: BroadcastSnapshot | null;
 		graphic: GraphicId;
-		mode?: 'program' | 'preview';
+		mode?: 'program' | 'preview' | 'preview-live';
 		telemetry?: LiveGameEnvelope | null;
 		resources?: LiveResources | null;
 	} = $props();
 	const rendered = $derived(
-		snapshot && (mode === 'preview' ? snapshot : programSnapshot(snapshot, graphic))
+		snapshot && (mode === 'program' ? programSnapshot(snapshot, graphic) : snapshot)
 	);
 	const template = $derived(resolveGraphicTemplate(rendered?.tournament?.slug));
 	const Template = $derived(template.component);
 	const liveGame = $derived(
-		rendered && graphic === 'in-game' ? externalGame(rendered, telemetry) : null
+		rendered && graphic === 'in-game' && mode !== 'preview'
+			? externalGame(rendered, telemetry, mode === 'preview-live' ? 'preview' : 'program')
+			: null
+	);
+	const liveIdentity = $derived(
+		mode === 'preview-live' &&
+			rendered &&
+			(!mappedGame(rendered, telemetry) ||
+				liveGame?.teams.some((team) => team.players.some((player) => !player.playerId)))
+			? 'provider'
+			: 'local'
 	);
 	const agentSnapshot = $derived(
 		rendered && graphic === 'agent-select'
@@ -49,8 +64,14 @@
 	{#if rendered}
 		<div transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}>
 			{#if liveGame && telemetry}
-				<InGameHud snapshot={rendered} live={liveGame} status={telemetry.status} {resources} />
-			{:else}
+				<InGameHud
+					snapshot={rendered}
+					live={liveGame}
+					status={telemetry.status}
+					{resources}
+					identity={liveIdentity}
+				/>
+			{:else if mode !== 'preview-live'}
 				<Template snapshot={agentSnapshot ?? rendered} {graphic} />
 				{#if graphic === 'agent-select' && agentSnapshot !== rendered && telemetry}<ProviderAttribution
 						status={telemetry.status}

@@ -4,11 +4,8 @@ export type LiveGamePhase =
 	'unknown' | 'lobby' | 'agent-select' | 'buy' | 'combat' | 'post-round' | 'game-end';
 export type LiveProviderHealth =
 	'disabled' | 'connecting' | 'live' | 'retrying' | 'fallback' | 'ready' | 'error';
-export type LiveAbilityState = {
-	grenade: number | null;
-	ability1: number | null;
-	ability2: number | null;
-};
+export type LiveAbilityCharge = { current: number | null; capacity: number | null };
+export type LiveAbilityState = Record<'grenade' | 'ability1' | 'ability2', LiveAbilityCharge>;
 export type LiveUltimateState = {
 	ready: boolean | null;
 	current: number | null;

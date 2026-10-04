@@ -42,6 +42,7 @@ type Literal = string | number | boolean | null;
 export type GStackParsedMessage =
 	| { kind: 'script'; name: string; args: Literal[] }
 	| { kind: 'json'; patch: Record<string, unknown> }
+	| { kind: 'unsupported'; issue: string }
 	| { kind: 'invalid'; issue: string };
 type RawSnapshot = Record<string, unknown> & {
 	TeamLeft: Record<string, Record<string, Literal>>;
@@ -171,6 +172,24 @@ function parseArguments(source: string): Literal[] | null {
 	return null;
 }
 
+const commandNames = new Set([
+	'SetNamePlayer',
+	'SetPlayerAgent',
+	'SetPlayerWeapon',
+	'SetPlayerShield',
+	'SetPlayerHP',
+	'SetPlayerKDA',
+	'SetPlayerCreds',
+	'SetUltiActive',
+	'SetUltiPoints',
+	'SetSkillsPoints',
+	'SetExtraData',
+	'SetRound',
+	'SlideSpike',
+	'SpikeTeam',
+	'SpikePlayer'
+]);
+
 function commandValid(name: string, args: Literal[]): boolean {
 	const integer = (value: Literal, max = 100_000, blank = false) =>
 		(blank && value === '') ||
@@ -251,7 +270,10 @@ function jsonPatch(wire: Record<string, unknown>): Record<string, unknown> | nul
 		if (!Object.hasOwn(wire, source)) continue;
 		const list = pickPlayers(wire[source]);
 		if (!list) return null;
-		patch[target] = list;
+		const relevant = Object.fromEntries(
+			Object.entries(list).filter(([, fields]) => Object.keys(fields).length > 0)
+		);
+		if (Object.keys(relevant).length) patch[target] = relevant;
 	}
 	for (const section of ['Scoreboard', 'Spike'] as const) {
 		if (!Object.hasOwn(wire, section)) continue;
@@ -265,7 +287,7 @@ function jsonPatch(wire: Record<string, unknown>): Record<string, unknown> | nul
 		if (!fields) return null;
 		Object.assign(patch, fields);
 	}
-	return Object.keys(patch).length ? patch : null;
+	return patch;
 }
 
 /** A literal command grammar: data is parsed, never executed. */
@@ -277,19 +299,24 @@ export function parseGStackMessage(input: unknown): GStackParsedMessage {
 		if (!record(wire) || !safeObject(wire))
 			return { kind: 'invalid', issue: 'Invalid or unsafe ExecuteJSON object' };
 		const patch = jsonPatch(wire);
-		return patch
+		if (!patch) return { kind: 'invalid', issue: 'Malformed known ExecuteJSON fields' };
+		return Object.keys(patch).length
 			? { kind: 'json', patch }
-			: { kind: 'invalid', issue: 'Unsupported ExecuteJSON fields' };
+			: { kind: 'unsupported', issue: 'Unsupported ExecuteJSON fields' };
 	}
 	if (!input.startsWith('[ExecuteScript]:'))
-		return { kind: 'invalid', issue: 'Unknown GStack message family' };
-	const match = /^([A-Za-z][A-Za-z0-9_]*)\s*\(([\s\S]*)\)\s*;?\s*$/.exec(
-		input.slice('[ExecuteScript]:'.length).trim()
-	);
+		return { kind: 'unsupported', issue: 'Unknown GStack message family' };
+	const source = input.slice('[ExecuteScript]:'.length).trim();
+	const name = /^([A-Za-z][A-Za-z0-9_]*)/.exec(source)?.[1];
+	if (name && ['__proto__', 'prototype', 'constructor'].includes(name))
+		return { kind: 'invalid', issue: 'Unsafe ExecuteScript command' };
+	if (name && !commandNames.has(name))
+		return { kind: 'unsupported', issue: 'Unsupported ExecuteScript command' };
+	const match = /^([A-Za-z][A-Za-z0-9_]*)\s*\(([\s\S]*)\)\s*;?\s*$/.exec(source);
 	if (!match) return { kind: 'invalid', issue: 'Invalid ExecuteScript grammar' };
 	const args = parseArguments(match[2]);
 	if (!args || !commandValid(match[1], args))
-		return { kind: 'invalid', issue: 'Unknown command or invalid arguments' };
+		return { kind: 'invalid', issue: 'Invalid command arguments' };
 	return { kind: 'script', name: match[1], args };
 }
 
@@ -313,7 +340,7 @@ export function createGStackAccumulator() {
 		apply(message: unknown): { accepted: boolean; issues: string[] } {
 			lastMessage = typeof message === 'string' ? message.slice(0, 16_384) : null;
 			const parsed = parseGStackMessage(message);
-			if (parsed.kind === 'invalid') {
+			if (parsed.kind === 'invalid' || parsed.kind === 'unsupported') {
 				lastUnknownMessage = lastMessage;
 				return { accepted: false, issues: [parsed.issue] };
 			}
@@ -369,7 +396,8 @@ export function createGStackAccumulator() {
 						player['Ultimate Points'] = args[2] === '' ? '' : `${args[2]}/${args[3]}`;
 						break;
 					case 'SetSkillsPoints':
-						player[`Skill ${Number(args[1]) + 1} Points`] = args[3];
+						player[`Skill ${Number(args[1]) + 1} Points`] =
+							args[3] === '' ? '' : `${args[3]}/${args[4]}`;
 						break;
 					case 'SetExtraData':
 						player.XHP = args[2];
@@ -463,26 +491,19 @@ export function normalizeGStack(
 					`${field}.Ultimate Points`,
 					2
 				);
-				player.abilities.grenade = numeric(
-					raw['Skill 1 Points'],
-					issues,
-					`${field}.Skill 1 Points`
-				);
-				player.abilities.ability1 = numeric(
-					raw['Skill 2 Points'],
-					issues,
-					`${field}.Skill 2 Points`
-				);
-				player.abilities.ability2 = numeric(
-					raw['Skill 3 Points'],
-					issues,
-					`${field}.Skill 3 Points`
-				);
+				for (const [index, key] of (['grenade', 'ability1', 'ability2'] as const).entries()) {
+					const value = raw[`Skill ${index + 1} Points`];
+					const label = `${field}.Skill ${index + 1} Points`;
+					if (typeof value === 'string' && value.includes('/')) {
+						const [current, capacity] = triplet(value, issues, label, 2);
+						player.abilities[key] = { current, capacity };
+					} else player.abilities[key].current = numeric(value, issues, label);
+				}
 				player.capabilities = {
 					health: player.health !== null,
 					enhancedHealth: player.extraHealth !== null,
 					enhancedShield: player.shield.extra !== null,
-					abilities: Object.values(player.abilities).some((v) => v !== null),
+					abilities: Object.values(player.abilities).some((v) => v.current !== null),
 					scoreboard: player.kills !== null && player.deaths !== null && player.assists !== null
 				};
 				// Only confirmed WS team+slot carrier commands resolve a player marker.

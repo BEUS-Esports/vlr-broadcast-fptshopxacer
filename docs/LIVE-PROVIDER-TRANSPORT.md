@@ -288,7 +288,7 @@ Treat `[ExecuteScript]` as a small command protocol:
 3. accept only explicitly supported command names;
 4. validate argument count/types/ranges;
 5. apply the command to the in-memory GStack accumulator;
-6. send unknown/malformed commands to diagnostics only.
+6. retain unknown/unsupported commands in diagnostics without counting them as malformed data; malformed supported commands also count toward the bounded session failure threshold.
 
 Do not use `eval`, `Function`, dynamic imports, or arbitrary property execution.
 
@@ -317,6 +317,8 @@ If this message family appears in the event build:
 - validate the object;
 - merge only known sections/fields into the raw GStack accumulator;
 - never treat an arbitrary JSON property as executable behavior.
+
+A valid safe object containing only unsupported fields is diagnostic-only: it must not publish telemetry, count toward the malformed threshold, or trigger reconnect/fallback. Mixed supported/unsupported objects apply only the supported fields. Invalid JSON, unsafe properties and malformed known section/field shapes remain rejected and count toward the threshold.
 
 Until real captures establish its exact payload shape, `ExecuteJSON` remains supported defensively but is not required for the normalized HUD contract.
 
@@ -359,6 +361,8 @@ SetSkillsPoints(team, skillIndex, player, current, capacity)
 ~~~
 
 The VHUD renders up to the reported capacity and fills dots up to the current value.
+
+Our normalized ability slots retain `{ current, capacity }`. Preserve both values from these deltas; blank pairs clear both. A scalar snapshot value or Spectra charge count has `capacity: null` unless the provider reports a maximum. The HUD uses dots for known capacities up to 10 and a numeric current/max display above that bound.
 
 Known `skillIndex` values:
 
@@ -706,7 +710,7 @@ Examples that **do not** imply failure:
 - pause/buy phase;
 - Spectra player has no Player Client;
 - GStack Expansion Client is absent;
-- abilities remain null;
+- ability current/capacity values remain null;
 - XHP/XShield remain null.
 
 Examples that may imply failure:

@@ -20,7 +20,8 @@
 	const abilities = $derived(
 		(['grenade', 'ability1', 'ability2'] as const).map((slot) => ({
 			slot,
-			charges: live?.abilities[slot] ?? null,
+			current: live?.abilities[slot].current ?? null,
+			capacity: live?.abilities[slot].capacity ?? null,
 			artwork: catalogAgent?.abilities?.find((ability) => ability.slot === slot) ?? null
 		}))
 	);
@@ -43,7 +44,7 @@
 	</div>
 	<div class="details">
 		<header>
-			<strong>{saved?.player?.displayName ?? 'Player unavailable'}</strong
+			<strong>{saved?.player?.displayName ?? live?.observedName ?? 'Player unavailable'}</strong
 			>{#if live?.hasSpike === true}<b class="spike" aria-label="Spike carrier">◆</b
 				>{/if}{#if live?.alive === false}<b class="death">DEAD</b>{/if}
 		</header>
@@ -85,14 +86,22 @@
 			<div class="abilities" aria-label="Ability charges">
 				{#each abilities as ability, i (ability.slot)}<span
 						class="ability"
-						aria-label={`${ability.artwork?.displayName ?? `Ability ${i + 1}`}${ability.charges === null ? ': charges unavailable' : `: ${ability.charges} charges`}`}
+						aria-label={`${ability.artwork?.displayName ?? `Ability ${i + 1}`}: ${ability.current === null ? 'charges unavailable' : ability.capacity === null ? `${ability.current} charges, capacity unavailable` : `${ability.current} of ${ability.capacity} charges`}`}
 						>{#if ability.artwork}<Asset
 								path={ability.artwork.displayIconPath}
 								label={ability.artwork.displayName}
-							/>{:else}<small>{['I', 'II', 'III'][i]}</small>{/if}{#if ability.charges !== null}<i
-								data-ability-charges={ability.charges}
-								class:available={ability.charges > 0}
-							></i><b>{ability.charges}</b>{/if}</span
+							/>{:else}<small>{['I', 'II', 'III'][i]}</small>{/if}
+						{#if ability.current !== null}
+							<span class="charges" data-ability-charges={ability.current}>
+								{#if ability.capacity !== null && ability.capacity <= 10}
+									{#each Array.from({ length: ability.capacity }, (_, index) => index) as dot (dot)}
+										<i data-ability-dot class:available={dot < ability.current}></i>
+									{/each}
+								{:else}<b
+										>{ability.current}{ability.capacity === null ? '' : `/${ability.capacity}`}</b
+									>{/if}
+							</span>
+						{/if}</span
 					>{/each}
 			</div>
 			<span class:ready={live?.ultimate.ready === true} class="ultimate" aria-label="Ultimate"
@@ -252,6 +261,10 @@
 	}
 	.ability small {
 		font-size: 8px;
+	}
+	.charges {
+		display: flex;
+		gap: 3px;
 	}
 	.ability i {
 		width: 4px;

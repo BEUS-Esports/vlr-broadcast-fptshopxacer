@@ -104,11 +104,8 @@ type LiveGamePhase =
 type LiveProviderHealth =
 	'disabled' | 'connecting' | 'live' | 'retrying' | 'fallback' | 'ready' | 'error';
 
-type LiveAbilityState = {
-	grenade: number | null;
-	ability1: number | null;
-	ability2: number | null;
-};
+type LiveAbilityCharge = { current: number | null; capacity: number | null };
+type LiveAbilityState = Record<'grenade' | 'ability1' | 'ability2', LiveAbilityCharge>;
 
 type LiveUltimateState = {
 	ready: boolean | null;
@@ -229,6 +226,8 @@ For In-Game:
 - saving team/game preparation may update Preview without silently replacing a held program publication;
 - telemetry continues to update while the live external HUD is on air;
 - switching to native fallback stops external live presentation without destroying canonical prepared data.
+
+In-Game Graphics Control retains the normal HUD in the existing Preview and Large Preview, independently of program mode. A second card, **Preview Live Data HUD**, has its own Large Preview and renders the current provider state as soon as data is available, without waiting for mapping, selected-game preparation, or program enable. State and status must still match the same provider/generation. Before valid mapping, the template uses provider team names/sides and player names/slots, without attaching local identities, logos, or series wins. It keeps provider identities during partial player mapping so available observations remain visible. Once all observed players are safely mapped to the selected game, it uses local identities. Health remains visible alongside the preview; retained telemetry may be previewed during retry/fallback. With no provider data, the live preview displays connection guidance. Program still requires valid mapping, selected-game binding, eligible health, and explicit external mode. Neither preview changes that mode, and both share the controller's existing live stream.
 
 The live provider stream must not increment controlRevision/dataRevision merely because telemetry changed.
 
@@ -657,6 +656,10 @@ When abilities are unavailable:
 - leave the small availability dots blank/hidden;
 - do not imply zero charges.
 
+Preserve each ability's current charges and reported capacity. GStack skill deltas provide both; scalar snapshot observations and Spectra observations retain `capacity: null` when no maximum is reported. Render current/max availability dots for known capacities up to 10; larger capacities use a bounded numeric current/max display. Known current with unknown capacity uses a count without invented maximum dots.
+
+Round-history markers occupy upper/lower rows labeled with the mapped presentation teams' tags. Winner position follows team identity and presentation swaps, independently of current attacker/defender assignment.
+
 When XHP/XShield are unavailable:
 
 - hide their enhanced visual treatment;
@@ -702,6 +705,8 @@ Do not infer supporter status from the absence/presence of an incidental match_d
 Verify the event license/attribution requirement against the version/license being used. Keep the renderer capable of showing GStack attribution without changing HUD layout.
 
 Reserve a predictable safe area so attribution does not collide with native VALORANT UI, sponsors, or critical live data.
+
+The initial placement is below the lower-left match context (left 30px, bottom 8px), away from the upper-right killfeed. Validate this placement against the actual spectator capture and OBS composition before event acceptance.
 
 ## Task 12 — Fixtures, failure tests, and real provider verification
 
@@ -885,6 +890,14 @@ Recorded proof:
 The Phase 6 journey uses a local fixture HTTP/WS server, not GStack itself. Its 1920×1080 screenshot was inspected for symmetric five-slot rails, omitted unavailable HP/charges, retained native header/match context and attribution. This establishes browser behavior; actual spectator safe areas, alpha and field availability remain real-session checks.
 
 No third-party reference code, fonts or artwork were copied. `docs/gstack-reference/` is ignored and has no tracked files. The local/event database and provider credentials were not committed.
+
+Review follow-up on 2026-10-04 separates Preview eligibility from program mode, distinguishes unsupported GStack messages from malformed known data, and preserves ability current/capacity pairs. Attribution now sits below the lower-left match context; mapped team tags and upper/lower markers identify round winners independently of current gameplay sides.
+
+Follow-up proof: **78 live-domain/server tests**, **4 focused browser component tests**, and **1 production Chrome provider journey** passed. The journey checks embedded/Large Preview while program remains native, explicit program enable, known-capacity filled/spent dots, winner rows and existing mapping/recovery behavior. Both preview and 1920×1080 program screenshots were inspected. Actual game/OBS safe-area acceptance remains pending below.
+
+Dual-preview follow-up: the existing normal HUD Preview and its Large Preview stay native while the separate **Preview Live Data HUD** and its Large Preview show provider data. The initial mapped-only preview was verified by **2 renderer component tests** and the updated **production Chrome provider journey**; typecheck, lint and Svelte autofixer were clean. The journey verifies both previews before and after program enable, mapping invalidation, and one shared upstream session. The combined preview screenshot was inspected. One native bundler crash occurred before the first browser run; the unchanged build and journey passed on retry. The subsequent current-data preview adjustment removes mapping/health gates from preview eligibility while preserving program checks, as specified above.
+
+Current-data preview proof: **79 domain/server tests**, **6 focused browser component tests**, and **1 production Chrome provider journey** passed. Coverage includes provider identities before mapping and during partial mapping, preview without local game preparation or healthy status, unknown HP remaining unavailable, unmapped embedded/Large Preview, and continued preview after mapping invalidates while program falls back. Unmapped and dual-preview screenshots were inspected. Typecheck reported no errors/warnings; focused lint, formatting and Svelte autofixer were clean.
 
 Real acceptance remains separately pending:
 

@@ -10,33 +10,67 @@
 		snapshot,
 		live,
 		status,
-		resources
+		resources,
+		identity = 'local'
 	}: {
 		snapshot: BroadcastSnapshot;
 		live: LiveGameState;
 		status: LiveSessionStatus;
 		resources: LiveResources | null;
+		identity?: 'local' | 'provider';
 	} = $props();
+	const rails = $derived(
+		(['left', 'right'] as const).map((position) => {
+			const entryId =
+				identity === 'local'
+					? position === 'left'
+						? snapshot.presentation.leftEntryId
+						: snapshot.presentation.rightEntryId
+					: null;
+			const team = live.teams.find((team) =>
+				identity === 'local'
+					? team.entryId === entryId
+					: position === 'left'
+						? team.providerSide === 'left' || team.providerSide === 'team-0'
+						: team.providerSide === 'right' || team.providerSide === 'team-1'
+			);
+			const local =
+				identity === 'local' ? snapshot.teams.find((team) => team.entryId === entryId) : null;
+			const name =
+				identity === 'local'
+					? (local?.name ?? 'Team unavailable')
+					: (team?.observedName ?? `Provider ${position}`);
+			const side: ReturnType<typeof gameplaySide> =
+				identity === 'local'
+					? gameplaySide(snapshot, entryId)
+					: team?.attacking === true
+						? 'attack'
+						: team?.attacking === false
+							? 'defense'
+							: null;
+			return { position, entryId, team, name, label: local?.tag ?? name, side };
+		})
+	);
+	const teamPresentation = $derived(
+		identity === 'provider' ? { left: rails[0], right: rails[1] } : null
+	);
 </script>
 
 <section
 	aria-label="External In-Game HUD"
 	class="hud"
 	data-live-hud
+	data-identity={identity}
 	data-provider-generation={live.generation}
 >
-	<NativeInGame {snapshot} />
+	<NativeInGame {snapshot} {teamPresentation} />
 	<div class="round-context">
 		{#if live.roundNumber !== null}<span>ROUND {live.roundNumber}</span
 			>{/if}{#if live.spike.state !== 'unknown' && live.spike.state !== 'carried'}<strong
 				>{live.spike.state.toUpperCase()}</strong
 			>{/if}
 	</div>
-	{#each ['left', 'right'] as position (position)}
-		{@const entryId =
-			position === 'left' ? snapshot.presentation.leftEntryId : snapshot.presentation.rightEntryId}
-		{@const team = live.teams.find((team) => team.entryId === entryId)}
-		{@const side = gameplaySide(snapshot, entryId)}
+	{#each rails as { position, entryId, team, label, side } (position)}
 		<div class="score" data-position={position}>{team?.score ?? '—'}</div>
 		<div
 			class="rail"
@@ -45,34 +79,45 @@
 			style:--live-side={side === 'attack' ? '#248bff' : side === 'defense' ? '#ff4655' : '#97a2b0'}
 		>
 			<div class="rail-label">
-				<strong>{snapshot.teams.find((team) => team.entryId === entryId)?.tag ?? '—'}</strong><span
+				<strong>{label}</strong><span
 					>{live.phase === 'buy' ? 'BUY PHASE' : (side?.toUpperCase() ?? '')}</span
 				>
 			</div>
 			{#each [1, 2, 3, 4, 5] as slot (slot)}
-				{@const saved = snapshot.lineups.find(
-					(lineup) => lineup.entryId === entryId && lineup.slot === slot
-				)}
+				{@const saved =
+					identity === 'local'
+						? snapshot.lineups.find((lineup) => lineup.entryId === entryId && lineup.slot === slot)
+						: undefined}
 				{@const player =
-					team?.players.find(
-						(player) => player.playerId && player.playerId === saved?.player?.playerId
+					team?.players.find((player, index) =>
+						identity === 'local'
+							? player.playerId && player.playerId === saved?.player?.playerId
+							: player.providerSlot === slot || (player.providerSlot === null && index === slot - 1)
 					) ?? null}
 				<PlayerCard {saved} live={player} {resources} />
 			{/each}
 		</div>
 	{/each}
-	{#if live.rounds.length}<div class="history" aria-label="Round history">
-			{#each live.rounds as round (round.round)}{@const team = live.teams.find(
-					(team) => team.providerSide === round.winnerProviderSide
-				)}{@const winner = snapshot.teams.find((local) => local.entryId === team?.entryId)}<span
-					title={`Round ${round.round}: ${winner?.tag ?? 'Unknown winner'} · ${round.reason}`}
-					>{round.reason === 'defuse'
-						? 'D'
-						: round.reason === 'elimination'
-							? 'E'
-							: round.reason === 'time'
-								? 'T'
-								: 'S'}</span
+	{#if live.rounds.length}<div class="history" role="group" aria-label="Round history">
+			<div class="history-teams">
+				<strong>{rails[0].label}</strong>
+				<strong>{rails[1].label}</strong>
+			</div>
+			{#each live.rounds as round (round.round)}{@const winner = rails.find(
+					(rail) => rail.team?.providerSide === round.winnerProviderSide
+				)}<span class="history-round">
+					<small>{round.round}</small>
+					<b
+						data-winner-position={winner?.position ?? 'unknown'}
+						title={`Round ${round.round}: ${winner?.label ?? 'Unknown winner'} · ${round.reason}`}
+						>{round.reason === 'defuse'
+							? 'D'
+							: round.reason === 'elimination'
+								? 'E'
+								: round.reason === 'time'
+									? 'T'
+									: 'S'}</b
+					></span
 				>{/each}
 		</div>{/if}
 	<ProviderAttribution {status} />
@@ -169,12 +214,39 @@
 		padding: 7px;
 		background: #10151de0;
 	}
-	.history span {
-		width: 16px;
-		height: 16px;
+	.history-teams,
+	.history-round {
+		height: 42px;
 		display: grid;
+		grid-template-rows: 16px 10px 16px;
 		place-items: center;
 		font-size: 9px;
+	}
+	.history-teams {
+		padding-right: 5px;
+	}
+	.history-teams strong:last-child {
+		grid-row: 3;
+	}
+	.history-round {
+		width: 18px;
+	}
+	.history-round small {
+		grid-row: 2;
+		font-size: 7px;
+		color: #b0bac6;
+	}
+	.history-round b {
+		grid-column: 1;
+		grid-row: 2;
+		width: 16px;
+		text-align: center;
 		border-bottom: 2px solid #97a2b0;
+	}
+	.history-round b[data-winner-position='left'] {
+		grid-row: 1;
+	}
+	.history-round b[data-winner-position='right'] {
+		grid-row: 3;
 	}
 </style>

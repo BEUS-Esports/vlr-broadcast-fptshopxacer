@@ -7,6 +7,21 @@ import { normalizeGStack } from './gstack';
 const context = { generation: 1, selectedGameId: 'game-1', receivedAt: 1000 };
 
 describe('provider normalizers', () => {
+	it('preserves GStack skill current/capacity tuples and scalar observations with unknown capacity', () => {
+		const wire = gstackFixture();
+		Object.assign(wire.TeamLeft[0], {
+			'Skill 1 Points': '0/2',
+			'Skill 2 Points': '1',
+			'Skill 3 Points': '3/2'
+		});
+		const result = normalizeGStack(wire, context);
+		expect(result.state?.teams[0].players[0].abilities).toEqual({
+			grenade: { current: 0, capacity: 2 },
+			ability1: { current: 1, capacity: null },
+			ability2: { current: null, capacity: null }
+		});
+		expect(result.issues).toContain('left.Player1.Skill 3 Points: invalid progress');
+	});
 	it('namespaces stable Spectra identities separately from positional fallback keys', () => {
 		const wire = spectraFixture();
 		wire.teams[0].players[0].riotId = '';
@@ -63,7 +78,11 @@ describe('provider normalizers', () => {
 			health: 0,
 			alive: true,
 			credits: 800,
-			abilities: { grenade: 0, ability1: 0, ability2: 0 }
+			abilities: {
+				grenade: { current: 0, capacity: null },
+				ability1: { current: 0, capacity: null },
+				ability2: { current: 0, capacity: null }
+			}
 		});
 		expect(result.state?.teams[1].players[0].health).toBeNull();
 	});
@@ -104,7 +123,7 @@ describe('provider normalizers', () => {
 			alive: null,
 			credits: 0,
 			extraHealth: null,
-			abilities: { grenade: 0 }
+			abilities: { grenade: { current: 0, capacity: null } }
 		});
 		expect(result.state?.teams[1].players[0].health).toBeNull();
 	});

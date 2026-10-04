@@ -6,7 +6,7 @@ export type LiveResources = {
 	agents: Array<BroadcastAgent & { abilities?: AgentAbility[] }>;
 	weapons: Array<{ key: string; displayName: string; displayIconPath: string | null }>;
 };
-function boundGame(snapshot: BroadcastSnapshot, envelope: LiveGameEnvelope | null) {
+export function mappedGame(snapshot: BroadcastSnapshot, envelope: LiveGameEnvelope | null) {
 	const live = envelope?.state;
 	const status = envelope?.status;
 	if (
@@ -40,13 +40,21 @@ function boundGame(snapshot: BroadcastSnapshot, envelope: LiveGameEnvelope | nul
 		return null;
 	return live;
 }
-export function externalGame(snapshot: BroadcastSnapshot, envelope: LiveGameEnvelope | null) {
-	if (
-		envelope?.status.mode !== 'external' ||
-		!['live', 'retrying'].includes(envelope.status.health)
-	)
-		return null;
-	return boundGame(snapshot, envelope);
+export function externalGame(
+	snapshot: BroadcastSnapshot,
+	envelope: LiveGameEnvelope | null,
+	mode: 'program' | 'preview' = 'program'
+) {
+	const status = envelope?.status;
+	if (!status) return null;
+	if (mode === 'preview') {
+		const live = envelope?.state;
+		return live && live.generation === status.generation && live.provider === status.provider
+			? live
+			: null;
+	}
+	if (status.mode !== 'external' || !['live', 'retrying'].includes(status.health)) return null;
+	return mappedGame(snapshot, envelope);
 }
 export function resourceByName<T extends { key: string; displayName: string }>(
 	resources: T[],
@@ -75,7 +83,7 @@ export function withObservedAgents(
 		!['live', 'ready'].includes(envelope.status.health)
 	)
 		return snapshot;
-	const live = boundGame(snapshot, envelope);
+	const live = mappedGame(snapshot, envelope);
 	if (!live) return snapshot;
 	return {
 		...snapshot,

@@ -123,6 +123,29 @@ describe('Spectra transport', () => {
 });
 
 describe('GStack snapshot + delta transport', () => {
+	it('does not count unsupported JSON toward malformed failures, but still fails malformed known data', async () => {
+		const socket = new FakeWebSocket(),
+			events = callbacks();
+		const stop = startProviderSession(options('gstack', events), {
+			createWebSocket: () => socket,
+			fetch: async () => new Response(JSON.stringify(gstackFixture()))
+		});
+		socket.open();
+		await settle();
+		const published = events.data.mock.calls.length;
+		for (let i = 0; i < 5; i++) socket.message('[ExecuteJSON]: {"Scoreboard":{"FutureField":1}}');
+		expect(events.error).not.toHaveBeenCalled();
+		expect(events.parseError).not.toHaveBeenCalled();
+		expect(socket.close).not.toHaveBeenCalled();
+		expect(events.data).toHaveBeenCalledTimes(published);
+		expect(events.diagnostic.mock.calls.at(-1)?.[0].unknown).toContain('FutureField');
+		socket.message('[ExecuteScript]: SetRound(4,5)');
+		expect(events.data.mock.calls.at(-1)?.[0].teams[0].score).toBe(4);
+		for (let i = 0; i < 3; i++) socket.message('[ExecuteJSON]: {"Scoreboard":[]}');
+		expect(events.error).toHaveBeenCalledTimes(1);
+		expect(socket.close).toHaveBeenCalledTimes(1);
+		stop();
+	});
 	it('reports bounded parsed commands and the successful resync time only in diagnostics', async () => {
 		const socket = new FakeWebSocket(),
 			events = callbacks();

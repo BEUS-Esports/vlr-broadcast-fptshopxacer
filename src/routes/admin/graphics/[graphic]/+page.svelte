@@ -38,10 +38,24 @@
 			<GraphicEditors graphic={data.graphic} management={workspace.management} />
 		{/key}
 	</div>
-	<GraphicPreview
-		graphic={data.graphic}
-		snapshot={workspace.live}
-		connection={workspace.connection}
-		{telemetry}
-	/>
+	<div
+		class={['min-w-0 space-y-5', data.graphic !== 'in-game' && 'xl:sticky xl:top-0']}
+		data-hud-previews
+	>
+		<GraphicPreview
+			graphic={data.graphic}
+			snapshot={workspace.live}
+			connection={workspace.connection}
+			{telemetry}
+		/>
+		{#if data.graphic === 'in-game'}
+			<GraphicPreview
+				graphic={data.graphic}
+				snapshot={workspace.live}
+				connection={workspace.connection}
+				{telemetry}
+				variant="live-data"
+			/>
+		{/if}
+	</div>
 </div>

@@ -23,6 +23,25 @@ describe('live envelope decoder', () => {
 		delete (value.state.spike as Partial<typeof value.state.spike>).carrierRaw;
 		expect(decodeLiveGameEnvelope(JSON.stringify(value))).toBeNull();
 	});
+	it('validates nullable ability charge pairs without inventing capacity', () => {
+		const value = envelope();
+		const ability = value.state.teams[0].players[0].abilities;
+		Object.assign(ability, { grenade: { current: 0, capacity: 2 } });
+		expect(isLiveGameState(value.state)).toBe(true);
+		Object.assign(ability, { grenade: { current: 2, capacity: null } });
+		expect(isLiveGameState(value.state)).toBe(true);
+		for (const grenade of [
+			{ current: 3, capacity: 2 },
+			{ current: 0, capacity: 0 },
+			{ current: -1, capacity: 2 },
+			{ current: 0.5, capacity: 2 },
+			{ current: 0 },
+			{ current: 0, capacity: 2, token: 'secret' }
+		]) {
+			Object.assign(ability, { grenade });
+			expect(isLiveGameState(value.state)).toBe(false);
+		}
+	});
 	it('rejects credential or unexpected properties anywhere', () => {
 		const value = envelope();
 		Object.assign(value.state.teams[0].players[0].shield, { accessKey: 'secret' });

@@ -55,6 +55,36 @@ it('requires the same selected game, generation and held identities for external
 		externalGame(snapshot, { ...envelope, state: { ...state, selectedGameId: 'other' } })
 	).toBeNull();
 });
+it('previews current provider data before mapping while program remains native', () => {
+	const ready = {
+		...envelope,
+		status: { ...envelope.status, mode: 'native' as const, health: 'ready' as const }
+	};
+	expect(externalGame(snapshot, ready, 'preview')).toBe(state);
+	expect(externalGame(snapshot, ready, 'program')).toBeNull();
+	expect(ready.status.mode).toBe('native');
+	for (const health of ['disabled', 'connecting', 'retrying', 'fallback', 'error'] as const)
+		expect(
+			externalGame(snapshot, { ...ready, status: { ...ready.status, health } }, 'preview')
+		).toBe(state);
+	for (const status of [
+		{ ...ready.status, mappingReady: false },
+		{ ...ready.status, selectedGameId: 'other' }
+	])
+		expect(externalGame(snapshot, { ...ready, status }, 'preview')).toBe(state);
+	expect(externalGame({ ...snapshot, selection: null, lineups: [] }, ready, 'preview')).toBe(state);
+	expect(externalGame(snapshot, { ...ready, state: null }, 'preview')).toBeNull();
+	expect(
+		externalGame(snapshot, { ...ready, status: { ...ready.status, generation: 2 } }, 'preview')
+	).toBeNull();
+	expect(
+		externalGame(
+			snapshot,
+			{ ...ready, status: { ...ready.status, provider: 'spectra' } },
+			'preview'
+		)
+	).toBeNull();
+});
 it('projects live Agent Select picks without changing local players or saved agents, and falls back when lost', () => {
 	const agents = [{ id: 'jett', key: 'jett', displayName: 'Jett' }] as BroadcastAgent[];
 	const observed = { ...envelope, state: { ...state, phase: 'agent-select' as const } };

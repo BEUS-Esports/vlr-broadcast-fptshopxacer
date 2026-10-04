@@ -5,19 +5,29 @@
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 	import { onMount } from 'svelte';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
-	import type { LiveResources } from '#lib/live/selectors.ts';
+	import { externalGame, type LiveResources } from '#lib/live/selectors.ts';
 	import { fetchLiveResources } from '#lib/live/resources.ts';
 	let {
 		graphic,
 		snapshot,
 		connection,
-		telemetry = null
+		telemetry = null,
+		variant = 'normal'
 	}: {
 		graphic: GraphicId;
 		snapshot: BroadcastSnapshot;
 		connection: string;
 		telemetry?: LiveGameEnvelope | null;
+		variant?: 'normal' | 'live-data';
 	} = $props();
+	const title = $derived(variant === 'live-data' ? 'Preview Live Data HUD' : 'Preview');
+	const largeTitle = $derived(
+		`Large Preview · ${variant === 'live-data' ? 'Live Data HUD' : graphicLabels[graphic]}`
+	);
+	const renderMode = $derived(variant === 'live-data' ? 'preview-live' : 'preview');
+	const liveAvailable = $derived(
+		variant === 'live-data' && externalGame(snapshot, telemetry, 'preview') !== null
+	);
 	let resources = $state.raw<LiveResources | null>(null);
 	onMount(() => {
 		void fetchLiveResources().then((value) => (resources = value));
@@ -27,9 +37,22 @@
 	let modal = $state<HTMLDialogElement>();
 </script>
 
-<section aria-label="Preview" class="admin-editor space-y-3 xl:sticky xl:top-0">
+{#snippet canvasContent(canvasWidth: number)}
+	{#if variant === 'live-data' && !liveAvailable}
+		<div class="unavailable" role="status">
+			<strong>Live data unavailable</strong>
+			<p>Connect a data source and wait for its first update to preview the HUD.</p>
+		</div>
+	{:else}
+		<div class="composition" style:transform={`scale(${canvasWidth / 1920})`}>
+			<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode={renderMode} />
+		</div>
+	{/if}
+{/snippet}
+
+<section aria-label={title} class="admin-editor space-y-3">
 	<header class="flex items-center justify-between gap-3">
-		<h2 class="h3">Preview</h2>
+		<h2 class="h3">{title}</h2>
 		<button
 			type="button"
 			class="btn preset-tonal-primary btn-sm"
@@ -38,31 +61,40 @@
 			<Monitor size={18} aria-hidden="true" /> Large Preview
 		</button>
 	</header>
-	<p class="text-sm">Latest saved data · {connection}. Unsaved editor fields appear after Save.</p>
+	{#if variant === 'live-data'}
+		<p class="text-sm">
+			Current provider data · {telemetry?.status.health ?? 'disconnected'}. Preview is available
+			before mapping. Confirm mapping and enable external HUD to use it on program.
+		</p>
+	{:else}
+		<p class="text-sm">
+			Latest saved data · {connection}. Unsaved editor fields appear after Save.
+		</p>
+	{/if}
 	<div class="preview-canvas" bind:clientWidth={width}>
-		<div class="composition" style:transform={`scale(${width / 1920})`}>
-			<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode="preview" />
-		</div>
+		{@render canvasContent(width)}
 	</div>
-	<p class="text-sm">1920×1080 · Preview stays visible when program is hidden.</p>
+	<p class="text-sm">
+		1920×1080 · {variant === 'live-data'
+			? 'Preview does not change program output.'
+			: 'Preview stays visible when program is hidden.'}
+	</p>
 </section>
 
 <dialog
 	{@attach (element) => {
 		modal = element;
 	}}
-	aria-label={`Large Preview · ${graphicLabels[graphic]}`}
+	aria-label={largeTitle}
 >
 	<header class="mb-3 flex items-center justify-between gap-3">
-		<h2 class="h3">Large Preview · {graphicLabels[graphic]}</h2>
+		<h2 class="h3">{largeTitle}</h2>
 		<button type="button" class="btn preset-tonal-surface" onclick={() => modal?.close()}
 			>Close Preview</button
 		>
 	</header>
 	<div class="preview-canvas" bind:clientWidth={largeWidth}>
-		<div class="composition" style:transform={`scale(${largeWidth / 1920})`}>
-			<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode="preview" />
-		</div>
+		{@render canvasContent(largeWidth)}
 	</div>
 </dialog>
 
@@ -80,6 +112,22 @@
 		width: 1920px;
 		height: 1080px;
 		transform-origin: top left;
+	}
+	.unavailable {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 1rem;
+		text-align: center;
+		background: rgb(16 21 29 / 85%);
+	}
+	.unavailable p {
+		max-width: 32rem;
+		font-size: 0.875rem;
 	}
 	dialog {
 		width: min(94vw, calc((90dvh - 5rem) * 16 / 9));
