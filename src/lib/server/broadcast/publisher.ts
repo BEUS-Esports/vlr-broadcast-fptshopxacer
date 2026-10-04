@@ -69,8 +69,7 @@ export function createBroadcastPublisher(dependencies: {
 	return {
 		/**
 		 * Normal publications deduplicate unchanged persisted revisions.
-		 * Phase 6 volatile provider updates can call publish({ force: true }) so live data
-		 * advances the SSE stream without staling operator control forms.
+		 * Volatile live telemetry is published independently by server/live/publisher.ts.
 		 */
 		publish(options: { force?: boolean } = {}) {
 			return serialize(async () => (await refresh(options.force ?? false)).snapshot);

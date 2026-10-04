@@ -66,6 +66,15 @@
 					>
 						<LayoutDashboard size={18} aria-hidden="true" /> Dashboard
 					</Navigation.TriggerAnchor>
+					<Navigation.TriggerAnchor
+						href="/admin/settings"
+						aria-current={page.url.pathname === '/admin/settings' ? 'page' : undefined}
+						class="flex items-center gap-2 rounded-base px-3 py-2 text-sm font-medium {page.url
+							.pathname === '/admin/settings'
+							? 'preset-filled-primary-500'
+							: 'hover:preset-tonal-primary'}"
+						><Settings2 size={18} aria-hidden="true" /> Settings</Navigation.TriggerAnchor
+					>
 				</Navigation.Group>
 				{#each [{ label: 'Preparation', items: [{ href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game Resources', active: resourcesActive, icon: Map }, { href: '/admin/tournaments', label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] }, { label: 'GFX Control', items: [{ href: '/admin/graphics', label: 'Global Settings', active: page.url.pathname === '/admin/graphics', icon: Settings2 }, ...graphicIds.map( (id) => ({ href: `/admin/graphics/${id}`, label: graphicLabels[id], active: page.url.pathname === `/admin/graphics/${id}`, icon: Monitor }) )] }] as group (group.label)}
 					<Navigation.Group class="contents md:flex md:w-full md:flex-col md:gap-1">

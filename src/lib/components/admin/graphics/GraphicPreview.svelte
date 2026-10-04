@@ -3,11 +3,25 @@
 	import GraphicRenderer from '#lib/broadcast/GraphicRenderer.svelte';
 	import { graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
+	import { onMount } from 'svelte';
+	import type { LiveGameEnvelope } from '#lib/live/types.ts';
+	import type { LiveResources } from '#lib/live/selectors.ts';
+	import { fetchLiveResources } from '#lib/live/resources.ts';
 	let {
 		graphic,
 		snapshot,
-		connection
-	}: { graphic: GraphicId; snapshot: BroadcastSnapshot; connection: string } = $props();
+		connection,
+		telemetry = null
+	}: {
+		graphic: GraphicId;
+		snapshot: BroadcastSnapshot;
+		connection: string;
+		telemetry?: LiveGameEnvelope | null;
+	} = $props();
+	let resources = $state.raw<LiveResources | null>(null);
+	onMount(() => {
+		void fetchLiveResources().then((value) => (resources = value));
+	});
 	let width = $state(0);
 	let largeWidth = $state(0);
 	let modal = $state<HTMLDialogElement>();
@@ -27,7 +41,7 @@
 	<p class="text-sm">Latest saved data · {connection}. Unsaved editor fields appear after Save.</p>
 	<div class="preview-canvas" bind:clientWidth={width}>
 		<div class="composition" style:transform={`scale(${width / 1920})`}>
-			<GraphicRenderer {graphic} {snapshot} mode="preview" />
+			<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode="preview" />
 		</div>
 	</div>
 	<p class="text-sm">1920×1080 · Preview stays visible when program is hidden.</p>
@@ -47,7 +61,7 @@
 	</header>
 	<div class="preview-canvas" bind:clientWidth={largeWidth}>
 		<div class="composition" style:transform={`scale(${largeWidth / 1920})`}>
-			<GraphicRenderer {graphic} {snapshot} mode="preview" />
+			<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode="preview" />
 		</div>
 	</div>
 </dialog>

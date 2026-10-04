@@ -3,6 +3,7 @@ import { db } from '#lib/server/db/index.ts';
 import { agents, maps, weapons } from '#lib/server/db/schema/index.ts';
 import { removeAsset, saveCatalogueImage } from '#lib/server/assets.ts';
 import { hasDatabaseError, SaveError } from './save-error';
+import type { AgentAbilitySlot } from '#lib/resources/types.ts';
 
 export type ResourceKind = 'map' | 'agent' | 'weapon';
 
@@ -164,6 +165,7 @@ type CatalogueRecord = {
 	isPlayableCharacter?: boolean;
 	category?: string | null;
 	killStreamIcon?: string | null;
+	abilities?: Array<{ slot: string; displayName: string; displayIcon: string | null }> | null;
 };
 
 async function catalogue(path: string): Promise<CatalogueRecord[]> {
@@ -197,6 +199,19 @@ function validRecord(value: unknown): value is CatalogueRecord {
 		['displayIcon', 'mapUrl', 'splash', 'fullPortrait', 'category', 'killStreamIcon'].every(
 			(field) => row[field] == null || typeof row[field] === 'string'
 		) &&
+		(row.abilities == null ||
+			(Array.isArray(row.abilities) &&
+				row.abilities.length <= 10 &&
+				row.abilities.every((ability: unknown) => {
+					if (!ability || typeof ability !== 'object') return false;
+					const item = ability as Record<string, unknown>;
+					return (
+						typeof item.slot === 'string' &&
+						typeof item.displayName === 'string' &&
+						item.displayName.length <= 100 &&
+						(item.displayIcon == null || typeof item.displayIcon === 'string')
+					);
+				}))) &&
 		(row.role == null ||
 			(typeof row.role === 'object' &&
 				['displayName', 'displayIcon'].every((field) => {
@@ -357,6 +372,15 @@ async function syncAgents(onProgress?: ProgressReporter) {
 		addMissingUrl(missingUrls, row.displayIcon, old?.displayIconPath);
 		addMissingUrl(missingUrls, row.fullPortrait, old?.fullPortraitPath);
 		addMissingUrl(missingUrls, row.role?.displayIcon, old?.roleIconPath);
+		for (const ability of row.abilities ?? []) {
+			const slot = abilitySlot(ability.slot);
+			if (slot)
+				addMissingUrl(
+					missingUrls,
+					ability.displayIcon,
+					old?.abilities.find((item) => item.slot === slot)?.displayIconPath
+				);
+		}
 	}
 
 	const created: string[] = [];
@@ -365,11 +389,26 @@ async function syncAgents(onProgress?: ProgressReporter) {
 		const prepared: (typeof agents.$inferInsert)[] = [];
 		for (const row of rows) {
 			const old = oldByUuid.get(row.uuid);
+			const abilities: typeof agents.$inferSelect.abilities = [];
+			for (const ability of row.abilities ?? []) {
+				const slot = abilitySlot(ability.slot);
+				if (!slot || abilities.some((item) => item.slot === slot)) continue;
+				abilities.push({
+					slot,
+					displayName: ability.displayName.trim(),
+					displayIconPath: await local(
+						ability.displayIcon,
+						old?.abilities.find((item) => item.slot === slot)?.displayIconPath,
+						`${row.displayName} ${ability.displayName}`
+					)
+				});
+			}
 			prepared.push({
 				valorantApiUuid: row.uuid,
 				key: old?.key ?? `catalog-${row.uuid}`,
 				displayName: row.displayName.trim(),
 				roleName: row.role?.displayName?.trim() || null,
+				abilities,
 				roleIconPath: await local(
 					row.role?.displayIcon,
 					old?.roleIconPath,
@@ -411,6 +450,19 @@ async function syncAgents(onProgress?: ProgressReporter) {
 		await Promise.all(created.map(removeAsset));
 		throw cause;
 	}
+}
+
+function abilitySlot(slot: string): AgentAbilitySlot | null {
+	return (
+		(
+			{
+				Grenade: 'grenade',
+				Ability1: 'ability1',
+				Ability2: 'ability2',
+				Ultimate: 'ultimate'
+			} as const
+		)[slot as 'Grenade' | 'Ability1' | 'Ability2' | 'Ultimate'] ?? null
+	);
 }
 
 async function syncWeapons(onProgress?: ProgressReporter) {

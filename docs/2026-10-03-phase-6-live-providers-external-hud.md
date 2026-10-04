@@ -2,6 +2,8 @@
 
 Recorded: 2026-10-03
 
+Implementation status: 2026-10-04. Tasks 0–11 are implemented as the first external HUD and provider integration. Automated fixture/browser verification is recorded below. Task 12's real Spectra/GStack sessions and external HUD/OBS composition remain pending; neither provider is declared broadcast-ready.
+
 ## Purpose
 
 Phase 6 connects live VALORANT data to the broadcast controller without making either provider schema part of the graphics contract.
@@ -47,7 +49,7 @@ This Phase 6 plan should reference that contract rather than duplicate wire-leve
 
 ## Architecture
 
-~~~text
+```text
                     server-only provider configuration
                                   |
                                   v
@@ -83,7 +85,7 @@ This Phase 6 plan should reference that contract rather than duplicate wire-leve
             |                     |
             v                     v
       External-data HUD       Native fallback
-~~~
+```
 
 The existing BroadcastSnapshot still supplies canonical context such as selected tournament/match/game, team branding, prepared lineup, presentation order, starting/current sides, series score and map information.
 
@@ -93,120 +95,115 @@ The live stream supplies only volatile observations.
 
 The exact type names may change during implementation, but the semantics should remain close to the following.
 
-~~~ts
+```ts
 type LiveProviderId = 'spectra' | 'gstack';
 
 type LiveGamePhase =
-  | 'unknown'
-  | 'lobby'
-  | 'agent-select'
-  | 'buy'
-  | 'combat'
-  | 'post-round'
-  | 'game-end';
+	'unknown' | 'lobby' | 'agent-select' | 'buy' | 'combat' | 'post-round' | 'game-end';
 
 type LiveProviderHealth =
-  | 'disabled'
-  | 'connecting'
-  | 'live'
-  | 'retrying'
-  | 'fallback'
-  | 'ready'
-  | 'error';
+	'disabled' | 'connecting' | 'live' | 'retrying' | 'fallback' | 'ready' | 'error';
 
 type LiveAbilityState = {
-  grenade: number | null;
-  ability1: number | null;
-  ability2: number | null;
+	grenade: number | null;
+	ability1: number | null;
+	ability2: number | null;
 };
 
 type LiveUltimateState = {
-  ready: boolean | null;
-  current: number | null;
-  required: number | null;
+	ready: boolean | null;
+	current: number | null;
+	required: number | null;
 };
 
 type LiveShieldState = {
-  raw: string | null;
-  kind: 'none' | 'light' | 'heavy' | 'regen' | 'standard' | 'unknown';
-  current: number | null;
-  extra: number | null;
+	raw: string | null;
+	kind: 'none' | 'light' | 'heavy' | 'regen' | 'standard' | 'unknown';
+	current: number | null;
+	extra: number | null;
 };
 
 type LivePlayerCapabilities = {
-  health: boolean;
-  abilities: boolean;
-  enhancedHealth: boolean;
-  enhancedShield: boolean;
-  scoreboard: boolean;
+	health: boolean;
+	abilities: boolean;
+	enhancedHealth: boolean;
+	enhancedShield: boolean;
+	scoreboard: boolean;
 };
 
 type LivePlayerState = {
-  providerKey: string;
-  providerSlot: number | null;
+	providerKey: string;
+	providerSlot: number | null;
 
-  playerId: string | null;
-  entryId: string | null;
+	playerId: string | null;
+	entryId: string | null;
 
-  observedName: string | null;
-  agent: string | null;
-  weapon: string | null;
+	observedName: string | null;
+	agent: string | null;
+	weapon: string | null;
 
-  alive: boolean | null;
-  observed: boolean | null;
-  hasSpike: boolean | null;
+	alive: boolean | null;
+	observed: boolean | null;
+	hasSpike: boolean | null;
 
-  health: number | null;
-  extraHealth: number | null;
-  shield: LiveShieldState;
+	health: number | null;
+	extraHealth: number | null;
+	shield: LiveShieldState;
 
-  kills: number | null;
-  deaths: number | null;
-  assists: number | null;
-  credits: number | null;
+	kills: number | null;
+	deaths: number | null;
+	assists: number | null;
+	credits: number | null;
 
-  ultimate: LiveUltimateState;
-  abilities: LiveAbilityState;
-  capabilities: LivePlayerCapabilities;
+	ultimate: LiveUltimateState;
+	abilities: LiveAbilityState;
+	capabilities: LivePlayerCapabilities;
 };
 
 type LiveTeamState = {
-  providerSide: 'left' | 'right' | 'team-0' | 'team-1';
-  entryId: string | null;
-  observedName: string | null;
-  score: number | null;
-  attacking: boolean | null;
-  players: LivePlayerState[];
+	providerSide: 'left' | 'right' | 'team-0' | 'team-1';
+	entryId: string | null;
+	observedName: string | null;
+	score: number | null;
+	attacking: boolean | null;
+	players: LivePlayerState[];
 };
 
 type LiveSpikeState = {
-  state: 'unknown' | 'carried' | 'dropped' | 'planted' | 'defused' | 'detonated';
-  carrierPlayerId: string | null;
-  raw: string | null;
+	state: 'unknown' | 'carried' | 'dropped' | 'planted' | 'defused' | 'detonated';
+	carrierPlayerId: string | null;
+	carrierRaw: string | null;
+	raw: string | null;
 };
 
 type LiveGameState = {
-  version: 1;
+	version: 1;
 
-  provider: LiveProviderId;
-  generation: number;
-  selectedGameId: string | null;
+	provider: LiveProviderId;
+	generation: number;
+	selectedGameId: string | null;
 
-  phase: LiveGamePhase;
-  roundNumber: number | null;
-  map: string | null;
+	phase: LiveGamePhase;
+	roundNumber: number | null;
+	map: string | null;
 
-  spike: LiveSpikeState;
-  teams: LiveTeamState[];
+	spike: LiveSpikeState;
+	teams: LiveTeamState[];
 
-  roundHistory: {
-    leftRaw: string | null;
-    rightRaw: string | null;
-  };
+	rounds: {
+		round: number;
+		winnerProviderSide: LiveTeamState['providerSide'];
+		reason: 'defuse' | 'elimination' | 'time' | 'detonation';
+	}[];
 
-  receivedAt: number;
+	roundHistory: {
+		leftRaw: string | null;
+		rightRaw: string | null;
+	};
+
+	receivedAt: number;
 };
-~~~
+```
 
 Important rules:
 
@@ -216,7 +213,9 @@ Important rules:
 - KDA should be parsed only when the complete shape is valid.
 - Ultimate Points such as 2/8 normalize to current=2 and required=8.
 - Shield R/X/numeric encodings are retained in raw even after a known normalized representation is derived.
-- SpikeCarrier and round-history strings remain raw until their encoding is confirmed with fixtures/real sessions.
+- REST SpikeCarrier remains raw until its encoding is confirmed. Round history uses the confirmed mapping in LIVE-PROVIDER-TRANSPORT.md and retains its raw strings.
+- Raw fields in the public contract are bounded scalar observations only. Arbitrary provider objects belong exclusively in redacted admin diagnostics.
+- Shield kind describes equipment. Do not invent a measured remaining shield value from an equipment code (in particular `R`).
 - Never infer provider death/disconnect from unchanged stats.
 
 ## Static and volatile broadcast lanes
@@ -235,22 +234,25 @@ The live provider stream must not increment controlRevision/dataRevision merely 
 
 Add a separate versioned envelope and decoder, analogous to the existing broadcast stream:
 
-~~~ts
+```ts
 type LiveGameEnvelope = {
-  version: 1;
-  stream: {
-    epoch: string;
-    sequence: number;
-  };
-  state: LiveGameState | null;
+	version: 1;
+	stream: {
+		epoch: string;
+		sequence: number;
+	};
+	state: LiveGameState | null;
+	status: LiveSessionStatus;
 };
-~~~
+```
+
+`LiveSessionStatus` carries the credential-free provider, generation, selected-game binding, health, native/external mode, mapping readiness, retry count/time, last receive/error and attribution state. Mode updates must reach every output immediately, including when telemetry is absent.
 
 A likely route is:
 
-~~~text
+```text
 /api/live-game/events
-~~~
+```
 
 The exact path is flexible, but it must remain read-only and credential-free.
 
@@ -270,7 +272,7 @@ Create a dedicated live-data area rather than expanding BroadcastSnapshot with p
 
 Suggested boundary:
 
-~~~text
+```text
 src/lib/live/
   types.ts
   decoder.ts
@@ -283,7 +285,7 @@ src/lib/server/live/
   providers/
     spectra.ts
     gstack.ts
-~~~
+```
 
 Exact filenames are flexible.
 
@@ -366,9 +368,9 @@ Reference repo: <https://github.com/ValoSpectra/Spectra-Server>
 
 When a Spectra session is configured, call:
 
-~~~text
+```text
 GET <SPECTRA_EXTRAS_URL>/getOrgForKey?key=<server-only access key>
-~~~
+```
 
 Map:
 
@@ -451,10 +453,10 @@ Mapping order should favor strong evidence and require confirmation when ambiguo
 
 The coordinator needs:
 
-~~~text
+```text
 provider left/team-0 -> local tournament entry
 provider right/team-1 -> local tournament entry
-~~~
+```
 
 Never convert this into Team A/B ownership automatically.
 
@@ -484,14 +486,14 @@ Implement one server-owned state machine.
 
 Required sequence after an unexpected active-source failure:
 
-~~~text
+```text
 live
   -> wait 1s -> reconnect attempt
   -> wait 2s -> reconnect attempt
   -> wait 4s -> reconnect attempt
   -> wait 8s -> reconnect attempt
   -> fallback after fourth failed attempt
-~~~
+```
 
 The waits total 15 seconds; connection/request timeout adds to elapsed time.
 
@@ -524,6 +526,8 @@ Health must not use:
 - missing health/abilities caused by absent auxiliary clients.
 
 Every asynchronous callback/timer carries the provider generation. A callback from an old source configuration must be discarded.
+
+Reconnect attempts also carry an attempt token, so callbacks from a retired connection in the same generation are discarded. Confirmed mappings survive reconnect only while provider identity evidence and the selected saved lineup still agree. Changing games or source configuration invalidates them. After server restart the session starts disconnected and native; only infrastructure configuration needs persistence.
 
 ## Task 7 — Publish volatile live telemetry separately
 
@@ -595,7 +599,7 @@ Use Spectra-Frontend-VAL26 as the primary layout/behavior reference, implemented
 
 Recommended component split:
 
-~~~text
+```text
 src/lib/broadcast/live/
   InGameHud.svelte
   MatchHeader.svelte
@@ -609,7 +613,7 @@ src/lib/broadcast/live/
   RoundHistory.svelte
   EconomyPanel.svelte
   ProviderAttribution.svelte
-~~~
+```
 
 Names are illustrative.
 
@@ -816,7 +820,7 @@ This order intentionally puts View Data before the full HUD so real payload prob
 
 Existing code to preserve/refactor rather than bypass:
 
-~~~text
+```text
 src/lib/broadcast/types.ts
 src/lib/broadcast/client.ts
 src/lib/broadcast/LiveGraphic.svelte
@@ -833,26 +837,26 @@ src/lib/components/admin/graphics/GraphicPreview.svelte
 src/routes/admin/graphics/[graphic]/
 src/routes/api/broadcast/events/+server.ts
 src/routes/gfx/live/[graphic]/
-~~~
+```
 
 Expected new ownership boundaries:
 
-~~~text
+```text
 src/lib/live/
 src/lib/server/live/
 src/lib/server/live/providers/
 src/lib/components/admin/live/
 src/lib/broadcast/live/
 src/routes/api/live-game/events/
-~~~
+```
 
-Database additions should be limited to configuration/mapping/control state that truly must survive restart. Do not persist every telemetry sample.
+Database additions should be limited to canonical resources and state that truly must survive restart. Migration 0008 adds static agent ability metadata/artwork paths; infrastructure configuration uses a server-only file, while mappings and provider operation remain process-local. Do not persist every telemetry sample.
 
 ## Verification commands
 
 Use the existing project pattern:
 
-~~~text
+```text
 pnpm check
 pnpm exec vitest run --project server <focused tests>
 pnpm exec vitest run --project client <focused tests>
@@ -860,9 +864,33 @@ pnpm exec playwright test <phase-6 tests> --workers 1
 pnpm exec prettier --check <changed files>
 pnpm lint
 pnpm build
-~~~
+```
 
 When Svelte components are written, follow AGENTS.md: consult the relevant current Svelte/SvelteKit documentation first and run the Svelte autofixer before handoff.
+
+### Implementation and verification, 2026-10-04
+
+Implemented Settings, explicit source/team/player controls, one process-owned session, Socket.IO Spectra transport/supporter lookup, GStack snapshot/delta accumulation with a literal-only command allowlist, strict shared normalization/decoding, separate coalesced live SSE, sticky native fallback, View Data/Copy JSON, the first external In-Game HUD, transient Agent Select, and centralized attribution. Spectra stable Riot identities are distinguished from positional fallback keys; changed positional names invalidate the mapping. Shield equipment never fabricates remaining shield measurements.
+
+Static agent/weapon artwork comes from the existing resource catalogue. Migration **0008** is additive (`agents.abilities` with an empty-array default). Sync Agents after migration to download ability icons; existing local artwork is reused. Only disposable test databases were migrated. Settings persist in ignored server-only `data/live-provider.json`; restart starts disconnected/native. Optional GStack `/controlpanel` and `/mapbans` diagnostic fetches are not implemented.
+
+Recorded proof:
+
+- Full server Vitest: **189 passed, 2 skipped, 41 files**. Fixtures cover strict shapes, missing-vs-zero values, unknown shield/round codes, malformed commands/snapshots, outdated generations/attempts, identity changes and the 1/2/4/8 retry/fallback/recovery sequence.
+- Focused client tests: **3 passed** across PlayerCard/attribution and held GraphicRenderer. Local names win; unavailable HP/charges are omitted; observed zero remains visible; known ability metadata renders its artwork/fallback; supporter status controls attribution.
+- Production Chrome journeys: **3 existing broadcast/workflow tests passed**, plus **1 Phase 6 journey passed**. Two controllers/two OBS pages shared exactly one upstream session/snapshot. Live deltas reached both outputs; redacted raw/normalized/connection tabs and Copy JSON worked; reconnect remained native until explicitly re-enabled; changed slot identity invalidated mapping; disconnect cleared telemetry.
+- Svelte check: **0 errors, 0 warnings**. Changed Svelte components passed the Svelte autofixer. Production build, ESLint and formatting checks for changed source/docs pass.
+- The full client suite is **not green**: **25 passed, 12 failed**. Failures are in unchanged `Pregame.svelte.test.ts` and `Statistics.svelte.test.ts`, which retain earlier template geometry/label expectations (including 64px margins and the earlier native In-Game box). Their directly tested template source is unchanged in this implementation. These require a separate reconciliation with the accepted Phase 5.1 visuals. Whole-repository Prettier also reports pre-existing formatting outside the changed files.
+
+The Phase 6 journey uses a local fixture HTTP/WS server, not GStack itself. Its 1920×1080 screenshot was inspected for symmetric five-slot rails, omitted unavailable HP/charges, retained native header/match context and attribution. This establishes browser behavior; actual spectator safe areas, alpha and field availability remain real-session checks.
+
+No third-party reference code, fonts or artwork were copied. `docs/gstack-reference/` is ignored and has no tracked files. The local/event database and provider credentials were not committed.
+
+Real acceptance remains separately pending:
+
+- [ ] Spectra event session: group/logon, auxiliary clients, stable IDs/side changes, supporter lookup and recovery.
+- [ ] GStack event session: `/livenow`, WS ports/deltas, blank/enhanced fields, unknown encodings and resynchronization.
+- [ ] External HUD in Valorant/OBS: timer/killfeed/native capture safe areas, alpha/scaling, side swap, full artwork and native fallback composition.
 
 ## Done when
 

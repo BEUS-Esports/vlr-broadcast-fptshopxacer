@@ -7,6 +7,7 @@ import { join } from 'node:path';
 process.env.VLR_E2E_DIR ??= mkdtempSync(join(tmpdir(), 'vlr-e2e-'));
 process.env.DATABASE_URL = `file:${join(process.env.VLR_E2E_DIR, 'app.db')}`;
 process.env.ASSET_DIR = join(process.env.VLR_E2E_DIR, 'assets');
+process.env.LIVE_PROVIDER_CONFIG_FILE = join(process.env.VLR_E2E_DIR, 'live-provider.json');
 
 export default defineConfig({
 	// ponytail: one shared live selection; isolate apps per worker if suite speed matters.

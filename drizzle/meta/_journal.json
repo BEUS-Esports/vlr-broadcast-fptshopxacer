@@ -57,6 +57,13 @@
       "when": 1790913906071,
       "tag": "0007_broadcast_publications",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791017394385,
+      "tag": "0008_agent_abilities",
+      "breakpoints": true
     }
   ]
 }
