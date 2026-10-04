@@ -14,8 +14,8 @@
 		identity = 'local'
 	}: {
 		snapshot: BroadcastSnapshot;
-		live: LiveGameState;
-		status: LiveSessionStatus;
+		live: LiveGameState | null;
+		status: LiveSessionStatus | null;
 		resources: LiveResources | null;
 		identity?: 'local' | 'provider';
 	} = $props();
@@ -27,7 +27,7 @@
 						? snapshot.presentation.leftEntryId
 						: snapshot.presentation.rightEntryId
 					: null;
-			const team = live.teams.find((team) =>
+			const team = live?.teams.find((team) =>
 				identity === 'local'
 					? team.entryId === entryId
 					: position === 'left'
@@ -36,10 +36,7 @@
 			);
 			const local =
 				identity === 'local' ? snapshot.teams.find((team) => team.entryId === entryId) : null;
-			const name =
-				identity === 'local'
-					? (local?.name ?? 'Team unavailable')
-					: (team?.observedName ?? `Provider ${position}`);
+			const name = identity === 'local' ? (local?.name ?? '') : (team?.observedName ?? '');
 			const side: ReturnType<typeof gameplaySide> =
 				identity === 'local'
 					? gameplaySide(snapshot, entryId)
@@ -61,17 +58,23 @@
 	class="hud"
 	data-live-hud
 	data-identity={identity}
-	data-provider-generation={live.generation}
+	data-provider-generation={live?.generation ?? ''}
 >
-	<NativeInGame {snapshot} {teamPresentation} />
+	<NativeInGame
+		{snapshot}
+		{teamPresentation}
+		blankMissing
+		mapName={identity === 'provider' ? (live?.map ?? null) : null}
+	/>
 	<div class="round-context">
-		{#if live.roundNumber !== null}<span>ROUND {live.roundNumber}</span
-			>{/if}{#if live.spike.state !== 'unknown' && live.spike.state !== 'carried'}<strong
+		{#if live?.roundNumber !== null && live?.roundNumber !== undefined}<span
+				>ROUND {live.roundNumber}</span
+			>{/if}{#if live && live.spike.state !== 'unknown' && live.spike.state !== 'carried'}<strong
 				>{live.spike.state.toUpperCase()}</strong
 			>{/if}
 	</div>
 	{#each rails as { position, entryId, team, label, side } (position)}
-		<div class="score" data-position={position}>{team?.score ?? '—'}</div>
+		<div class="score" data-position={position}>{team?.score ?? ''}</div>
 		<div
 			class="rail"
 			data-position={position}
@@ -80,7 +83,7 @@
 		>
 			<div class="rail-label">
 				<strong>{label}</strong><span
-					>{live.phase === 'buy' ? 'BUY PHASE' : (side?.toUpperCase() ?? '')}</span
+					>{live?.phase === 'buy' ? 'BUY PHASE' : (side?.toUpperCase() ?? '')}</span
 				>
 			</div>
 			{#each [1, 2, 3, 4, 5] as slot (slot)}
@@ -98,7 +101,7 @@
 			{/each}
 		</div>
 	{/each}
-	{#if live.rounds.length}<div class="history" role="group" aria-label="Round history">
+	{#if live?.rounds.length}<div class="history" role="group" aria-label="Round history">
 			<div class="history-teams">
 				<strong>{rails[0].label}</strong>
 				<strong>{rails[1].label}</strong>
@@ -120,7 +123,7 @@
 					></span
 				>{/each}
 		</div>{/if}
-	<ProviderAttribution {status} />
+	{#if status}<ProviderAttribution {status} />{/if}
 </section>
 
 <style>

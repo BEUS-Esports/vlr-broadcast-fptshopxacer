@@ -1,12 +1,16 @@
 <script lang="ts">
-	let { path, label }: { path: string | null; label: string } = $props();
+	let {
+		path,
+		label,
+		blankMissing = false
+	}: { path: string | null; label: string; blankMissing?: boolean } = $props();
 	let failedPath = $state<string | null>(null);
 </script>
 
 <span class="asset">
 	{#if path && failedPath !== path}
 		<img src={path} alt={label} onerror={() => (failedPath = path)} />
-	{:else}
+	{:else if !blankMissing}
 		<span class="placeholder" role="img" aria-label={`${label}: image unavailable`}>—</span>
 	{/if}
 </span>

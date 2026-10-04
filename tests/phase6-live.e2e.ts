@@ -119,6 +119,21 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await save(page, 'Take game live');
 		await page.goto('/admin/graphics/in-game');
 		await save(page, 'Show In-Game');
+		const preview = page.getByRole('region', { name: 'Preview', exact: true });
+		const livePreview = page.getByRole('region', { name: 'Preview Live Data HUD', exact: true });
+		await expect(livePreview.locator('[data-live-hud]')).toBeVisible();
+		await expect(livePreview.locator('[data-live-hud] article')).toHaveCount(10);
+		await expect(livePreview.locator('[data-health]')).toHaveCount(0);
+		await expect(livePreview.locator('.placeholder')).toHaveCount(0);
+		await expect(livePreview.locator('.score')).toHaveText(['', '']);
+		await livePreview.getByRole('button', { name: 'Large Preview', exact: true }).click();
+		const emptyPreview = page.getByRole('dialog', {
+			name: 'Large Preview · Live Data HUD',
+			exact: true
+		});
+		await expect(emptyPreview.locator('[data-live-hud] article')).toHaveCount(10);
+		await emptyPreview.screenshot({ path: testInfo.outputPath('empty-live-hud-template.png') });
+		await emptyPreview.getByRole('button', { name: 'Close Preview', exact: true }).click();
 
 		await page.goto('/admin/settings');
 		await page.getByRole('combobox', { name: 'Region', exact: true }).selectOption('custom');
@@ -158,8 +173,6 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await page.goto('/admin/graphics/in-game');
 		const controls = page.getByRole('region', { name: 'Live provider', exact: true });
 		await expect(controls.getByRole('status')).toContainText('ready');
-		const preview = page.getByRole('region', { name: 'Preview', exact: true });
-		const livePreview = page.getByRole('region', { name: 'Preview Live Data HUD', exact: true });
 		await expect(preview.getByRole('region', { name: 'In-Game', exact: true })).toBeVisible();
 		await expect(livePreview.locator('[data-live-hud]')).toBeVisible();
 		await expect(livePreview.locator('[data-live-hud]')).toContainText('Observed Alpha');
@@ -326,6 +339,9 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 			'none'
 		);
 		expect((await latestTelemetry(outputs[0])).state).toBeNull();
+		await expect(livePreview.locator('[data-live-hud]')).toBeVisible();
+		await expect(livePreview.locator('[data-health]')).toHaveCount(0);
+		await expect(livePreview.locator('[data-live-hud] article')).toHaveCount(10);
 	} finally {
 		await request
 			.post('/admin/live', {

@@ -5,7 +5,7 @@
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 	import { onMount } from 'svelte';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
-	import { externalGame, type LiveResources } from '#lib/live/selectors.ts';
+	import type { LiveResources } from '#lib/live/selectors.ts';
 	import { fetchLiveResources } from '#lib/live/resources.ts';
 	let {
 		graphic,
@@ -25,9 +25,6 @@
 		`Large Preview · ${variant === 'live-data' ? 'Live Data HUD' : graphicLabels[graphic]}`
 	);
 	const renderMode = $derived(variant === 'live-data' ? 'preview-live' : 'preview');
-	const liveAvailable = $derived(
-		variant === 'live-data' && externalGame(snapshot, telemetry, 'preview') !== null
-	);
 	let resources = $state.raw<LiveResources | null>(null);
 	onMount(() => {
 		void fetchLiveResources().then((value) => (resources = value));
@@ -38,16 +35,9 @@
 </script>
 
 {#snippet canvasContent(canvasWidth: number)}
-	{#if variant === 'live-data' && !liveAvailable}
-		<div class="unavailable" role="status">
-			<strong>Live data unavailable</strong>
-			<p>Connect a data source and wait for its first update to preview the HUD.</p>
-		</div>
-	{:else}
-		<div class="composition" style:transform={`scale(${canvasWidth / 1920})`}>
-			<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode={renderMode} />
-		</div>
-	{/if}
+	<div class="composition" style:transform={`scale(${canvasWidth / 1920})`}>
+		<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode={renderMode} />
+	</div>
 {/snippet}
 
 <section aria-label={title} class="admin-editor space-y-3">
@@ -63,8 +53,8 @@
 	</header>
 	{#if variant === 'live-data'}
 		<p class="text-sm">
-			Current provider data · {telemetry?.status.health ?? 'disconnected'}. Preview is available
-			before mapping. Confirm mapping and enable external HUD to use it on program.
+			HUD template · {telemetry?.status.health ?? 'disconnected'}. Available data fills in
+			automatically. Confirm mapping and enable external HUD to use it on program.
 		</p>
 	{:else}
 		<p class="text-sm">
@@ -112,22 +102,6 @@
 		width: 1920px;
 		height: 1080px;
 		transform-origin: top left;
-	}
-	.unavailable {
-		position: absolute;
-		inset: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		padding: 1rem;
-		text-align: center;
-		background: rgb(16 21 29 / 85%);
-	}
-	.unavailable p {
-		max-width: 32rem;
-		font-size: 0.875rem;
 	}
 	dialog {
 		width: min(94vw, calc((90dvh - 5rem) * 16 / 9));

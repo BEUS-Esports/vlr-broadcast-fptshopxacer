@@ -5,9 +5,13 @@
 
 	let {
 		snapshot,
-		teamPresentation = null
+		teamPresentation = null,
+		blankMissing = false,
+		mapName = null
 	}: {
 		snapshot: BroadcastSnapshot;
+		blankMissing?: boolean;
+		mapName?: string | null;
 		teamPresentation?: Record<
 			'left' | 'right',
 			{ name: string; side: 'attack' | 'defense' | null }
@@ -25,7 +29,7 @@
 	aria-label="In-Game"
 	data-side-source={teamPresentation ? 'provider' : snapshot.sides.source}
 >
-	{#if snapshot.selection || teamPresentation}
+	{#if snapshot.selection || teamPresentation || blankMissing}
 		<div class="top-wrap">
 			{#each ['left', 'right'] as const as position (position)}
 				{@const team = position === 'left' ? teams.left : teams.right}
@@ -36,7 +40,7 @@
 						? snapshot.presentation.leftEntryId
 						: snapshot.presentation.rightEntryId}
 				{@const side = presented ? presented.side : gameplaySide(snapshot, entryId)}
-				{@const wins = teamScore(snapshot, entryId, 'match') ?? 0}
+				{@const wins = teamScore(snapshot, entryId, 'match')}
 
 				<div
 					class="team-rail"
@@ -44,10 +48,10 @@
 					data-entry-id={entryId ?? ''}
 					data-side={side ?? 'neutral'}
 				>
-					{#if position === 'right' && !presented}
-						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+					{#if position === 'right' && !presented && (!blankMissing || wins !== null)}
+						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
 							{#each winSlots as index (index)}
-								<span class:won={index < wins}></span>
+								<span class:won={index < (wins ?? 0)}></span>
 							{/each}
 						</div>
 					{/if}
@@ -57,13 +61,14 @@
 						assetPath={presented
 							? null
 							: (team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null)}
-						unavailable="Team unavailable"
+						unavailable={blankMissing ? '' : 'Team unavailable'}
+						{blankMissing}
 					/>
 
-					{#if position === 'left' && !presented}
-						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+					{#if position === 'left' && !presented && (!blankMissing || wins !== null)}
+						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
 							{#each winSlots as index (index)}
-								<span class:won={index < wins}></span>
+								<span class:won={index < (wins ?? 0)}></span>
 							{/each}
 						</div>
 					{/if}
@@ -72,14 +77,17 @@
 
 			<div class="center-mark" aria-hidden="true"></div>
 			<div class="sponsor-slot" data-sponsor-safe-area aria-label="Reserved sponsor logo loop">
-				<span>SPONSOR LOOP</span>
+				{#if !blankMissing}<span>SPONSOR LOOP</span>{/if}
 			</div>
 		</div>
 
 		<div class="match-bug">
-			<strong>{snapshot.match?.label ?? 'MATCH'}</strong>
-			<span>{snapshot.game?.name ?? `GAME ${snapshot.game?.number ?? '—'}`}</span>
-			<p>{snapshot.game?.map?.displayName ?? 'MAP TBD'}</p>
+			<strong>{snapshot.match?.label ?? (blankMissing ? '' : 'MATCH')}</strong>
+			<span
+				>{snapshot.game?.name ??
+					(blankMissing && !snapshot.game ? '' : `GAME ${snapshot.game?.number ?? '—'}`)}</span
+			>
+			<p>{mapName ?? snapshot.game?.map?.displayName ?? (blankMissing ? '' : 'MAP TBD')}</p>
 		</div>
 	{:else}
 		<p class="empty">No game selected</p>

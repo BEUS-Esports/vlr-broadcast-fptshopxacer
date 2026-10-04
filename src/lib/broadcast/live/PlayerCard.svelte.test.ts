@@ -29,7 +29,7 @@ const resources: LiveResources = {
 	weapons: []
 };
 
-it('keeps local identity, omits unavailable measurements and retains known ability icons', async () => {
+it('keeps local identity and omits unavailable measurements and artwork', async () => {
 	const view = render(PlayerCard, {
 		saved,
 		resources,
@@ -39,9 +39,7 @@ it('keeps local identity, omits unavailable measurements and retains known abili
 	expect(view.container.textContent).not.toContain('Unapproved upstream name');
 	expect(view.container.querySelector('[data-health]')).toBeNull();
 	expect(view.container.querySelector('[data-ability-charges]')).toBeNull();
-	expect(
-		view.container.querySelector('[aria-label="Cloudburst: image unavailable"]')
-	).not.toBeNull();
+	expect(view.container.querySelector('.placeholder')).toBeNull();
 	await view.rerender({
 		saved,
 		resources,
@@ -56,6 +54,41 @@ it('keeps local identity, omits unavailable measurements and retains known abili
 	});
 	expect(view.container.querySelector('[data-health]')?.textContent).toContain('0');
 	expect(view.container.querySelectorAll('[data-ability-charges]')).toHaveLength(2);
+});
+
+it('leaves missing player fields blank while retaining measured zero and partial data', async () => {
+	const view = render(PlayerCard, { saved: undefined, resources: null, live: null });
+	expect(view.container.querySelector('article')).not.toBeNull();
+	expect(view.container.textContent?.trim()).toBe('');
+	expect(view.container.querySelector('.placeholder')).toBeNull();
+	await view.rerender({
+		saved: undefined,
+		resources: null,
+		live: livePlayerFixture({
+			observedName: 'Observed player',
+			agent: null,
+			weapon: null,
+			health: 0,
+			credits: 0,
+			kills: 0,
+			deaths: null,
+			assists: 2,
+			shield: { raw: null, kind: 'unknown', current: null, extra: null },
+			ultimate: { ready: null, current: 0, required: null },
+			abilities: {
+				grenade: { current: 0, capacity: 2 },
+				ability1: { current: null, capacity: null },
+				ability2: { current: null, capacity: null }
+			}
+		})
+	});
+	expect(view.container.textContent).toContain('Observed player');
+	expect(view.container.querySelector('[data-health]')?.textContent).toMatch(/^0\s+HP$/);
+	expect(view.container.querySelector('.credits')?.textContent).toContain('0');
+	expect(view.container.querySelector('.kda')?.textContent).toBe('0//2');
+	expect(view.container.querySelector('.ultimate')?.textContent).toBe('ULT 0');
+	expect(view.container.querySelectorAll('[data-ability-dot]')).toHaveLength(2);
+	expect(view.container.querySelectorAll('.ability')).toHaveLength(1);
 });
 
 it('renders available and spent dots only when ability capacity is known', async () => {

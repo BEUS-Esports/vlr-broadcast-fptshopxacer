@@ -160,7 +160,29 @@ it('keeps normal and live HUD previews independent of the on-air HUD mode', asyn
 		mode: 'preview-live',
 		telemetry: { ...telemetry, state: null }
 	});
-	expect(live.container.querySelector('[data-live-hud]')).toBeNull();
+	expect(live.container.querySelector('[data-live-hud]')).not.toBeNull();
+	expect(live.container.querySelectorAll('[data-health]')).toHaveLength(0);
+});
+
+it('shows the entire live HUD template immediately with empty fields when no data exists', () => {
+	const snapshot: BroadcastSnapshot = {
+		...preparedFixture(),
+		selection: null,
+		match: null,
+		game: null,
+		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+	};
+	const view = render(GraphicRenderer, {
+		graphic: 'in-game',
+		snapshot,
+		mode: 'preview-live'
+	});
+	const hud = view.container.querySelector('[data-live-hud]');
+	expect(hud).not.toBeNull();
+	expect(hud?.querySelectorAll('.team-rail')).toHaveLength(2);
+	expect(hud?.querySelectorAll('article')).toHaveLength(10);
+	expect(hud?.textContent?.trim()).toBe('');
+	expect(view.container.textContent).not.toContain('Live data unavailable');
 });
 
 it('renders a provider template without game preparation or healthy status', () => {

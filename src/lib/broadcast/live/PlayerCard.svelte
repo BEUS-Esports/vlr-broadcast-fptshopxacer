@@ -28,6 +28,18 @@
 	const ultimateArtwork = $derived(
 		catalogAgent?.abilities?.find((ability) => ability.slot === 'ultimate') ?? null
 	);
+	const ultimate = $derived(live?.ultimate ?? null);
+	const ultimateText = $derived(
+		ultimate?.ready === true
+			? 'ULT READY'
+			: ultimate?.current !== null && ultimate?.current !== undefined
+				? `ULT ${ultimate.current}${ultimate.required === null ? '' : `/${ultimate.required}`}`
+				: ultimate?.required !== null && ultimate?.required !== undefined
+					? `ULT MAX ${ultimate.required}`
+					: ultimate?.ready === false
+						? 'ULT NOT READY'
+						: null
+	);
 </script>
 
 <article
@@ -39,12 +51,13 @@
 	<div class="agent">
 		<Asset
 			path={agent?.displayIconPath ?? null}
-			label={agent?.displayName ?? 'Agent unavailable'}
-		/><span>{agent?.displayName ?? live?.agent ?? '—'}</span>
+			label={agent?.displayName ?? live?.agent ?? ''}
+			blankMissing
+		/><span>{agent?.displayName ?? live?.agent ?? ''}</span>
 	</div>
 	<div class="details">
 		<header>
-			<strong>{saved?.player?.displayName ?? live?.observedName ?? 'Player unavailable'}</strong
+			<strong>{saved?.player?.displayName ?? live?.observedName ?? ''}</strong
 			>{#if live?.hasSpike === true}<b class="spike" aria-label="Spike carrier">◆</b
 				>{/if}{#if live?.alive === false}<b class="death">DEAD</b>{/if}
 		</header>
@@ -52,9 +65,11 @@
 			{#if weapon?.displayIconPath}<Asset
 					path={weapon.displayIconPath}
 					label={weapon.displayName}
-				/>{:else}<span>{live?.weapon ?? '—'}</span>{/if}<span class="credits"
-				>¤ {live?.credits?.toLocaleString('en-US') ?? '—'}</span
-			>
+					blankMissing
+				/>{:else}<span>{live?.weapon ?? ''}</span>{/if}
+			{#if live?.credits !== null && live?.credits !== undefined}<span class="credits"
+					>¤ {live.credits.toLocaleString('en-US')}</span
+				>{/if}
 		</div>
 		<div class="vitals">
 			{#if live?.health !== null && live?.health !== undefined}<strong class="hp" data-health
@@ -74,7 +89,9 @@
 			{#if live?.shield.extra !== null && live?.shield.extra !== undefined}<span class="enhanced"
 					>+{live.shield.extra} SH</span
 				>{/if}
-			<span class="kda">{live?.kills ?? '—'}/{live?.deaths ?? '—'}/{live?.assists ?? '—'}</span>
+			{#if live && [live.kills, live.deaths, live.assists].some((value) => value !== null)}<span
+					class="kda">{live.kills ?? ''}/{live.deaths ?? ''}/{live.assists ?? ''}</span
+				>{/if}
 		</div>
 		{#if live?.health !== null && live?.health !== undefined}<div
 				class="health-track"
@@ -84,38 +101,37 @@
 			</div>{/if}
 		<footer>
 			<div class="abilities" aria-label="Ability charges">
-				{#each abilities as ability, i (ability.slot)}<span
-						class="ability"
-						aria-label={`${ability.artwork?.displayName ?? `Ability ${i + 1}`}: ${ability.current === null ? 'charges unavailable' : ability.capacity === null ? `${ability.current} charges, capacity unavailable` : `${ability.current} of ${ability.capacity} charges`}`}
-						>{#if ability.artwork}<Asset
-								path={ability.artwork.displayIconPath}
-								label={ability.artwork.displayName}
-							/>{:else}<small>{['I', 'II', 'III'][i]}</small>{/if}
-						{#if ability.current !== null}
-							<span class="charges" data-ability-charges={ability.current}>
-								{#if ability.capacity !== null && ability.capacity <= 10}
-									{#each Array.from({ length: ability.capacity }, (_, index) => index) as dot (dot)}
-										<i data-ability-dot class:available={dot < ability.current}></i>
-									{/each}
-								{:else}<b
-										>{ability.current}{ability.capacity === null ? '' : `/${ability.capacity}`}</b
-									>{/if}
-							</span>
-						{/if}</span
-					>{/each}
+				{#each abilities as ability, i (ability.slot)}{#if ability.artwork?.displayIconPath || ability.current !== null}<span
+							class="ability"
+							aria-label={`${ability.artwork?.displayName ?? `Ability ${i + 1}`}: ${ability.current === null ? 'charges unavailable' : ability.capacity === null ? `${ability.current} charges, capacity unavailable` : `${ability.current} of ${ability.capacity} charges`}`}
+							>{#if ability.artwork?.displayIconPath}<Asset
+									path={ability.artwork.displayIconPath}
+									label={ability.artwork.displayName}
+									blankMissing
+								/>{:else}<small>{['I', 'II', 'III'][i]}</small>{/if}
+							{#if ability.current !== null}
+								<span class="charges" data-ability-charges={ability.current}>
+									{#if ability.capacity !== null && ability.capacity <= 10}
+										{#each Array.from({ length: ability.capacity }, (_, index) => index) as dot (dot)}
+											<i data-ability-dot class:available={dot < ability.current}></i>
+										{/each}
+									{:else}<b
+											>{ability.current}{ability.capacity === null ? '' : `/${ability.capacity}`}</b
+										>{/if}
+								</span>
+							{/if}</span
+						>{/if}{/each}
 			</div>
-			<span class:ready={live?.ultimate.ready === true} class="ultimate" aria-label="Ultimate"
-				>{#if ultimateArtwork}<Asset
-						path={ultimateArtwork.displayIconPath}
-						label={ultimateArtwork.displayName}
-					/>{/if}{live?.ultimate.ready === true
-					? 'ULT READY'
-					: live?.ultimate.current !== null &&
-						  live?.ultimate.current !== undefined &&
-						  live.ultimate.required !== null
-						? `ULT ${live.ultimate.current}/${live.ultimate.required}`
-						: 'ULT —'}</span
-			>
+			{#if ultimateText || ultimateArtwork?.displayIconPath}<span
+					class:ready={live?.ultimate.ready === true}
+					class="ultimate"
+					aria-label="Ultimate"
+					>{#if ultimateArtwork?.displayIconPath}<Asset
+							path={ultimateArtwork.displayIconPath}
+							label={ultimateArtwork.displayName}
+							blankMissing
+						/>{/if}{ultimateText ?? ''}</span
+				>{/if}
 		</footer>
 	</div>
 </article>

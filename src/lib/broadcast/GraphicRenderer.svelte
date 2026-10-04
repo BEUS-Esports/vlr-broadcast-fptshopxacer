@@ -40,6 +40,7 @@
 	);
 	const liveIdentity = $derived(
 		mode === 'preview-live' &&
+			liveGame &&
 			rendered &&
 			(!mappedGame(rendered, telemetry) ||
 				liveGame?.teams.some((team) => team.players.some((player) => !player.playerId)))
@@ -63,11 +64,11 @@
 >
 	{#if rendered}
 		<div transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}>
-			{#if liveGame && telemetry}
+			{#if (liveGame && telemetry) || (mode === 'preview-live' && graphic === 'in-game')}
 				<InGameHud
 					snapshot={rendered}
 					live={liveGame}
-					status={telemetry.status}
+					status={telemetry?.status ?? null}
 					{resources}
 					identity={liveIdentity}
 				/>
