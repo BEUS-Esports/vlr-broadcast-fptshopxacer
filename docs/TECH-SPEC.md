@@ -196,7 +196,19 @@ Transport-level details, ports, wire formats, command mappings, snapshot/delta b
 | ValoSpectra live                   | The current public server exposes Socket.IO output on the outgoing service: emit `logon` with a group code, receive `logon_success`, then consume `match_data`. The current frontend models per-player auxiliary availability for health/abilities/scoreboard.            | Real event-session field availability, side changes, disconnect/recovery behavior, and Player Client coverage.                                                        |
 | GStack live                        | A concrete `/livenow` schema and real sample are available from port 57780. Player/game values are largely strings; enhanced `Skill * Points`, `XHP`, and `XShield` may remain blank without the Expansion Client. `/controlpanel` and `/mapbans` schemas are also known. | Exact live WebSocket contract for the event build, cadence/disconnect behavior, and verified meanings for remaining encoded fields such as round history/spike masks. |
 | Spectra post-game                  | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint.                                                    | Hosted-service availability/access for the chosen setup and a successful completed-game response.                                                                     |
-| HenrikDev System's Third Party API | Includes: Get MMR, MMR History, _Live and Cached Match List_, _Live and Historical Match Detail (positions, round detail, etc...)_, etc..., fit for Post-Match, generous Free Tier (30 req/s), requires API Key.                                                          | Nothing yet                                                                                                                                                           |
+| HenrikDev post-game               | Current upstream v4 API supports recent/cached match discovery and exact historical match detail with players, teams, rounds and kills. Requires a server-only API key; current Basic-key documentation states 30 requests/minute and requires authorized/consensual data use.                              | Real event/custom-game discovery and exact-detail verification for the intended tournament workflow.                                                                  |
+
+#### Post-game import provider ownership
+
+Phase 7 uses a provider-neutral import pipeline with **HenrikDev as the recommended primary operator path** and **ValoSpectra available side-by-side as a secondary path**. Neither provider automatically falls back to or replaces the other.
+
+Provider-specific retrieval, polling and decoding must normalize into one shared post-game report contract before local game validation, participant mapping, conflict review or persistence. Manual entry remains independent and fully usable without either provider.
+
+HenrikDev discovery uses an authorized tournament participant's saved Riot ID to present recent candidate matches; the operator selects the intended match before exact-detail retrieval and import review. Spectra continues to locate its report by group code through the separate hosted statistics service.
+
+Only one provider report is authoritative for a local game's imported statistics at a time. Previewing another provider is allowed; replacing the associated source/report requires explicit review and confirmation. Imports never finalize the local game result, select an MVP, switch the live HUD/provider, or change broadcast selection.
+
+Provider-derived values must preserve the canonical statistic meanings from section 6.3. In particular, HenrikDev player score is not Performance Score without separate verification, and Trades remain unavailable until an approved trade definition exists.
 
 #### ValoSpectra's Post-Match
 
