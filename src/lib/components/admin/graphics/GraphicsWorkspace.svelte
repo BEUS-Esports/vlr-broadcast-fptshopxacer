@@ -6,6 +6,7 @@
 		readonly live: BroadcastSnapshot;
 		readonly management: GraphicsControlData['management'];
 		readonly connection: string;
+		readonly clock: import('#lib/broadcast/client.ts').BroadcastClock | null;
 	};
 </script>
 
@@ -20,7 +21,8 @@
 	let stream = $state<BroadcastClientState>({
 		connection: 'disconnected',
 		snapshot: null,
-		cursor: null
+		cursor: null,
+		clock: null
 	});
 	let refreshError = $state('');
 	const live = $derived(
@@ -50,6 +52,9 @@
 		},
 		get connection() {
 			return stream.connection;
+		},
+		get clock() {
+			return stream.clock;
 		}
 	});
 	onMount(() => {

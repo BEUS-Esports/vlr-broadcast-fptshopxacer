@@ -77,6 +77,7 @@ it('streams versioned envelopes, heartbeats, and cancels/aborts cleanly', async 
 			build: async () => snapshot
 		});
 		vi.useFakeTimers();
+		vi.setSystemTime(10000);
 		try {
 			const abort = new AbortController();
 			const response = createBroadcastResponse(publisher, abort.signal);
@@ -84,18 +85,22 @@ it('streams versioned envelopes, heartbeats, and cancels/aborts cleanly', async 
 			expect(response.headers.get('content-encoding')).toBe('identity');
 			const reader = response.body!.getReader();
 			const first = new TextDecoder().decode((await reader.read()).value);
+			expect(first).toMatch(/^event: clock\ndata: 10000\n\n/);
 			expect(first).toContain('event: snapshot');
 			expect(first).toContain('id: response-test:1');
 			expect(first).toContain('"stream":{"epoch":"response-test","sequence":1}');
 			expect(first).toContain('"controlRevision":1');
 			await vi.advanceTimersByTimeAsync(15000);
-			expect(new TextDecoder().decode((await reader.read()).value)).toBe(': heartbeat\n\n');
+			expect(new TextDecoder().decode((await reader.read()).value)).toBe(
+				'event: clock\ndata: 25000\n\n'
+			);
 			abort.abort();
 			expect((await reader.read()).done).toBe(true);
 			expect(vi.getTimerCount()).toBe(0);
 			const reconnect = createBroadcastResponse(publisher, new AbortController().signal);
 			const reReader = reconnect.body!.getReader();
 			const next = new TextDecoder().decode((await reReader.read()).value);
+			expect(next).toMatch(/^event: clock\ndata: 25000\n\n/);
 			expect(next).toContain('id: response-test:1');
 			expect(next).toContain('"controlRevision":1');
 			await reReader.cancel();

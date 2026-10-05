@@ -85,12 +85,56 @@ function fixture(): BroadcastSnapshot {
 }
 afterEach(() => vi.useRealTimers());
 
+it.each([7000, -5000])('expires on server time with %sms browser clock skew', async (offset) => {
+	vi.useFakeTimers({ toFake: ['Date', 'performance', 'setTimeout', 'clearTimeout'] });
+	vi.setSystemTime(10000 + offset);
+	const receivedAt = performance.now();
+	const clock = { now: () => 10000 + performance.now() - receivedAt };
+	const snapshot = fixture();
+	snapshot.liveControls.ceremony = {
+		type: 'round-win',
+		entryId: 'a',
+		triggeredAt: 8000,
+		sequence: 4
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock });
+	expect(view.container.textContent).toContain('ROUND WIN');
+	await vi.advanceTimersByTimeAsync(2000);
+	// A new sample for the same event must reschedule only its remaining time.
+	const resampledAt = performance.now();
+	const refreshedClock = { now: () => 12000 + performance.now() - resampledAt };
+	await view.rerender({ snapshot, clock: refreshedClock });
+	await vi.advanceTimersByTimeAsync(1999);
+	await tick();
+	expect(view.container.querySelector('[data-match-banner]')).not.toBeNull();
+	await vi.advanceTimersByTimeAsync(1);
+	await tick();
+	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
+	// Receiving the same expired event again must not restart its window.
+	await view.rerender({ snapshot: { ...snapshot }, clock });
+	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
+});
+
+it('waits for a server clock sample before displaying a ceremony', async () => {
+	const snapshot = fixture();
+	snapshot.liveControls.ceremony = {
+		type: 'round-win',
+		entryId: 'a',
+		triggeredAt: 8000,
+		sequence: 4
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: null });
+	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
+	await view.rerender({ snapshot, clock: { now: () => 10000 } });
+	expect(view.container.textContent).toContain('ROUND WIN');
+});
+
 it.each(['a', 'b'])(
 	'uses local identity and current gameplay side for tactical %s even after a presentation swap',
 	async (entryId) => {
 		const snapshot = fixture();
 		snapshot.liveControls.pause = { type: 'tactical', entryId, pendingTechnical: true };
-		const view = render(CenterMatchBanner, { snapshot });
+		const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 		const banner = () => view.container.querySelector('[data-match-banner]')!;
 		expect(banner().textContent).toContain('TACTICAL TIMEOUT');
 		expect(banner().textContent).toContain(entryId === 'a' ? 'Local Alpha' : 'Local Bravo');
@@ -115,7 +159,7 @@ it.each(['a', 'b'])(
 it('shows neutral technical state without a team or fake countdown', () => {
 	const snapshot = fixture();
 	snapshot.liveControls.pause = { type: 'technical' };
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	expect(view.container.textContent?.trim()).toBe('TECHNICAL PAUSE');
 	expect(view.container.querySelector('[data-match-banner]')?.getAttribute('data-side')).toBe(
 		'neutral'
@@ -129,7 +173,7 @@ it('uses neutral treatment for an unknown side and displays an available team lo
 	snapshot.sides.defendersEntryId = null;
 	snapshot.teams[0].logoWhitePath = '/alpha.svg';
 	snapshot.liveControls.pause = { type: 'tactical', entryId: 'a', pendingTechnical: false };
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	expect(view.container.querySelector('[data-match-banner]')?.getAttribute('data-side')).toBe(
 		'neutral'
 	);
@@ -142,7 +186,7 @@ it.each(ceremonyTypes)('shows %s and expires at the original deadline', async (t
 	vi.setSystemTime(10000);
 	const snapshot = fixture();
 	snapshot.liveControls.ceremony = { type, entryId: 'b', triggeredAt: 8000, sequence: 4 };
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	expect(view.container.textContent).toContain(ceremonyLabels[type]);
 	await vi.advanceTimersByTimeAsync(CEREMONY_VISIBLE_MS - 2001);
 	await tick();
@@ -162,7 +206,7 @@ it('reveals a queued pause at ceremony expiry with exactly one slot throughout',
 		triggeredAt: 10000,
 		sequence: 4
 	};
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	await view.rerender({
 		snapshot: {
 			...snapshot,
@@ -191,7 +235,7 @@ it('does not replay stale ceremonies on mount or reconnect and cancels dismissed
 		triggeredAt: 10000,
 		sequence: 1
 	};
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
 	await view.rerender({
 		snapshot: {
@@ -220,7 +264,7 @@ it('cancels old deadlines on replacement and removes the final timer on unmount'
 		triggeredAt: 10000,
 		sequence: 1
 	};
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	await vi.advanceTimersByTimeAsync(1000);
 	await view.rerender({
 		snapshot: {
@@ -242,7 +286,7 @@ it('cancels old deadlines on replacement and removes the final timer on unmount'
 it('suppresses orphaned team ownership and team banners without a selected local game', async () => {
 	const snapshot = fixture();
 	snapshot.liveControls.pause = { type: 'tactical', entryId: 'wrong', pendingTechnical: false };
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
 	await view.rerender({
 		snapshot: {
@@ -260,7 +304,7 @@ it('suppresses orphaned team ownership and team banners without a selected local
 it('replaces tactical with technical atomically without an entering transparent frame', async () => {
 	const snapshot = fixture();
 	snapshot.liveControls.pause = { type: 'tactical', entryId: 'a', pendingTechnical: true };
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	await view.rerender({
 		snapshot: {
 			...snapshot,
@@ -284,7 +328,7 @@ it('keeps reconnect reveal and exit tied to the original ceremony deadline', asy
 		triggeredAt: 10000,
 		sequence: 3
 	};
-	const view = render(CenterMatchBanner, { snapshot });
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	await vi.advanceTimersByTimeAsync(3000);
 	await view.rerender({
 		snapshot: {

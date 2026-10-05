@@ -37,7 +37,7 @@
 		{#key data.graphic}
 			<GraphicControls graphic={data.graphic} live={workspace.live} />
 			{#if data.graphic === 'in-game'}
-				<InGameMatchControls live={workspace.live} />
+				<InGameMatchControls live={workspace.live} clock={workspace.clock} />
 			{/if}
 			<GraphicEditors graphic={data.graphic} management={workspace.management} />
 		{/key}
@@ -50,6 +50,7 @@
 			graphic={data.graphic}
 			snapshot={workspace.live}
 			connection={workspace.connection}
+			clock={workspace.clock}
 			{telemetry}
 		/>
 		{#if data.graphic === 'in-game'}
@@ -57,6 +58,7 @@
 				graphic={data.graphic}
 				snapshot={workspace.live}
 				connection={workspace.connection}
+				clock={workspace.clock}
 				{telemetry}
 				variant="live-data"
 			/>

@@ -1,9 +1,18 @@
-import { expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
+import { tick } from 'svelte';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 import { defaultPlayerStats, defaultVisibility, graphicIds } from '#lib/broadcast/controls.ts';
 import InGameMatchControls from './InGameMatchControls.svelte';
+
+afterEach(() => vi.useRealTimers());
+
+it('disables the ceremony trigger until server time is available', () => {
+	const view = render(InGameMatchControls, { live: snapshot(), clock: null });
+	const trigger = view.container.querySelector<HTMLButtonElement>('.preset-filled-primary-500')!;
+	expect(trigger.disabled).toBe(true);
+});
 
 function snapshot(): BroadcastSnapshot {
 	const scope = {
@@ -77,7 +86,7 @@ function snapshot(): BroadcastSnapshot {
 
 it('uses local competition entries and current revisions for immediate pause commands', async () => {
 	const live = snapshot();
-	const view = render(InGameMatchControls, { live });
+	const view = render(InGameMatchControls, { live, clock: { now: Date.now } });
 	const tactical = page.getByRole('button', { name: 'Tactical Timeout · Alpha', exact: true });
 	await expect.element(tactical).toBeEnabled();
 	const payload = () =>
@@ -98,7 +107,7 @@ it('uses local competition entries and current revisions for immediate pause com
 it('shows pending Technical explicitly and offers only valid pause corrections', async () => {
 	const live = snapshot();
 	live.liveControls.pause = { type: 'tactical', entryId: 'b', pendingTechnical: true };
-	const view = render(InGameMatchControls, { live });
+	const view = render(InGameMatchControls, { live, clock: { now: Date.now } });
 	await expect
 		.element(page.getByRole('button', { name: 'Tactical Timeout · Alpha', exact: true }))
 		.toBeDisabled();
@@ -123,7 +132,7 @@ it('shows pending Technical explicitly and offers only valid pause corrections',
 
 it('gates ceremonies by active pause/event and keeps ceremony picks on the latest revision', async () => {
 	const live = snapshot();
-	const view = render(InGameMatchControls, { live });
+	const view = render(InGameMatchControls, { live, clock: { now: Date.now } });
 	await page.getByRole('combobox', { name: 'Ceremony team', exact: true }).selectOptions('b');
 	await page.getByRole('combobox', { name: 'Ceremony', exact: true }).selectOptions('clutch');
 	await view.rerender({ live: { ...live, controlRevision: 14 } });
@@ -158,7 +167,7 @@ it('gates ceremonies by active pause/event and keeps ceremony picks on the lates
 it('disables team controls when no local game is selected', async () => {
 	const live = snapshot();
 	live.selection = null;
-	render(InGameMatchControls, { live });
+	render(InGameMatchControls, { live, clock: { now: Date.now } });
 	await expect
 		.element(page.getByRole('button', { name: 'Tactical Timeout · Alpha', exact: true }))
 		.toBeDisabled();
@@ -175,8 +184,32 @@ it('allows another ceremony at the original expiry without a new snapshot', asyn
 		entryId: 'a',
 		triggeredAt: Date.now() - 5000
 	};
-	render(InGameMatchControls, { live });
+	render(InGameMatchControls, { live, clock: { now: Date.now } });
 	const trigger = page.getByRole('button', { name: 'Trigger Ceremony', exact: true });
 	await expect.element(trigger).toBeDisabled();
 	await expect.element(trigger).toBeEnabled();
+});
+
+it.each([7000, -5000])('gates ceremony controls on server time with %sms skew', async (offset) => {
+	vi.useFakeTimers({ toFake: ['Date', 'performance', 'setTimeout', 'clearTimeout'] });
+	vi.setSystemTime(10000 + offset);
+	const receivedAt = performance.now();
+	const clock = { now: () => 10000 + performance.now() - receivedAt };
+	const live = snapshot();
+	live.liveControls.ceremony = {
+		sequence: 12,
+		type: 'round-win',
+		entryId: 'a',
+		triggeredAt: 8000
+	};
+	const view = render(InGameMatchControls, { live, clock });
+	const trigger = view.container.querySelector<HTMLButtonElement>('.preset-filled-primary-500')!;
+	expect(trigger.disabled).toBe(true);
+	await vi.advanceTimersByTimeAsync(3999);
+	await tick();
+	expect(trigger.disabled).toBe(true);
+	await vi.advanceTimersByTimeAsync(1);
+	await tick();
+	expect(trigger.disabled).toBe(false);
+	expect(view.container.textContent).not.toContain('Playing;');
 });

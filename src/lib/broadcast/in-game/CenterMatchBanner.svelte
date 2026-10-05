@@ -1,18 +1,21 @@
 <script lang="ts">
 	import { prefersReducedMotion } from 'svelte/motion';
 	import type { BroadcastSnapshot } from '../types';
+	import type { BroadcastClock } from '../client';
 	import { gameplaySide, teamByEntryId } from '../selectors';
 	import { CEREMONY_VISIBLE_MS, ceremonyLabels } from '../in-game-controls';
 	import Asset from '../primitives/Asset.svelte';
 
-	let { snapshot }: { snapshot: BroadcastSnapshot } = $props();
+	let { snapshot, clock = null }: { snapshot: BroadcastSnapshot; clock?: BroadcastClock | null } =
+		$props();
 	let expiredSequence = $state<number | null>(null);
 	let departingSequence = $state<number | null>(null);
 	const ceremony = $derived(snapshot.liveControls.ceremony);
 	const freshCeremony = $derived(
 		ceremony &&
 			ceremony.sequence !== expiredSequence &&
-			Date.now() < ceremony.triggeredAt + CEREMONY_VISIBLE_MS
+			clock &&
+			clock.now() < ceremony.triggeredAt + CEREMONY_VISIBLE_MS
 			? ceremony
 			: null
 	);
@@ -34,9 +37,9 @@
 
 	// A reconnect uses the original deadline, never a new six-second window.
 	function scheduleExpiry() {
-		if (!ceremony) return;
+		if (!ceremony || !clock) return;
 		const event = ceremony;
-		const remaining = event.triggeredAt + CEREMONY_VISIBLE_MS - Date.now();
+		const remaining = event.triggeredAt + CEREMONY_VISIBLE_MS - clock.now();
 		if (remaining <= 0) return;
 		const timer = setTimeout(() => {
 			expiredSequence = event.sequence;

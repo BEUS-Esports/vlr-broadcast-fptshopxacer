@@ -135,6 +135,9 @@ test('match banners share native, empty live and Program state without publicati
 		await capture('technical-native');
 		await command(page, 'Resume Match');
 		await expect(banner(output)).toHaveCount(0);
+		// Skew only browser wall clocks; server time and monotonic timers remain untouched.
+		await page.clock.setFixedTime(new Date(Date.now() - 5000));
+		await output.clock.setFixedTime(new Date(Date.now() + 7000));
 		await command(page, 'Trigger Ceremony');
 		await allBanners('ROUND WIN', 'Alpha');
 		await capture('round-win-native');

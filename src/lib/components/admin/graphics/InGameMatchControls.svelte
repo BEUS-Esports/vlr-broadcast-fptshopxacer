@@ -8,8 +8,9 @@
 		type BroadcastCeremonyType
 	} from '#lib/broadcast/in-game-controls.ts';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
+	import type { BroadcastClock } from '#lib/broadcast/client.ts';
 
-	let { live }: { live: BroadcastSnapshot } = $props();
+	let { live, clock = null }: { live: BroadcastSnapshot; clock?: BroadcastClock | null } = $props();
 	let winner = $state('');
 	let ceremony = $state<BroadcastCeremonyType>('round-win');
 	let expiredSequence = $state<number | null>(null);
@@ -22,7 +23,8 @@
 	const playing = $derived(
 		event &&
 			event.sequence !== expiredSequence &&
-			Date.now() < event.triggeredAt + CEREMONY_VISIBLE_MS
+			clock &&
+			clock.now() < event.triggeredAt + CEREMONY_VISIBLE_MS
 			? event
 			: null
 	);
@@ -137,7 +139,7 @@
 				role="status"
 				{@attach () => {
 					const sequence = playing!.sequence;
-					const remaining = Math.max(0, playing!.triggeredAt + CEREMONY_VISIBLE_MS - Date.now());
+					const remaining = Math.max(0, playing!.triggeredAt + CEREMONY_VISIBLE_MS - clock!.now());
 					const timer = setTimeout(() => (expiredSequence = sequence), remaining);
 					return () => clearTimeout(timer);
 				}}
@@ -184,7 +186,7 @@
 		>
 			<button
 				class="btn preset-filled-primary-500"
-				disabled={!live.selection || !winnerEntryId || pause.type !== 'none' || !!playing}
+				disabled={!clock || !live.selection || !winnerEntryId || pause.type !== 'none' || !!playing}
 				>Trigger Ceremony</button
 			>
 		</ManagementForm>
