@@ -13,7 +13,10 @@
 	<div class="team">
 		<Identity
 			name={teams.teamA?.name ?? null}
-			assetPath={teams.teamA?.logoPath ?? teams.teamA?.logoWhitePath ?? teams.teamA?.logoBlackPath ?? null}
+			assetPath={teams.teamA?.logoPath ??
+				teams.teamA?.logoWhitePath ??
+				teams.teamA?.logoBlackPath ??
+				null}
 			detail={teams.teamA?.tag}
 			unavailable="Team unavailable"
 		/>
@@ -22,7 +25,10 @@
 	<div class="team right">
 		<Identity
 			name={teams.teamB?.name ?? null}
-			assetPath={teams.teamB?.logoPath ?? teams.teamB?.logoWhitePath ?? teams.teamB?.logoBlackPath ?? null}
+			assetPath={teams.teamB?.logoPath ??
+				teams.teamB?.logoWhitePath ??
+				teams.teamB?.logoBlackPath ??
+				null}
 			detail={teams.teamB?.tag}
 			unavailable="Team unavailable"
 		/>
@@ -53,7 +59,13 @@
 								: 'SIDE TBD'}
 					</small>
 				{:else}
-					<small>{step.action === 'ban' ? 'REMOVED' : step.action === 'pick' ? 'SELECTED' : 'DECIDER'}</small>
+					<small
+						>{step.action === 'ban'
+							? 'REMOVED'
+							: step.action === 'pick'
+								? 'SELECTED'
+								: 'DECIDER'}</small
+					>
 				{/if}
 			</div>
 		</li>

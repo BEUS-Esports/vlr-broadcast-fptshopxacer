@@ -1,11 +1,6 @@
 <script lang="ts">
 	import type { BroadcastSnapshot } from '../../types';
-	import {
-		presentationTeams,
-		teamScore,
-		lineupForTeam,
-		playerInScope
-	} from '../../selectors';
+	import { presentationTeams, teamScore, lineupForTeam, playerInScope } from '../../selectors';
 	import Identity from '../../primitives/Identity.svelte';
 	import ResourceCard from '../../primitives/ResourceCard.svelte';
 	import StatsFields from './StatsFields.svelte';

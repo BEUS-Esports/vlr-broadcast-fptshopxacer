@@ -12,7 +12,7 @@
 
 <script lang="ts">
 	import { onMount, getContext, setContext, untrack, type Snippet } from 'svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { createBroadcastClient, type BroadcastClientState } from '#lib/broadcast/client.ts';
 	import type { DraftRegistry } from '../management/DraftGuard.svelte';
@@ -72,7 +72,7 @@
 			try {
 				do {
 					queued = false;
-					await invalidateAll();
+					await refreshAll();
 				} while (queued);
 				refreshError = '';
 			} catch {

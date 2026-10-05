@@ -78,6 +78,13 @@
 			900 18px/1 Bahnschrift,
 			'Arial Narrow',
 			sans-serif;
-		clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+		clip-path: polygon(
+			12px 0,
+			100% 0,
+			100% calc(100% - 12px),
+			calc(100% - 12px) 100%,
+			0 100%,
+			0 12px
+		);
 	}
 </style>

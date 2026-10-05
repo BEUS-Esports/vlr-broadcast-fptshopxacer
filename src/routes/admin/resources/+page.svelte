@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Progress, Tabs } from '@skeletonlabs/skeleton-svelte';
 	import { Download, Pencil, Plus, X } from '@lucide/svelte';
@@ -114,7 +114,7 @@
 			}
 
 			if (buffer.trim()) handleSyncEvent(JSON.parse(buffer) as SyncEvent);
-			if (!syncError) await invalidateAll();
+			if (!syncError) await refreshAll();
 		} catch (cause) {
 			syncError = cause instanceof Error ? cause.message : 'Catalogue sync failed.';
 		} finally {
@@ -173,13 +173,13 @@
 	<Tabs value={tab} onValueChange={(details) => (tab = details.value as TabValue)}>
 		<Tabs.List class="w-full overflow-x-auto border-b border-surface-200-800">
 			<Tabs.Trigger value="maps" class="min-w-max">
-				Maps <span class="badge ml-2 preset-tonal-primary">{data.maps.length}</span>
+				Maps <span class="ml-2 badge preset-tonal-primary">{data.maps.length}</span>
 			</Tabs.Trigger>
 			<Tabs.Trigger value="agents" class="min-w-max">
-				Agents <span class="badge ml-2 preset-tonal-primary">{data.agents.length}</span>
+				Agents <span class="ml-2 badge preset-tonal-primary">{data.agents.length}</span>
 			</Tabs.Trigger>
 			<Tabs.Trigger value="weapons" class="min-w-max">
-				Weapons <span class="badge ml-2 preset-tonal-primary">{data.weapons.length}</span>
+				Weapons <span class="ml-2 badge preset-tonal-primary">{data.weapons.length}</span>
 			</Tabs.Trigger>
 			<Tabs.Indicator />
 		</Tabs.List>
@@ -255,7 +255,9 @@
 										<input
 											type="checkbox"
 											name="isActive"
-											checked={mapValues ? 'isActive' in mapValues : (selectedMap?.isActive ?? true)}
+											checked={mapValues
+												? 'isActive' in mapValues
+												: (selectedMap?.isActive ?? true)}
 										/>
 										Available for selection
 									</label>
@@ -370,7 +372,9 @@
 						{#if selectedAgent || form?.values?.kind === 'agent' || page.url.searchParams.get('new') === 'agent'}
 							<section id="agent-editor" class="admin-editor" aria-label="Agent editor">
 								<div class="flex items-center justify-between gap-3">
-									<h3 class="h3">{selectedAgent || agentValues?.id ? 'Edit agent' : 'Add agent'}</h3>
+									<h3 class="h3">
+										{selectedAgent || agentValues?.id ? 'Edit agent' : 'Add agent'}
+									</h3>
 									<a class="btn preset-tonal-surface btn-sm" href="/admin/resources?tab=agents">
 										<X size={16} aria-hidden="true" /> Close
 									</a>
@@ -450,7 +454,8 @@
 										<input type="hidden" name="kind" value="agent" />
 										<input type="hidden" name="id" value={selectedAgent.id} />
 										<input type="hidden" name="revision" value={selectedAgent.revision} />
-										<button class="btn preset-tonal-error" type="submit">Delete unused agent</button>
+										<button class="btn preset-tonal-error" type="submit">Delete unused agent</button
+										>
 									</form>
 								{/if}
 							</section>
@@ -622,7 +627,7 @@
 										<img
 											class="h-24 w-full rounded-base bg-surface-100-900 object-contain p-3 md:col-span-2"
 											src={selectedWeapon.displayIconPath}
-											alt="{selectedWeapon.displayName}"
+											alt={selectedWeapon.displayName}
 										/>
 									{/if}
 									<div class="md:col-span-2">
@@ -638,7 +643,9 @@
 										<input type="hidden" name="kind" value="weapon" />
 										<input type="hidden" name="id" value={selectedWeapon.id} />
 										<input type="hidden" name="revision" value={selectedWeapon.revision} />
-										<button class="btn preset-tonal-error" type="submit">Delete unused weapon</button>
+										<button class="btn preset-tonal-error" type="submit"
+											>Delete unused weapon</button
+										>
 									</form>
 								{/if}
 							</section>

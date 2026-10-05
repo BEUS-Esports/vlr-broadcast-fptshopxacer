@@ -81,7 +81,7 @@
 										alt="Current normal logo"
 									/>{/if}
 								<input
-									class="input mt-1 block w-full"
+									class="mt-1 input block w-full"
 									type="file"
 									name="logo"
 									accept="image/png,image/jpeg,image/webp"
@@ -95,7 +95,7 @@
 										alt="Current white logo"
 									/>{/if}
 								<input
-									class="input mt-1 block w-full"
+									class="mt-1 input block w-full"
 									type="file"
 									name="logoWhite"
 									accept="image/png,image/jpeg,image/webp"
@@ -109,7 +109,7 @@
 										alt="Current black logo"
 									/>{/if}
 								<input
-									class="input mt-1 block w-full"
+									class="mt-1 input block w-full"
 									type="file"
 									name="logoBlack"
 									accept="image/png,image/jpeg,image/webp"

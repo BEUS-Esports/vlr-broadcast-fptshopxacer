@@ -14,7 +14,9 @@
 	const drafts: DraftRegistry = new SvelteMap();
 	setContext('management-drafts', drafts);
 	const dirty = $derived([...drafts.values()].some((form) => form.dirty));
-	beforeNavigate(({ to, cancel }) => {
+
+	beforeNavigate(({ to, cancel, shallow }) => {
+		if (shallow) return;
 		if (
 			dirty &&
 			to?.url.pathname !== page.url.pathname &&

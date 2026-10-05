@@ -38,7 +38,14 @@
 		padding-inline: 42px;
 		background: linear-gradient(90deg, #10151df2, #171e28ed 66%, var(--gfx-accent-soft));
 		border-block: 1px solid var(--gfx-line);
-		clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+		clip-path: polygon(
+			16px 0,
+			100% 0,
+			100% calc(100% - 16px),
+			calc(100% - 16px) 100%,
+			0 100%,
+			0 16px
+		);
 	}
 	.mvp-heading p {
 		margin: 0;

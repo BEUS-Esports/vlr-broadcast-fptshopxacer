@@ -54,11 +54,17 @@
 		box-sizing: border-box;
 		padding: 0 18px 18px;
 		background:
-			linear-gradient(180deg, var(--gfx-accent-soft), transparent 110px),
-			var(--gfx-panel);
+			linear-gradient(180deg, var(--gfx-accent-soft), transparent 110px), var(--gfx-panel);
 		border-top: 3px solid var(--gfx-accent);
 		border-bottom: 1px solid var(--gfx-line);
-		clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+		clip-path: polygon(
+			0 0,
+			calc(100% - 18px) 0,
+			100% 18px,
+			100% 100%,
+			18px 100%,
+			0 calc(100% - 18px)
+		);
 	}
 	header {
 		height: 112px;

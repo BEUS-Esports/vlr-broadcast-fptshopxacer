@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends Record<string, unknown>">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { getContext, onDestroy, onMount, untrack, type Snippet } from 'svelte';
 	import type { DraftRegistry } from './DraftGuard.svelte';
 	let {
@@ -116,7 +116,7 @@
 			onclick={async () => {
 				if (!window.confirm('Discard this section’s draft and load the latest saved values?'))
 					return;
-				await invalidateAll();
+				await refreshAll();
 				resetToSaved();
 				message = '';
 				failed = false;

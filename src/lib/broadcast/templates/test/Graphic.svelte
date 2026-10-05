@@ -206,7 +206,14 @@
 		text-align: center;
 		background: linear-gradient(135deg, #10151df2, #171e28e8);
 		border-block: 1px solid var(--gfx-line);
-		clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+		clip-path: polygon(
+			20px 0,
+			100% 0,
+			100% calc(100% - 20px),
+			calc(100% - 20px) 100%,
+			0 100%,
+			0 20px
+		);
 	}
 	.empty-state strong {
 		color: var(--gfx-accent);
