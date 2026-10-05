@@ -63,7 +63,7 @@
 				{#if serverTime !== null}
 					<div class="text-sm font-medium">
 						<span>Server Time:</span>
-						<time>
+						<time aria-label="Server Time" datetime={new Date(serverTime).toISOString()}>
 							{new Date(serverTime).toLocaleString('vi-VN', {
 								timeZone: 'Asia/Ho_Chi_Minh',
 								weekday: 'long',
