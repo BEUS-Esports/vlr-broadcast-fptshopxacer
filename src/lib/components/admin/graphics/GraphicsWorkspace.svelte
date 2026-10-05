@@ -35,6 +35,9 @@
 	const editor = $state({ management: untrack(() => data.management) });
 	const management = $derived(editor.management);
 	const drafts = getContext<DraftRegistry>('management-drafts');
+	const broadcastClient = getContext<ReturnType<typeof createBroadcastClient> | undefined>(
+		'broadcast-client'
+	);
 	const recordsDirty = $derived([...drafts.values()].some((form) => form.record && form.dirty));
 	const changedContext = $derived(
 		(management?.game.id ?? null) !== (data.management?.game.id ?? null)
@@ -58,7 +61,7 @@
 		}
 	});
 	onMount(() => {
-		const client = createBroadcastClient();
+		const client = broadcastClient ?? createBroadcastClient();
 		let revision = `${data.snapshot.controlRevision}:${data.snapshot.dataRevision}`;
 		let refreshing = false;
 		let queued = false;
@@ -88,10 +91,10 @@
 				void refresh();
 			}
 		});
-		client.connect();
+		if (!broadcastClient) client.connect();
 		return () => {
 			unsubscribe();
-			client.disconnect();
+			if (!broadcastClient) client.disconnect();
 		};
 	});
 </script>
