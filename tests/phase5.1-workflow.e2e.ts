@@ -11,6 +11,7 @@ test('each graphics control route shares setup and a visibility-independent prev
 	const sidebar = page.getByRole('navigation', { name: 'Management', exact: true });
 	await expect(sidebar.getByRole('link')).toHaveText([
 		'Dashboard',
+		'Settings',
 		'Teams',
 		'Players',
 		'Game Resources',

@@ -5,18 +5,20 @@
 		assetPath,
 		unavailable,
 		detail = null,
-		side = null
+		side = null,
+		blankMissing = false
 	}: {
 		name: string | null;
 		assetPath: string | null;
 		unavailable: string;
 		detail?: string | null;
 		side?: 'attack' | 'defense' | null;
+		blankMissing?: boolean;
 	} = $props();
 </script>
 
 <div class="identity" data-side={side ?? 'neutral'}>
-	<Asset path={assetPath} label={name ?? unavailable} />
+	<Asset path={assetPath} label={name ?? unavailable} {blankMissing} />
 	<div>
 		<strong>{name ?? unavailable}</strong>{#if detail}<small>{detail}</small>{/if}
 		{#if side}<small>{side === 'attack' ? 'Attacker' : 'Defender'}</small>{/if}

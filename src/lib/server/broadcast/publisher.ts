@@ -69,8 +69,7 @@ export function createBroadcastPublisher(dependencies: {
 	return {
 		/**
 		 * Normal publications deduplicate unchanged persisted revisions.
-		 * Phase 6 volatile provider updates can call publish({ force: true }) so live data
-		 * advances the SSE stream without staling operator control forms.
+		 * Volatile live telemetry is published independently by server/live/publisher.ts.
 		 */
 		publish(options: { force?: boolean } = {}) {
 			return serialize(async () => (await refresh(options.force ?? false)).snapshot);
@@ -129,6 +128,8 @@ export function createBroadcastResponse(
 				}
 			}
 			signal.addEventListener('abort', cleanup, { once: true });
+			// Stamp at send time, including cached reconnects; keep time outside persisted snapshots/cursors.
+			const clock = () => `event: clock\ndata: ${Date.now()}\n\n`;
 			if (signal.aborted) {
 				cleanup();
 				return;
@@ -137,8 +138,9 @@ export function createBroadcastResponse(
 				.subscribe({
 					send: (snapshot, stream) => {
 						const envelope: BroadcastEnvelope = { version: 1, stream, snapshot };
+						const data = JSON.stringify(envelope);
 						write(
-							`id: ${stream.epoch}:${stream.sequence}\nevent: snapshot\ndata: ${JSON.stringify(envelope)}\n\n`
+							`${clock()}id: ${stream.epoch}:${stream.sequence}\nevent: snapshot\ndata: ${data}\n\n`
 						);
 					},
 					close: () => cleanup()
@@ -149,7 +151,7 @@ export function createBroadcastResponse(
 						return;
 					}
 					unsubscribe = stop;
-					heartbeat = setInterval(() => write(': heartbeat\n\n'), 15000);
+					heartbeat = setInterval(() => write(clock()), 15000);
 				})
 				.catch(() => cleanup());
 		},

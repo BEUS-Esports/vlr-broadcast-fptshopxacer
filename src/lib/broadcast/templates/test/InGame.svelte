@@ -3,7 +3,20 @@
 	import { presentationTeams, gameplaySide, teamScore } from '../../selectors';
 	import Identity from '../../primitives/Identity.svelte';
 
-	let { snapshot }: { snapshot: BroadcastSnapshot } = $props();
+	let {
+		snapshot,
+		teamPresentation = null,
+		blankMissing = false,
+		mapName = null
+	}: {
+		snapshot: BroadcastSnapshot;
+		blankMissing?: boolean;
+		mapName?: string | null;
+		teamPresentation?: Record<
+			'left' | 'right',
+			{ name: string; side: 'attack' | 'defense' | null }
+		> | null;
+	} = $props();
 	const teams = $derived(presentationTeams(snapshot));
 	const winSlots = $derived(
 		snapshot.match
@@ -12,17 +25,22 @@
 	);
 </script>
 
-<section aria-label="In-Game" data-side-source={snapshot.sides.source}>
-	{#if snapshot.selection}
+<section
+	aria-label="In-Game"
+	data-side-source={teamPresentation ? 'provider' : snapshot.sides.source}
+>
+	{#if snapshot.selection || teamPresentation || blankMissing}
 		<div class="top-wrap">
-			{#each ['left', 'right'] as position (position)}
+			{#each ['left', 'right'] as const as position (position)}
 				{@const team = position === 'left' ? teams.left : teams.right}
-				{@const entryId =
-					position === 'left'
+				{@const presented = teamPresentation?.[position]}
+				{@const entryId = presented
+					? null
+					: position === 'left'
 						? snapshot.presentation.leftEntryId
 						: snapshot.presentation.rightEntryId}
-				{@const side = gameplaySide(snapshot, entryId)}
-				{@const wins = teamScore(snapshot, entryId, 'match') ?? 0}
+				{@const side = presented ? presented.side : gameplaySide(snapshot, entryId)}
+				{@const wins = teamScore(snapshot, entryId, 'match')}
 
 				<div
 					class="team-rail"
@@ -30,24 +48,27 @@
 					data-entry-id={entryId ?? ''}
 					data-side={side ?? 'neutral'}
 				>
-					{#if position === 'right'}
-						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+					{#if position === 'right' && !presented && (!blankMissing || wins !== null)}
+						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
 							{#each winSlots as index (index)}
-								<span class:won={index < wins}></span>
+								<span class:won={index < (wins ?? 0)}></span>
 							{/each}
 						</div>
 					{/if}
 
 					<Identity
-						name={team?.name ?? null}
-						assetPath={team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null}
-						unavailable="Team unavailable"
+						name={presented?.name ?? team?.name ?? null}
+						assetPath={presented
+							? null
+							: (team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null)}
+						unavailable={blankMissing ? '' : 'Team unavailable'}
+						{blankMissing}
 					/>
 
-					{#if position === 'left'}
-						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+					{#if position === 'left' && !presented && (!blankMissing || wins !== null)}
+						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
 							{#each winSlots as index (index)}
-								<span class:won={index < wins}></span>
+								<span class:won={index < (wins ?? 0)}></span>
 							{/each}
 						</div>
 					{/if}
@@ -56,14 +77,17 @@
 
 			<div class="center-mark" aria-hidden="true"></div>
 			<div class="sponsor-slot" data-sponsor-safe-area aria-label="Reserved sponsor logo loop">
-				<span>SPONSOR LOOP</span>
+				{#if !blankMissing}<span>SPONSOR LOOP</span>{/if}
 			</div>
 		</div>
 
 		<div class="match-bug">
-			<strong>{snapshot.match?.label ?? 'MATCH'}</strong>
-			<span>{snapshot.game?.name ?? `GAME ${snapshot.game?.number ?? '—'}`}</span>
-			<p>{snapshot.game?.map?.displayName ?? 'MAP TBD'}</p>
+			<strong>{snapshot.match?.label ?? (blankMissing ? '' : 'MATCH')}</strong>
+			<span
+				>{snapshot.game?.name ??
+					(blankMissing && !snapshot.game ? '' : `GAME ${snapshot.game?.number ?? '—'}`)}</span
+			>
+			<p>{mapName ?? snapshot.game?.map?.displayName ?? (blankMissing ? '' : 'MAP TBD')}</p>
 		</div>
 	{:else}
 		<p class="empty">No game selected</p>

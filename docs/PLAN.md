@@ -4,21 +4,21 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5 implementation and automated Node/browser verification are complete; actual OBS/Valorant acceptance remains pending. Phases 6 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5/5.1 implementation, automated Node/browser verification, and real Valorant/OBS graphics acceptance are complete. Phase 6 provider/external-HUD implementation is complete pending separately recorded real provider sessions and external-HUD OBS acceptance. Phase 6.1 in-game match banners are planned on `feat/phase-6.1-match-banners`; Phases 7 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
 ## Starting point
 
-| Existing item          | Current state / implication                                                                                                                                                                   |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.        |
-| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; reviewed forward migrations through `0006` recreate the current schema.   |
-| Routes                 | `/admin` has Team, Player, and Game Resources CRUD screens. `/gfx` remains a transparent 1920×1080 canvas.                                                                                    |
-| Production graphics    | Seven stable live routes render in the built Node app, with shared SSE and template fallback. Configure the intended `ORIGIN` before building; actual OBS/Valorant rehearsal remains pending. |
-| Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.            |
+| Existing item          | Current state / implication                                                                                                                                                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework              | TypeScript, SvelteKit 3, Svelte 5, Skeleton UI, Tailwind, and the Node adapter are already configured. Use their current APIs rather than assuming a SvelteKit 2 layout/configuration.                                                              |
+| Database               | Drizzle with the libSQL client and SQLite dialect. The schema is split by domain under `src/lib/server/db/schema/`; reviewed forward migrations through `0006` recreate the current schema.                                                         |
+| Routes                 | `/admin` has Team, Player, and Game Resources CRUD screens. `/gfx` remains a transparent 1920×1080 canvas.                                                                                                                                          |
+| Production graphics    | Seven stable live routes render in the built Node app, with shared SSE and template fallback. Real Valorant/OBS composition testing passed for the Phase 5/5.1 test package; the native-HUD-safe In-Game treatment is retained as Phase 6 fallback. |
+| Verification/reference | Vitest server/component projects, Playwright configuration, Prettier, and ESLint exist. The MLBB project under `examples/` is a reference, not part of the application to rewrite.                                                                  |
 
-Real GStack game payloads and successful Spectra hosted post-game reports are not available yet. Documented/synthetic fixtures can support implementation; only actual captures can establish live-provider compatibility. Preserve unrelated working-tree changes and example files throughout.
+A concrete GStack `/livenow` payload/schema is now available, while successful Spectra hosted post-game reports are still unavailable. Provider fixtures can support implementation, but each live provider still needs its own recorded real event-session verification before broadcast-ready status. Preserve unrelated working-tree changes and example files throughout.
 
 ## Build sequence
 
@@ -29,6 +29,7 @@ Real GStack game payloads and successful Spectra hosted post-game reports are no
    → 4. Manual statistics
    → 5. Shared broadcast controls and all test graphics
    → 6. Live providers and HUD failover
+   → 6.1. In-game pause and ceremony banners
    → 7. Spectra post-game import
    → 8. Design-team asset integration
    → 9. Deployment, recovery, and broadcast rehearsal
@@ -138,7 +139,7 @@ Progress, 2026-09-30: Phase 4 landed with canonical per-game player statistics, 
 - [x] Add stable OBS live routes and slug-based template selection with a generic test-template fallback. Correct the scaffold's production graphics page options and verify rendering in a built app.
 - [x] Build control/output pairs for Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game, and MVP. Reuse saved lineup/veto/statistics editors and records instead of duplicating graphics-only copies. Player Stats supports both a single Player-to-Watch mode and a head-to-head comparison from one shared control/read model. Agent preparation and the native-HUD fallback must work manually.
   - This allows the Graphics Controller to double as the specific Lineup/Map Veto/Agent Select/Ingame/Post-Game/MVP Control (where possible) just like in the tournaments/matches/games page, making the workflow even faster.
-- [x] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Use a 1920×1080 transparent canvas. Default broadcast presentation is Team A left / Team B right with an explicit presentation-only left/right swap; Attacker is always blue and Defender is always red, independent of screen position. Prioritize a native-HUD-safe In-Game test graphic before the provider-backed custom HUD. Actual OBS/Valorant composition remains pending.
+- [x] Add clear controller readiness/connection states, appropriate visibility controls, and graceful output for missing preparation. Use a 1920×1080 transparent canvas. Default broadcast presentation is Team A left / Team B right with an explicit presentation-only left/right swap; Attacker is always blue and Defender is always red, independent of screen position. Prioritize a native-HUD-safe In-Game test graphic before the provider-backed custom HUD. Real OBS/Valorant composition testing for this Phase 5/5.1 package has now passed.
 
 ### Done when
 
@@ -152,27 +153,66 @@ Run a browser scenario with two controller sessions and at least one output: sel
 
 Progress, 2026-10-01: Tasks 0-8 are implemented and reviewed. Task 9 proves production adapter-node rendering, shared selection, stale multi-controller writes, all seven visibility/update/refresh/no-selection states, template fallback and saved identity/statistics isolation. See [verification evidence and screenshots](./2026-10-01-phase-5-verification.md). The Node-runtime proof found and corrected an adapter static-path packaging bug and build-origin configuration. Forward migrations 0004/0005/0006 are required for existing installations; no event/local database was migrated.
 
-- [ ] Finish actual OBS alpha, scaling/clipping, native Valorant HUD, side/presentation and reconnect rehearsal from the target LAN machine. Full Phase 5 acceptance remains pending.
+- [x] Complete actual Valorant/OBS graphics rehearsal. The Phase 5/5.1 test package is accepted as the stable manual/native fallback baseline for Phase 6.
 
-## Phase 6 — Integrate live providers and the HUD recovery rules
+## Phase 6 — Integrate live providers and the external-data HUD
+
+Detailed implementation plan: [2026-10-03-phase-6-live-providers-external-hud.md](./2026-10-03-phase-6-live-providers-external-hud.md).
 
 ### Work
 
-- [ ] Define the small shared live-data shape required by the In-Game and Agent Select templates, including missing-field and identity-mapping behavior. Keep provider control-panel/veto data from overwriting operator-owned local records.
-- [ ] Implement ValoSpectra connection and mapping using its actual Socket.IO protocol. A compatible Socket.IO client dependency is justified by this contract; do not try to substitute a raw WebSocket client for that protocol.
-- [ ] Implement GStack's documented read path and normalize string/blank values and left/right slots. Choose the suitable documented HTTP or WebSocket transport without building multiple modes unnecessarily. Confirm round-history encoding before interpreting it as facts.
-- [ ] Implement one server-owned retry/failover state machine: waits of 1/2/4/8 seconds, fallback after four failed attempts, bounded background recovery, and a ready indication that never restores live without operator action. Keep manual mode choice separate from source health.
-- [ ] Handle provider reconfiguration, active-game changes, stale/malformed/wrong-game data, and obsolete asynchronous callbacks. Validate source-health detection and native-HUD fallback composition against actual captures when available.
+- [x] Define one provider-neutral `LiveGameState` and strict runtime decoder. Keep volatile telemetry separate from the held Phase 5 BroadcastSnapshot/publication lane.
+- [x] Implement one server-owned provider coordinator with source generation/attempt invalidation, explicit local game/team/player mapping, and a separate read-only live SSE stream.
+- [x] Implement ValoSpectra through Socket.IO `logon` / `match_data` and server-side `GET /getOrgForKey?key=<ACCESS_KEY>` supporter lookup. Do not rely on incidental license fields in `match_data`.
+- [x] Implement GStack `/livenow` snapshot + allowlisted VHUD WebSocket deltas, normalizing blank/string values and preserving raw unknown encodings. Optional `/controlpanel` and `/mapbans` reads remain unimplemented; canonical veto stays authoritative.
+- [x] Treat Player/Expansion Client fields as per-player capabilities. Missing HP/abilities/XHP/XShield is normal partial telemetry, not a provider-health failure.
+- [x] Implement the reviewed server-owned retry/failover state machine: 1/2/4/8 second waits, fallback after four failed attempts, bounded recovery, and manual-only restoration to the external HUD.
+- [x] Add **View Data** diagnostics showing redacted raw provider data, normalized `LiveGameState`, mappings/capabilities, connection state, and parse/transport errors.
+- [x] Build the first provider-backed In-Game HUD using Spectra-Frontend-VAL26 as the presentation/layout reference, independent Svelte components and local artwork. Retain the accepted native-HUD-safe Phase 5 graphic as fallback. Final external composition acceptance remains pending.
+- [x] Feed live provider agent observations into Agent Select without silently saving them; existing manual Agent Select remains the canonical fallback/editor.
+- [x] Centralize provider attribution/watermark handling and keep all credentials out of browser/OBS payloads.
+- [ ] Record a real event session for each provider and accept the external HUD against the actual spectator/OBS composition.
 
 ### Done when
 
-- Fixture-driven integration tests demonstrate the full live → retries → fallback → recovered-but-still-fallback → operator-enables-live sequence.
-- Provider connections and retries are not multiplied by the number of open OBS/control pages. Source changes cannot publish another game's stale data.
-- Each provider has a separately recorded real-session verification result before it is declared broadcast-ready. Missing hardware/matches remains an external validation limit, not a claimed pass.
+- Spectra and GStack produce the same normalized live contract and no HUD component needs provider-specific schema knowledge.
+- One active provider session serves all controller, Preview, Large Preview, and OBS clients.
+- Blank/missing enhanced telemetry never becomes fake zero, and absent auxiliary clients never falsely mark the provider dead.
+- Explicit provider-to-local mappings preserve Match A/B, broadcast left/right, and attacker/defender as separate identity axes.
+- Fixture-driven tests prove live -> 1/2/4/8 retries -> fallback -> recovered/ready-but-still-native -> operator re-enables live.
+- View Data makes the latest raw-versus-normalized state inspectable without leaking access keys or other secrets.
+- The external HUD degrades safely when HP/abilities/enhanced shield/health are unavailable.
+- Each provider has a separately recorded real-session verification result before being declared broadcast-ready.
 
 ### Focused proof
 
-Use controlled timers and connection fixtures to prove exactly four pre-fallback attempts and manual-only restoration. Cover malformed values, missing stats, wrong group/match identities, team-side changes, valid pauses, and disconnects. Do not invent a reliable freshness signal merely because stats stop changing. Run a real provider drop/reconnect rehearsal once a session is available.
+Use controlled provider fixtures, fake timers, multiple browser subscribers, malformed/stale-generation payloads, partial auxiliary-client availability, and real Spectra/GStack sessions. Record the actual provider payload/capability observations used to justify normalization and rendering decisions.
+
+## Phase 6.1 — Add shared in-game pause and ceremony banners
+
+Detailed implementation plan: [2026-10-05-phase-6.1-in-game-match-banners.md](./2026-10-05-phase-6.1-in-game-match-banners.md).
+
+### Work
+
+- [ ] Add app-owned Tactical Timeout and Technical Pause state with server-enforced transitions, including queued Technical Pause after an active Tactical Timeout.
+- [ ] Add manually triggered Round Win, Thrifty, Clutch, Team Ace, and Flawless ceremony events.
+- [ ] Render one shared center-screen banner layer above both the Native HUD and Live Data HUD; do not source or trigger these controls through Spectra/GStack.
+- [ ] Add dedicated In-Game operator controls and preserve immediate live-control updates through Native Preview, Live Data Preview, Large Preview, and shown Program output.
+- [ ] Preserve held publication behavior and backward compatibility for existing Phase 5/6 publication captures.
+- [ ] Verify multi-controller safety, transient ceremony expiry, pause/ceremony sequencing, and real Valorant/OBS safe areas.
+
+### Done when
+
+- Tactical Timeout and Technical Pause cannot overlap or replace one another illegally.
+- A Technical Pause requested during Tactical waits until Tactical finishes; Tactical cannot begin during Technical.
+- All five ceremony types can be triggered manually for either local team and expire without stale replay or stacking.
+- Native and Live Data HUDs consume the same provider-independent control state and shared banner renderer.
+- A shown In-Game output receives banner changes immediately without Hide -> Show or publication recapture.
+- Provider availability is not required for Phase 6.1 operation.
+
+### Focused proof
+
+Use service transition tests, fake-time ceremony tests, component/renderer tests, stale two-controller writes, a production browser journey covering both preview modes and Program, and 1920x1080 Native/OBS screenshots. Repeat external-HUD composition acceptance when a real provider session is available.
 
 ## Phase 7 — Add Spectra post-game import with manual protection
 
@@ -260,4 +300,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, complete the pending **Phase 5 OBS/Valorant rehearsal** in [the verification report](./2026-10-01-phase-5-verification.md), then begin provider-backed Phase 6. Preserve the now-tested competition/presentation/side separation and the shared typed broadcast contract. Real provider captures remain necessary to establish provider compatibility.
+Next, implement Phase 6.1 from its dedicated plan while preserving the completed Phase 6 provider foundation. Provider real-session verification can proceed independently when Spectra/GStack access is available. Phase 6.1 pause/ceremony controls must remain provider-independent and share one center-banner layer across Native and Live Data HUDs.

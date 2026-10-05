@@ -3,19 +3,49 @@
 	import GraphicRenderer from '#lib/broadcast/GraphicRenderer.svelte';
 	import { graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
+	import type { BroadcastClock } from '#lib/broadcast/client.ts';
+	import { onMount } from 'svelte';
+	import type { LiveGameEnvelope } from '#lib/live/types.ts';
+	import type { LiveResources } from '#lib/live/selectors.ts';
+	import { fetchLiveResources } from '#lib/live/resources.ts';
 	let {
 		graphic,
 		snapshot,
-		connection
-	}: { graphic: GraphicId; snapshot: BroadcastSnapshot; connection: string } = $props();
+		connection,
+		telemetry = null,
+		variant = 'normal',
+		clock = null
+	}: {
+		graphic: GraphicId;
+		snapshot: BroadcastSnapshot;
+		connection: string;
+		telemetry?: LiveGameEnvelope | null;
+		variant?: 'normal' | 'live-data';
+		clock?: BroadcastClock | null;
+	} = $props();
+	const title = $derived(variant === 'live-data' ? 'Preview Live Data HUD' : 'Preview');
+	const largeTitle = $derived(
+		`Large Preview · ${variant === 'live-data' ? 'Live Data HUD' : graphicLabels[graphic]}`
+	);
+	const renderMode = $derived(variant === 'live-data' ? 'preview-live' : 'preview');
+	let resources = $state.raw<LiveResources | null>(null);
+	onMount(() => {
+		void fetchLiveResources().then((value) => (resources = value));
+	});
 	let width = $state(0);
 	let largeWidth = $state(0);
 	let modal = $state<HTMLDialogElement>();
 </script>
 
-<section aria-label="Preview" class="admin-editor space-y-3 xl:sticky xl:top-0">
+{#snippet canvasContent(canvasWidth: number)}
+	<div class="composition" style:transform={`scale(${canvasWidth / 1920})`}>
+		<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} {clock} mode={renderMode} />
+	</div>
+{/snippet}
+
+<section aria-label={title} class="admin-editor space-y-3">
 	<header class="flex items-center justify-between gap-3">
-		<h2 class="h3">Preview</h2>
+		<h2 class="h3">{title}</h2>
 		<button
 			type="button"
 			class="btn preset-tonal-primary btn-sm"
@@ -24,31 +54,40 @@
 			<Monitor size={18} aria-hidden="true" /> Large Preview
 		</button>
 	</header>
-	<p class="text-sm">Latest saved data · {connection}. Unsaved editor fields appear after Save.</p>
+	{#if variant === 'live-data'}
+		<p class="text-sm">
+			HUD template · {telemetry?.status.health ?? 'disconnected'}. Available data fills in
+			automatically. Confirm mapping and enable external HUD to use it on program.
+		</p>
+	{:else}
+		<p class="text-sm">
+			Latest saved data · {connection}. Unsaved editor fields appear after Save.
+		</p>
+	{/if}
 	<div class="preview-canvas" bind:clientWidth={width}>
-		<div class="composition" style:transform={`scale(${width / 1920})`}>
-			<GraphicRenderer {graphic} {snapshot} mode="preview" />
-		</div>
+		{@render canvasContent(width)}
 	</div>
-	<p class="text-sm">1920×1080 · Preview stays visible when program is hidden.</p>
+	<p class="text-sm">
+		1920×1080 · {variant === 'live-data'
+			? 'Preview does not change program output.'
+			: 'Preview stays visible when program is hidden.'}
+	</p>
 </section>
 
 <dialog
 	{@attach (element) => {
 		modal = element;
 	}}
-	aria-label={`Large Preview · ${graphicLabels[graphic]}`}
+	aria-label={largeTitle}
 >
 	<header class="mb-3 flex items-center justify-between gap-3">
-		<h2 class="h3">Large Preview · {graphicLabels[graphic]}</h2>
+		<h2 class="h3">{largeTitle}</h2>
 		<button type="button" class="btn preset-tonal-surface" onclick={() => modal?.close()}
 			>Close Preview</button
 		>
 	</header>
 	<div class="preview-canvas" bind:clientWidth={largeWidth}>
-		<div class="composition" style:transform={`scale(${largeWidth / 1920})`}>
-			<GraphicRenderer {graphic} {snapshot} mode="preview" />
-		</div>
+		{@render canvasContent(largeWidth)}
 	</div>
 </dialog>
 

@@ -84,7 +84,12 @@ test('Test GFX v2 renders deterministic complete and edge states inside the nati
 					);
 				})
 		);
-		saved.liveControls = { swapped: false, currentAttackersEntryId: null };
+		saved.liveControls = {
+			swapped: false,
+			currentAttackersEntryId: null,
+			pause: { type: 'none' },
+			ceremony: null
+		};
 		saved.controls.playerStats = {
 			mode: 'single',
 			scope: 'game',

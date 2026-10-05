@@ -12,6 +12,12 @@ import {
 import { SaveError } from './save-error';
 import { buildBroadcastPreparedSnapshot } from '../broadcast/snapshot';
 import { validatedPublications } from '#lib/broadcast/types.ts';
+import {
+	CEREMONY_VISIBLE_MS,
+	isInGameControlAction,
+	type InGameControlAction,
+	type BroadcastPauseState
+} from '#lib/broadcast/in-game-controls.ts';
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type State = typeof broadcastState.$inferSelect;
@@ -24,6 +30,7 @@ export type BroadcastUpdate = {
 	visibility?: Partial<GraphicVisibility>;
 	playerStats?: PlayerStatsControl;
 	mvpScope?: BroadcastScope;
+	inGameAction?: InGameControlAction;
 };
 
 async function initialize(connection: typeof db | Transaction) {
@@ -94,6 +101,8 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 				'Hide all shown graphics before changing or clearing the live selection.'
 			);
 		const state = {
+			pause: changedGame ? ({ type: 'none' } as BroadcastPauseState) : current.pause,
+			ceremony: changedGame ? null : current.ceremony,
 			selectedGameId,
 			// Presentation order is an explicit operator override, not game-owned state.
 			swapped: input.swapped ?? current.swapped,
@@ -117,6 +126,69 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 						: current.mvpScope
 					: input.mvpScope
 		};
+		if (input.inGameAction !== undefined) {
+			if (Object.keys(input).some((key) => !['expectedRevision', 'inGameAction'].includes(key)))
+				throw new SaveError('invalid', 'In-game commands cannot be combined with other controls.');
+			const action = input.inGameAction;
+			if (!isInGameControlAction(action))
+				throw new SaveError('invalid', 'Choose a valid in-game command.');
+			if (!selected)
+				throw new SaveError('blocked', 'Select a game before controlling match banners.');
+			if (
+				'entryId' in action &&
+				![selected.teamAEntryId, selected.teamBEntryId].includes(action.entryId)
+			)
+				throw new SaveError('invalid', 'Banner team must be a selected match participant.');
+			const pause = state.pause;
+			switch (action.type) {
+				case 'start-tactical':
+					if (pause.type !== 'none')
+						throw new SaveError('blocked', 'Finish the active pause first.');
+					state.pause = { type: 'tactical', entryId: action.entryId, pendingTechnical: false };
+					break;
+				case 'request-technical':
+					if (pause.type === 'technical' || (pause.type === 'tactical' && pause.pendingTechnical))
+						throw new SaveError('blocked', 'Technical pause is already active or pending.');
+					state.pause =
+						pause.type === 'tactical'
+							? { ...pause, pendingTechnical: true }
+							: { type: 'technical' };
+					break;
+				case 'cancel-pending-technical':
+					if (pause.type !== 'tactical' || !pause.pendingTechnical)
+						throw new SaveError('blocked', 'No pending technical pause to cancel.');
+					state.pause = { ...pause, pendingTechnical: false };
+					break;
+				case 'finish-tactical':
+					if (pause.type !== 'tactical')
+						throw new SaveError('blocked', 'No tactical timeout to finish.');
+					state.pause = { type: pause.pendingTechnical ? 'technical' : 'none' };
+					break;
+				case 'resume-technical':
+					if (pause.type !== 'technical')
+						throw new SaveError('blocked', 'No technical pause to resume.');
+					state.pause = { type: 'none' };
+					break;
+				case 'trigger-ceremony': {
+					const now = Date.now();
+					if (pause.type !== 'none')
+						throw new SaveError('blocked', 'Resume the match before triggering a ceremony.');
+					if (state.ceremony && now < state.ceremony.triggeredAt + CEREMONY_VISIBLE_MS)
+						throw new SaveError('blocked', 'Wait for or dismiss the active ceremony.');
+					state.ceremony = {
+						type: action.ceremony,
+						entryId: action.entryId,
+						triggeredAt: now,
+						// The guarded UPDATE already owns the lock and returned the new revision.
+						sequence: current.controlRevision
+					};
+					break;
+				}
+				case 'dismiss-ceremony':
+					state.ceremony = null;
+					break;
+			}
+		}
 		if (
 			typeof state.swapped !== 'boolean' ||
 			(input.swapped !== undefined && typeof input.swapped !== 'boolean')

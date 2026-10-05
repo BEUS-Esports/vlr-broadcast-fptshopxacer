@@ -120,7 +120,7 @@
 		<p>{management.match.label} · Game {management.game.number}: {management.game.name}</p>
 		<p>
 			{graphic === 'in-game'
-				? 'Prepared match and game context. Live telemetry will arrive with provider integration.'
+				? 'Prepared match and game context. Live provider telemetry is controlled above.'
 				: 'Player Stats reads the saved statistics in its selected scope.'}
 		</p>
 	</section>

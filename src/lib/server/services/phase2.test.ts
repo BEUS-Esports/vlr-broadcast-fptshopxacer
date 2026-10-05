@@ -65,6 +65,7 @@ it('validates uploads, protects references, and refreshes resources without chan
 		const agentUuid = 'e370fa57-4757-3604-3648-499e1f642d3f';
 		const weaponUuid = '9c82e19d-4575-0200-1a81-3eacf00cf872';
 		const imageUrl = 'https://media.valorant-api.com/test.png';
+		const abilityUrl = 'https://media.valorant-api.com/ability.png';
 		let mapName = 'Ascent';
 		let invalidCatalogue = false;
 		vi.stubGlobal(
@@ -100,7 +101,8 @@ it('validates uploads, protects references, and refreshes resources without chan
 								displayIcon: imageUrl,
 								fullPortrait: imageUrl,
 								isPlayableCharacter: true,
-								role: { displayName: 'Initiator' }
+								role: { displayName: 'Initiator' },
+								abilities: [{ slot: 'Grenade', displayName: 'Mosh Pit', displayIcon: abilityUrl }]
 							}
 						]
 					});
@@ -116,7 +118,7 @@ it('validates uploads, protects references, and refreshes resources without chan
 							}
 						]
 					});
-				if (url === imageUrl)
+				if (url === imageUrl || url === abilityUrl)
 					return new Response(png, { headers: { 'content-type': 'image/png' } });
 				throw new Error(`Unexpected URL ${url}`);
 			})
@@ -161,6 +163,16 @@ it('validates uploads, protects references, and refreshes resources without chan
 			.from(schema.agents)
 			.where(eq(schema.agents.valorantApiUuid, agentUuid));
 		expect(agent.fullPortraitPath).toMatch(/^\/assets\//);
+		expect(agent.abilities).toEqual([
+			{
+				slot: 'grenade',
+				displayName: 'Mosh Pit',
+				displayIconPath: expect.stringMatching(/^\/assets\//)
+			}
+		]);
+		expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url) === abilityUrl)).toHaveLength(
+			1
+		);
 		const [weapon] = await database
 			.select()
 			.from(schema.weapons)

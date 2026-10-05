@@ -1,5 +1,6 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createdAtColumn, idColumn, revisionColumn, updatedAtColumn } from './common';
+import type { AgentAbility } from '#lib/resources/types.ts';
 
 export const maps = sqliteTable(
 	'maps',
@@ -37,6 +38,7 @@ export const agents = sqliteTable(
 		fullPortraitPath: text('full_portrait_path'),
 		bustPortraitPath: text('bust_portrait_path'),
 		roleIconPath: text('role_icon_path'),
+		abilities: text('abilities', { mode: 'json' }).$type<AgentAbility[]>().notNull().default([]),
 		isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
 		revision: revisionColumn(),
 		createdAt: createdAtColumn(),

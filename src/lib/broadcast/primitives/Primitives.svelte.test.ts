@@ -65,10 +65,15 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 		mvpPlayerId: null
 	};
 	const snapshot: BroadcastSnapshot = {
-		version: 2,
+		version: 3,
 		controlRevision: 1,
 		dataRevision: 1,
-		liveControls: { swapped: true, currentAttackersEntryId: 'b' },
+		liveControls: {
+			swapped: true,
+			currentAttackersEntryId: 'b',
+			pause: { type: 'none' },
+			ceremony: null
+		},
 		publications: {
 			'player-lineup': null,
 			'player-stats': null,

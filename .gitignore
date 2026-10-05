@@ -31,3 +31,8 @@ test-results
 /examples/mlbb-hud-road-to-asiad-2026/
 
 .superpowers
+
+# Local vendor reference, never part of the application source.
+/docs/gstack-reference/
+/data/live-provider.json
+/data/live-provider.json.*.tmp

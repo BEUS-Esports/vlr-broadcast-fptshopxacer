@@ -85,7 +85,7 @@ export function gameplaySide(
 	snapshot: BroadcastSnapshot,
 	entryId: string | null,
 	source: 'prepared' | 'current' = 'current'
-) {
+): 'attack' | 'defense' | null {
 	if (entryId === null) return null;
 	const attackers =
 		source === 'prepared'

@@ -1,6 +1,12 @@
 import type { BroadcastScope, GraphicVisibility, PlayerStatsControl } from './controls';
 import { broadcastScopes, graphicIds } from './controls';
 import type { StatisticsView } from '../server/services/statistics-aggregation';
+import {
+	isBroadcastPauseState,
+	isBroadcastCeremonyEvent,
+	type BroadcastPauseState,
+	type BroadcastCeremonyEvent
+} from './in-game-controls';
 
 export type BroadcastPlayer = {
 	playerId: string;
@@ -45,12 +51,17 @@ export type BroadcastScopeView = {
 	mvpPlayerId: string | null;
 };
 export type BroadcastPreparedSnapshot = {
-	version: 2;
+	version: 3;
 	/** Optimistic-lock revision for operator broadcast controls only. */
 	controlRevision: number;
 	/** Persisted invalidation revision for prepared tournament/match/game data. */
 	dataRevision: number;
-	liveControls: { swapped: boolean; currentAttackersEntryId: string | null };
+	liveControls: {
+		swapped: boolean;
+		currentAttackersEntryId: string | null;
+		pause: BroadcastPauseState;
+		ceremony: BroadcastCeremonyEvent;
+	};
 	selection: { tournamentId: string; matchId: string; gameId: string } | null;
 	tournament: { id: string; name: string; slug: string } | null;
 	match:
@@ -203,10 +214,15 @@ const result = {
 	winnerEntryId: text
 };
 const preparedFields = {
-	version: oneOf(2),
+	version: oneOf(3),
 	controlRevision: (v: unknown) => integer(v) && (v as number) > 0,
 	dataRevision: (v: unknown) => integer(v) && (v as number) > 0,
-	liveControls: object({ swapped: boolean, currentAttackersEntryId: text }),
+	liveControls: object({
+		swapped: boolean,
+		currentAttackersEntryId: text,
+		pause: isBroadcastPauseState,
+		ceremony: isBroadcastCeremonyEvent
+	}),
 	selection: nullable(object({ tournamentId: string, matchId: string, gameId: string })),
 	tournament: nullable(object({ id: string, name: string, slug: string })),
 	match: nullable(
@@ -300,6 +316,25 @@ const preparedFields = {
 	})
 };
 const preparedCheck = object(preparedFields);
+const legacyPreparedCheck = object({
+	...preparedFields,
+	version: oneOf(2),
+	liveControls: object({ swapped: boolean, currentAttackersEntryId: text })
+});
+
+function persistedPublication(value: unknown): BroadcastPreparedSnapshot | null {
+	if (isBroadcastPublication(value)) return value;
+	if (!legacyPreparedCheck(value)) return null;
+	const old = value as Omit<BroadcastPreparedSnapshot, 'version' | 'liveControls'> & {
+		liveControls: { swapped: boolean; currentAttackersEntryId: string | null };
+	};
+	const upgraded: BroadcastPreparedSnapshot = {
+		...old,
+		version: 3,
+		liveControls: { ...old.liveControls, pause: { type: 'none' }, ceremony: null }
+	};
+	return isBroadcastPublication(upgraded) ? upgraded : null;
+}
 
 /** Publication captures require a selected render payload and never contain publications. */
 export function isBroadcastPublication(value: unknown): value is BroadcastPreparedSnapshot {
@@ -320,7 +355,7 @@ export function validatedPublications(value: unknown): BroadcastPublications {
 			? (value as Record<string, unknown>)
 			: {};
 	return Object.fromEntries(
-		graphicIds.map((id) => [id, isBroadcastPublication(record[id]) ? record[id] : null])
+		graphicIds.map((id) => [id, persistedPublication(record[id])])
 	) as BroadcastPublications;
 }
 
