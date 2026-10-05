@@ -11,6 +11,10 @@ import { createdAtColumn, revisionColumn, updatedAtColumn } from './common';
 import { games } from './games';
 import { tournamentEntries } from './tournaments';
 import type { BroadcastPublications } from '#lib/broadcast/types.ts';
+import type {
+	BroadcastPauseState,
+	BroadcastCeremonyEvent
+} from '#lib/broadcast/in-game-controls.ts';
 
 export const broadcastState = sqliteTable(
 	'broadcast_state',
@@ -21,6 +25,11 @@ export const broadcastState = sqliteTable(
 		dataRevision: revisionColumn(),
 		controlRevision: integer('control_revision').notNull().default(1),
 		swapped: integer('swapped', { mode: 'boolean' }).notNull().default(false),
+		pause: text('pause', { mode: 'json' })
+			.$type<BroadcastPauseState>()
+			.notNull()
+			.default({ type: 'none' }),
+		ceremony: text('ceremony', { mode: 'json' }).$type<BroadcastCeremonyEvent>(),
 		currentAttackersEntryId: text('current_attackers_entry_id').references(
 			() => tournamentEntries.id,
 			{ onDelete: 'restrict' }

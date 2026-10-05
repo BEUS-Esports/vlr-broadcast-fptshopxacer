@@ -3,6 +3,7 @@
 	import { prefersReducedMotion } from 'svelte/motion';
 	import type { GraphicId } from './controls';
 	import type { BroadcastSnapshot } from './types';
+	import type { BroadcastClock } from './client';
 	import { programSnapshot } from './selectors';
 	import { resolveGraphicTemplate } from './templates';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
@@ -14,19 +15,22 @@
 	} from '#lib/live/selectors.ts';
 	import InGameHud from './live/InGameHud.svelte';
 	import ProviderAttribution from './live/ProviderAttribution.svelte';
+	import CenterMatchBanner from './in-game/CenterMatchBanner.svelte';
 
 	let {
 		snapshot,
 		graphic,
 		mode = 'program',
 		telemetry = null,
-		resources = null
+		resources = null,
+		clock = null
 	}: {
 		snapshot: BroadcastSnapshot | null;
 		graphic: GraphicId;
 		mode?: 'program' | 'preview' | 'preview-live';
 		telemetry?: LiveGameEnvelope | null;
 		resources?: LiveResources | null;
+		clock?: BroadcastClock | null;
 	} = $props();
 	const rendered = $derived(
 		snapshot && (mode === 'program' ? programSnapshot(snapshot, graphic) : snapshot)
@@ -80,4 +84,5 @@
 			{/if}
 		</div>
 	{/if}
+	{#if rendered && graphic === 'in-game'}<CenterMatchBanner snapshot={rendered} {clock} />{/if}
 </div>

@@ -39,5 +39,5 @@
 	data-stream-epoch={broadcast.cursor?.epoch ?? ''}
 	data-stream-sequence={broadcast.cursor?.sequence ?? 0}
 >
-	<GraphicRenderer {snapshot} {graphic} {telemetry} {resources} />
+	<GraphicRenderer {snapshot} {graphic} {telemetry} {resources} clock={broadcast.clock} />
 </div>

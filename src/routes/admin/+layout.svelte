@@ -1,5 +1,6 @@
 <script lang="ts">
 	import './layout.css';
+	import beusLogo from '#lib/assets/logos/0_bg.png';
 	import { page } from '$app/state';
 	import { AppBar, Navigation, Toast } from '@skeletonlabs/skeleton-svelte';
 	import {
@@ -13,6 +14,8 @@
 	} from '@lucide/svelte';
 	import { graphicIds, graphicLabels } from '#lib/broadcast/controls.ts';
 	import { toaster } from '#lib/toaster.ts';
+	import { onMount, setContext } from 'svelte';
+	import { createBroadcastClient } from '#lib/broadcast/client.ts';
 
 	let { children } = $props();
 	const dashboardActive = $derived(page.url.pathname === '/admin');
@@ -21,6 +24,23 @@
 	const resourcesActive = $derived(page.url.pathname === '/admin/resources');
 	const tournamentsActive = $derived(page.url.pathname.startsWith('/admin/tournaments/'));
 	const tournamentsListActive = $derived(page.url.pathname === '/admin/tournaments');
+
+	const broadcastClient = setContext('broadcast-client', createBroadcastClient());
+
+	let serverTime = $state<number | null>(null);
+
+	onMount(() => {
+		broadcastClient.connect();
+		const update = () => {
+			serverTime = broadcastClient.getState().clock?.now() ?? null;
+		};
+		update();
+		const timer = setInterval(update, 500);
+		return () => {
+			clearInterval(timer);
+			broadcastClient.disconnect();
+		};
+	});
 </script>
 
 <div class="flex h-dvh flex-col overflow-hidden bg-surface-50-950 text-surface-950-50">
@@ -32,11 +52,32 @@
 	</a>
 	<AppBar class="shrink-0 border-b border-surface-200-800 preset-filled-surface-100-900">
 		<AppBar.Toolbar class="grid-cols-[1fr_auto]">
-			<AppBar.Lead>
-				<a href="/admin" class="font-bold tracking-wide no-underline">FPT Shop × Acer</a>
+			<AppBar.Lead class="flex items-center gap-4">
+				<img src={beusLogo} alt="FPT Shop x Acer" class="h-8 w-8" />
+				<a href="/admin" class="flex flex-col">
+					<span class="font-bold tracking-wide no-underline">FPT Shop x Acer</span>
+					<span class="text-sm">Broadcast Controller - Valorant</span>
+				</a>
 			</AppBar.Lead>
 			<AppBar.Trail>
-				<span class="badge hidden preset-tonal-surface sm:inline-flex">Broadcast controller</span>
+				{#if serverTime !== null}
+					<div class="text-sm font-medium">
+						<span>Server Time:</span>
+						<time aria-label="Server Time" datetime={new Date(serverTime).toISOString()}>
+							{new Date(serverTime).toLocaleString('vi-VN', {
+								timeZone: 'Asia/Ho_Chi_Minh',
+								weekday: 'long',
+								day: 'numeric',
+								month: 'long',
+								year: 'numeric',
+								hour: '2-digit',
+								minute: '2-digit',
+								second: '2-digit',
+								timeZoneName: 'short'
+							})}
+						</time>
+					</div>
+				{/if}
 			</AppBar.Trail>
 		</AppBar.Toolbar>
 	</AppBar>

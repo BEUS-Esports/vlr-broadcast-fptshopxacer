@@ -30,10 +30,15 @@ function preparedSnapshot(): BroadcastSnapshot {
 		stylizedBackgroundPath: null
 	};
 	return {
-		version: 2,
+		version: 3,
 		controlRevision: 1,
 		dataRevision: 1,
-		liveControls: { swapped: true, currentAttackersEntryId: 'b' },
+		liveControls: {
+			swapped: true,
+			currentAttackersEntryId: 'b',
+			pause: { type: 'none' },
+			ceremony: null
+		},
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications'],

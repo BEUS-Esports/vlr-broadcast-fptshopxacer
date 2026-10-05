@@ -3,6 +3,7 @@
 	import GraphicRenderer from '#lib/broadcast/GraphicRenderer.svelte';
 	import { graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
+	import type { BroadcastClock } from '#lib/broadcast/client.ts';
 	import { onMount } from 'svelte';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
 	import type { LiveResources } from '#lib/live/selectors.ts';
@@ -12,13 +13,15 @@
 		snapshot,
 		connection,
 		telemetry = null,
-		variant = 'normal'
+		variant = 'normal',
+		clock = null
 	}: {
 		graphic: GraphicId;
 		snapshot: BroadcastSnapshot;
 		connection: string;
 		telemetry?: LiveGameEnvelope | null;
 		variant?: 'normal' | 'live-data';
+		clock?: BroadcastClock | null;
 	} = $props();
 	const title = $derived(variant === 'live-data' ? 'Preview Live Data HUD' : 'Preview');
 	const largeTitle = $derived(
@@ -36,7 +39,7 @@
 
 {#snippet canvasContent(canvasWidth: number)}
 	<div class="composition" style:transform={`scale(${canvasWidth / 1920})`}>
-		<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} mode={renderMode} />
+		<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} {clock} mode={renderMode} />
 	</div>
 {/snippet}
 

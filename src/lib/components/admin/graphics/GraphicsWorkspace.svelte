@@ -6,6 +6,7 @@
 		readonly live: BroadcastSnapshot;
 		readonly management: GraphicsControlData['management'];
 		readonly connection: string;
+		readonly clock: import('#lib/broadcast/client.ts').BroadcastClock | null;
 	};
 </script>
 
@@ -20,7 +21,8 @@
 	let stream = $state<BroadcastClientState>({
 		connection: 'disconnected',
 		snapshot: null,
-		cursor: null
+		cursor: null,
+		clock: null
 	});
 	let refreshError = $state('');
 	const live = $derived(
@@ -33,6 +35,9 @@
 	const editor = $state({ management: untrack(() => data.management) });
 	const management = $derived(editor.management);
 	const drafts = getContext<DraftRegistry>('management-drafts');
+	const broadcastClient = getContext<ReturnType<typeof createBroadcastClient> | undefined>(
+		'broadcast-client'
+	);
 	const recordsDirty = $derived([...drafts.values()].some((form) => form.record && form.dirty));
 	const changedContext = $derived(
 		(management?.game.id ?? null) !== (data.management?.game.id ?? null)
@@ -50,10 +55,13 @@
 		},
 		get connection() {
 			return stream.connection;
+		},
+		get clock() {
+			return stream.clock;
 		}
 	});
 	onMount(() => {
-		const client = createBroadcastClient();
+		const client = broadcastClient ?? createBroadcastClient();
 		let revision = `${data.snapshot.controlRevision}:${data.snapshot.dataRevision}`;
 		let refreshing = false;
 		let queued = false;
@@ -83,10 +91,10 @@
 				void refresh();
 			}
 		});
-		client.connect();
+		if (!broadcastClient) client.connect();
 		return () => {
 			unsubscribe();
-			client.disconnect();
+			if (!broadcastClient) client.disconnect();
 		};
 	});
 </script>

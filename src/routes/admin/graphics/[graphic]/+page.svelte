@@ -9,6 +9,7 @@
 	import type { GraphicsContext } from '#lib/components/admin/graphics/GraphicsWorkspace.svelte';
 	import type { PageProps } from './$types';
 	import ProviderControls from '#lib/components/admin/live/ProviderControls.svelte';
+	import InGameMatchControls from '#lib/components/admin/graphics/InGameMatchControls.svelte';
 	let { data }: PageProps = $props();
 	const workspace = getContext<GraphicsContext>('graphics-control');
 	let telemetry = $state.raw<LiveGameEnvelope | null>(null);
@@ -35,6 +36,9 @@
 		{/if}
 		{#key data.graphic}
 			<GraphicControls graphic={data.graphic} live={workspace.live} />
+			{#if data.graphic === 'in-game'}
+				<InGameMatchControls live={workspace.live} clock={workspace.clock} />
+			{/if}
 			<GraphicEditors graphic={data.graphic} management={workspace.management} />
 		{/key}
 	</div>
@@ -46,6 +50,7 @@
 			graphic={data.graphic}
 			snapshot={workspace.live}
 			connection={workspace.connection}
+			clock={workspace.clock}
 			{telemetry}
 		/>
 		{#if data.graphic === 'in-game'}
@@ -53,6 +58,7 @@
 				graphic={data.graphic}
 				snapshot={workspace.live}
 				connection={workspace.connection}
+				clock={workspace.clock}
 				{telemetry}
 				variant="live-data"
 			/>

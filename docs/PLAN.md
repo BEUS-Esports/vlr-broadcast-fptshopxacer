@@ -4,7 +4,7 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5/5.1 implementation, automated Node/browser verification, and real Valorant/OBS graphics acceptance are complete. Phase 6 live-provider/external-HUD work is now planned on `feat/phase-6-live-data`; Phases 7 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5/5.1 implementation, automated Node/browser verification, and real Valorant/OBS graphics acceptance are complete. Phase 6 provider/external-HUD implementation is complete pending separately recorded real provider sessions and external-HUD OBS acceptance. Phase 6.1 in-game match banners are planned on `feat/phase-6.1-match-banners`; Phases 7 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
@@ -29,6 +29,7 @@ A concrete GStack `/livenow` payload/schema is now available, while successful S
    → 4. Manual statistics
    → 5. Shared broadcast controls and all test graphics
    → 6. Live providers and HUD failover
+   → 6.1. In-game pause and ceremony banners
    → 7. Spectra post-game import
    → 8. Design-team asset integration
    → 9. Deployment, recovery, and broadcast rehearsal
@@ -187,6 +188,32 @@ Detailed implementation plan: [2026-10-03-phase-6-live-providers-external-hud.md
 
 Use controlled provider fixtures, fake timers, multiple browser subscribers, malformed/stale-generation payloads, partial auxiliary-client availability, and real Spectra/GStack sessions. Record the actual provider payload/capability observations used to justify normalization and rendering decisions.
 
+## Phase 6.1 — Add shared in-game pause and ceremony banners
+
+Detailed implementation plan: [2026-10-05-phase-6.1-in-game-match-banners.md](./2026-10-05-phase-6.1-in-game-match-banners.md).
+
+### Work
+
+- [ ] Add app-owned Tactical Timeout and Technical Pause state with server-enforced transitions, including queued Technical Pause after an active Tactical Timeout.
+- [ ] Add manually triggered Round Win, Thrifty, Clutch, Team Ace, and Flawless ceremony events.
+- [ ] Render one shared center-screen banner layer above both the Native HUD and Live Data HUD; do not source or trigger these controls through Spectra/GStack.
+- [ ] Add dedicated In-Game operator controls and preserve immediate live-control updates through Native Preview, Live Data Preview, Large Preview, and shown Program output.
+- [ ] Preserve held publication behavior and backward compatibility for existing Phase 5/6 publication captures.
+- [ ] Verify multi-controller safety, transient ceremony expiry, pause/ceremony sequencing, and real Valorant/OBS safe areas.
+
+### Done when
+
+- Tactical Timeout and Technical Pause cannot overlap or replace one another illegally.
+- A Technical Pause requested during Tactical waits until Tactical finishes; Tactical cannot begin during Technical.
+- All five ceremony types can be triggered manually for either local team and expire without stale replay or stacking.
+- Native and Live Data HUDs consume the same provider-independent control state and shared banner renderer.
+- A shown In-Game output receives banner changes immediately without Hide -> Show or publication recapture.
+- Provider availability is not required for Phase 6.1 operation.
+
+### Focused proof
+
+Use service transition tests, fake-time ceremony tests, component/renderer tests, stale two-controller writes, a production browser journey covering both preview modes and Program, and 1920x1080 Native/OBS screenshots. Repeat external-HUD composition acceptance when a real provider session is available.
+
 ## Phase 7 — Add Spectra post-game import with manual protection
 
 ### Work
@@ -273,4 +300,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, run the implemented Phase 6 providers against real Spectra/GStack sessions and rehearse the external HUD in Valorant/OBS. Migration 0008 and an Agent catalogue sync supply local ability artwork. Preserve the accepted Phase 5 native fallback and the tested competition/presentation/side separation. Record fixture and real-session evidence separately before declaring either provider broadcast-ready.
+Next, implement Phase 6.1 from its dedicated plan while preserving the completed Phase 6 provider foundation. Provider real-session verification can proceed independently when Spectra/GStack access is available. Phase 6.1 pause/ceremony controls must remain provider-independent and share one center-banner layer across Native and Live Data HUDs.

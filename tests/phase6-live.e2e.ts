@@ -269,6 +269,40 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		expect(connections).toBe(1);
 		expect(snapshots).toBe(1);
 		expect(browserSockets).toEqual([]);
+		const heldPublication = String(
+			(await db.execute('SELECT publications FROM broadcast_state WHERE id = 1')).rows[0]
+				.publications
+		);
+		await save(page, 'Tactical Timeout · Alpha');
+		for (const surface of [preview, livePreview, ...outputs]) {
+			await expect(surface.locator('[data-match-banner]')).toContainText('TACTICAL TIMEOUT');
+			await expect(surface.locator('[data-match-banner]')).toContainText('Alpha');
+		}
+		await outputs[0].screenshot({
+			path: 'docs/phase-6.1-screenshots/tactical-provider-live-hud.png',
+			omitBackground: true
+		});
+		await controls.getByRole('button', { name: 'Use native HUD', exact: true }).click();
+		for (const output of outputs) {
+			await expect(output.locator('[data-live-hud]')).toHaveCount(0);
+			await expect(output.locator('[data-match-banner]')).toContainText('Alpha');
+		}
+		await controls.getByRole('button', { name: 'Enable external HUD', exact: true }).click();
+		for (const output of outputs) {
+			await expect(output.locator('[data-live-hud]')).toBeVisible();
+			await expect(output.locator('[data-match-banner]')).toContainText('Alpha');
+		}
+		await save(page, 'Finish Timeout');
+		for (const output of outputs)
+			await expect(output.locator('[data-match-banner]')).toHaveCount(0);
+		expect(connections).toBe(1);
+		expect(snapshots).toBe(1);
+		expect(
+			String(
+				(await db.execute('SELECT publications FROM broadcast_state WHERE id = 1')).rows[0]
+					.publications
+			)
+		).toBe(heldPublication);
 		const envelope = await latestTelemetry(outputs[0]);
 		expect(envelope.status).toMatchObject({
 			mode: 'external',

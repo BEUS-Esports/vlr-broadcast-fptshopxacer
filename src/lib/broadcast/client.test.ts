@@ -1,5 +1,36 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { withManagementFixture } from '#lib/server/testing/management-fixture.ts';
+
+it.each([7000, -5000])('tracks server time despite a %sms local clock offset', async (offset) => {
+	const { createBroadcastClient } = await import('./client');
+	const events = Object.assign(new EventTarget(), { readyState: 0, close() {} });
+	const client = createBroadcastClient({ eventSource: () => events });
+	const wallClock = vi.spyOn(Date, 'now').mockReturnValue(10000 + offset);
+	const monotonicClock = vi.spyOn(performance, 'now').mockReturnValue(100);
+	try {
+		client.connect();
+		expect(client.getState().clock).toBeNull();
+		events.dispatchEvent(new MessageEvent('clock', { data: '10000' }));
+		expect(client.getState().clock?.now()).toBe(10000);
+		monotonicClock.mockReturnValue(2100);
+		wallClock.mockReturnValue(999999);
+		expect(client.getState().clock?.now()).toBe(12000);
+		for (const data of ['null', '"10000"', '-1', '1.5', '{}', 'not json']) {
+			events.dispatchEvent(new MessageEvent('clock', { data }));
+			expect(client.getState().clock?.now()).toBe(12000);
+		}
+		// Heartbeats/reconnects refresh time even when the snapshot cursor is unchanged.
+		events.dispatchEvent(new MessageEvent('clock', { data: '13000' }));
+		expect(client.getState().clock?.now()).toBe(13000);
+		client.disconnect();
+		events.dispatchEvent(new MessageEvent('clock', { data: '20000' }));
+		expect(client.getState().clock?.now()).toBe(13000);
+	} finally {
+		client.disconnect();
+		wallClock.mockRestore();
+		monotonicClock.mockRestore();
+	}
+});
 
 it('allows explicit reconnect after EventSource permanently closes', async () => {
 	const { createBroadcastClient } = await import('./client');
