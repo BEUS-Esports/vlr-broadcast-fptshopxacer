@@ -30,7 +30,7 @@ A concrete GStack `/livenow` payload/schema is now available, while successful S
    → 5. Shared broadcast controls and all test graphics
    → 6. Live providers and HUD failover
    → 6.1. In-game pause and ceremony banners
-   → 7. Spectra post-game import
+   → 7. Provider-neutral post-game import (HenrikDev-first)
    → 8. Design-team asset integration
    → 9. Deployment, recovery, and broadcast rehearsal
 ```
@@ -214,26 +214,35 @@ Detailed implementation plan: [2026-10-05-phase-6.1-in-game-match-banners.md](./
 
 Use service transition tests, fake-time ceremony tests, component/renderer tests, stale two-controller writes, a production browser journey covering both preview modes and Program, and 1920x1080 Native/OBS screenshots. Repeat external-HUD composition acceptance when a real provider session is available.
 
-## Phase 7 — Add Spectra post-game import with manual protection
+## Phase 7 — Add provider-neutral post-game import with manual protection
+
+Detailed implementation plan: [2026-10-05-phase-7-post-game-provider-import.md](./2026-10-05-phase-7-post-game-provider-import.md).
 
 ### Work
 
-- [ ] Read the current supported stats-service contract and configure the separate Spectra post-game source. Do not assume a self-hosted live server supplies the hosted statistics backend.
-- [ ] Fetch a report by group code with bounded pending/error behavior. Keep this polling separate from the live-HUD retry state machine.
-- [ ] Validate the returned match identity, participants, teams, and statistic formats against the intended local game. When identity cannot be confirmed automatically, provide an explicit operator mapping/review step.
-- [ ] Import into the same records used by manual entry. Make repeat imports idempotent and surface conflicts with manual corrections before any explicit replacement. Do not switch the live game, enable the live HUD, or auto-select an MVP on import.
-- [ ] Resolve the Phase 4 provenance edge cases before enabling reimport: an imported row manually cleared to all-null needs an explicit resolution path before lineup identity changes, and agent-only manual corrections need player-level conflict provenance.
-- [ ] Validate one real completed-game report for the intended Spectra setup when available. Preserve the full manual workflow if the service is unavailable, inaccessible, late, or incomplete.
+- [ ] Build one provider-neutral post-game contract and shared review/import pipeline. Provider-specific retrieval/decoding must stop at normalization; do not create HenrikDev/Spectra statistics tables.
+- [ ] Implement HenrikDev first as the recommended operator path: use a saved lineup Riot ID to fetch recent candidates, require the operator to select the intended match, then fetch exact match detail for review. Keep API key/config server-only and respect current provider consent/rate-limit rules.
+- [ ] Implement ValoSpectra beside HenrikDev, not as an automatic fallback. Fetch by group code with bounded pending/error behavior using the hosted statistics service, separate from the Phase 6 live-HUD coordinator.
+- [ ] Validate report completion/identity, map, teams, participants and statistic formats against the selected local game. Auto-map only strong identities such as unique Riot ID matches; require explicit operator mapping/review for ambiguity.
+- [ ] Preview local -> proposed changes and import into the same records used by manual entry. Repeat imports must be idempotent; provider replacement and manual conflicts require explicit resolution. Provider null must not silently erase known local data.
+- [ ] Resolve the Phase 4 provenance gaps before reimport: track agent-only manual corrections at player level and provide an explicit discard/resolution path for imported all-null manually cleared rows before lineup identity changes.
+- [ ] Add source + external match ID uniqueness so one provider report cannot be associated with two local games.
+- [ ] Keep Performance Score distinct from HenrikDev score. Derive event-backed metrics only from documented/tested semantics; leave Trades unavailable until an approved definition exists.
+- [ ] Do not finalize game results, switch live providers/HUDs, change broadcast selection, or auto-select MVP from an import.
+- [ ] Validate one real authorized HenrikDev completed-game workflow. Validate one real Spectra hosted report when available; otherwise keep that dependency explicitly unresolved. Preserve the full manual workflow if either provider is unavailable.
 
 ### Done when
 
-- A fixture report and a manual scoreboard feed the same game/series/tournament views and graphics.
-- A reused group code, duplicate import, late response, or operator correction cannot corrupt another game's records or silently replace edited data.
-- Real endpoint availability is either verified with evidence or clearly listed as an unresolved release dependency; the import feature is not falsely declared proven from types alone.
+- HenrikDev and Spectra are visible side-by-side in Post-Game Report, with HenrikDev clearly recommended but neither selected automatically.
+- Both provider fixtures and the manual scoreboard feed the same canonical game/series/tournament views and graphics.
+- The operator chooses a HenrikDev candidate, reviews the exact normalized report and confirms it before any write.
+- A wrong map/player set, duplicate external report, late response, stale review, provider replacement, or operator correction cannot corrupt another game's records or silently overwrite edited data.
+- Agent-only corrections and imported all-null manual clears have explicit safe provenance/resolution behavior.
+- Real HenrikDev acceptance is recorded; Spectra real endpoint availability is either verified with evidence or clearly listed as an unresolved release dependency.
 
 ### Focused proof
 
-Test identity mismatch, duplicate requests, pending reports, partial payloads, transaction failure, manual-edit conflict, and a late response after broadcast selection changes. Verify that advanced metrics are unavailable when their required event data is missing.
+Test candidate selection, identity mismatch, duplicate mappings, duplicate report association, pending Spectra reports, HTTP auth/rate-limit/provider failure, partial payloads, provider-null vs local-known values, transaction failure, manual stat conflict, agent-only conflict, all-null clear/discard, provider replacement, and a late response after game/navigation state changes.
 
 ## Phase 8 — Integrate design-team layouts and assets
 
