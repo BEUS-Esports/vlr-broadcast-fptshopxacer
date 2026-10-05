@@ -14,6 +14,7 @@
 	} from '#lib/live/selectors.ts';
 	import InGameHud from './live/InGameHud.svelte';
 	import ProviderAttribution from './live/ProviderAttribution.svelte';
+	import CenterMatchBanner from './in-game/CenterMatchBanner.svelte';
 
 	let {
 		snapshot,
@@ -80,4 +81,5 @@
 			{/if}
 		</div>
 	{/if}
+	{#if rendered && graphic === 'in-game'}<CenterMatchBanner snapshot={rendered} />{/if}
 </div>

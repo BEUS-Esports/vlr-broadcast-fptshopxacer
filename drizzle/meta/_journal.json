@@ -64,6 +64,13 @@
       "when": 1791017394385,
       "tag": "0008_agent_abilities",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1791169200000,
+      "tag": "0009_in_game_match_controls",
+      "breakpoints": true
     }
   ]
 }

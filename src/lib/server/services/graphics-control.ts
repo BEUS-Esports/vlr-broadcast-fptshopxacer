@@ -7,6 +7,7 @@ import { formError, readPayload } from '#lib/server/services/form-error.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
 import type { Actions } from '@sveltejs/kit';
 import { loadGameManagement } from './game-management';
+import { isInGameControlAction } from '#lib/broadcast/in-game-controls.ts';
 
 export async function loadGraphicsControl() {
 	const [snapshot, tournamentOptions, matchOptions, gameOptions] = await Promise.all([
@@ -89,6 +90,29 @@ export const actions: Actions = {
 		let draft: Record<string, unknown> = {};
 		try {
 			draft = readPayload(form);
+			if (draft.intent === 'in-game') {
+				if (
+					Object.keys(draft).some(
+						(key) => !['expectedRevision', 'intent', 'command', 'entryId', 'ceremony'].includes(key)
+					)
+				)
+					throw new SaveError(
+						'invalid',
+						'In-game commands cannot be combined with other controls.'
+					);
+				const action = {
+					type: draft.command,
+					...(draft.entryId === undefined ? {} : { entryId: draft.entryId }),
+					...(draft.ceremony === undefined ? {} : { ceremony: draft.ceremony })
+				};
+				if (!isInGameControlAction(action))
+					throw new SaveError('invalid', 'Choose a valid in-game command.');
+				await updateBroadcastState({
+					expectedRevision: draft.expectedRevision as number,
+					inGameAction: action
+				});
+				return { saved: true };
+			}
 			await updateBroadcastState({
 				expectedRevision: draft.expectedRevision as number,
 				swapped: draft.swapped as BroadcastUpdate['swapped'],

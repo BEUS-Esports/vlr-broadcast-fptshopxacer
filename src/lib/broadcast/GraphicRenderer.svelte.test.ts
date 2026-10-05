@@ -13,10 +13,15 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 		mvpPlayerId: null
 	};
 	return {
-		version: 2,
+		version: 3,
 		controlRevision: 1,
 		dataRevision: 1,
-		liveControls: { swapped: false, currentAttackersEntryId: null },
+		liveControls: {
+			swapped: false,
+			currentAttackersEntryId: null,
+			pause: { type: 'none' },
+			ceremony: null
+		},
 		selection: { tournamentId: 't', matchId: 'm', gameId: 'g' },
 		tournament: { id: 't', name: 'Test', slug: 'test' },
 		match: {
@@ -234,4 +239,108 @@ it('renders a provider template without game preparation or healthy status', () 
 	expect(
 		preview.container.querySelector('[data-winner-position="right"]')?.getAttribute('title')
 	).toContain('Provider Bravo');
+});
+
+function bannerFixture(): BroadcastSnapshot {
+	const prepared = preparedFixture();
+	return {
+		...prepared,
+		competition: { teamAEntryId: 'a', teamBEntryId: 'b' },
+		presentation: { leftEntryId: 'a', rightEntryId: 'b' },
+		teams: ['a', 'b'].map((entryId) => ({
+			entryId,
+			teamId: entryId,
+			name: entryId === 'a' ? 'Local Alpha' : 'Local Bravo',
+			tag: entryId.toUpperCase(),
+			logoPath: null,
+			logoWhitePath: null,
+			logoBlackPath: null
+		})),
+		liveControls: {
+			...prepared.liveControls,
+			pause: { type: 'tactical', entryId: 'a', pendingTechnical: false }
+		},
+		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+	};
+}
+
+it('shares the local banner across native, live, empty-provider previews and HUD mode changes', async () => {
+	const snapshot = bannerFixture();
+	const state = liveGameFixture({ selectedGameId: 'g' });
+	state.teams[0].observedName = 'Provider Alpha';
+	const telemetry: LiveGameEnvelope = {
+		version: 1,
+		stream: { epoch: 'epoch', sequence: 1 },
+		state,
+		status: liveSessionFixture({ selectedGameId: 'g', health: 'fallback' })
+	};
+	for (const mode of ['preview', 'preview-live'] as const) {
+		const view = render(GraphicRenderer, { snapshot, graphic: 'in-game', mode, telemetry });
+		const banner = () => view.container.querySelector('[data-match-banner]');
+		expect(banner()?.textContent).toContain('TACTICAL TIMEOUT');
+		expect(banner()?.textContent).toContain('Local Alpha');
+		expect(banner()?.textContent).not.toContain('Provider Alpha');
+		await view.rerender({ snapshot, graphic: 'in-game', mode, telemetry: null });
+		expect(banner()?.getAttribute('data-entry-id')).toBe('a');
+	}
+	const held = {
+		...preparedFixture(),
+		competition: snapshot.competition,
+		presentation: snapshot.presentation,
+		teams: snapshot.teams
+	};
+	const shown = {
+		...snapshot,
+		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		publications: { ...snapshot.publications, 'in-game': held }
+	};
+	const program = render(GraphicRenderer, { snapshot: shown, graphic: 'in-game', telemetry });
+	await program.rerender({
+		snapshot: shown,
+		graphic: 'in-game',
+		telemetry: {
+			...telemetry,
+			status: { ...telemetry.status, mode: 'external', health: 'live', mappingReady: true }
+		}
+	});
+	expect(
+		program.container.querySelector('[data-match-banner]')?.getAttribute('data-entry-id')
+	).toBe('a');
+	await program.rerender({
+		snapshot: {
+			...shown,
+			dataRevision: 2,
+			liveControls: { ...shown.liveControls, pause: { type: 'technical' } }
+		},
+		graphic: 'in-game',
+		telemetry
+	});
+	expect(program.container.querySelector('[data-match-banner]')?.textContent).toContain(
+		'TECHNICAL PAUSE'
+	);
+	expect(
+		program.container.querySelector('[data-render-mode]')?.getAttribute('data-data-revision')
+	).toBe('1');
+	expect(shown.publications['in-game']).toBe(held);
+});
+
+it('removes the banner immediately on hide and never retains an outgoing slot on show', async () => {
+	const snapshot = bannerFixture();
+	const held = {
+		...preparedFixture(),
+		competition: snapshot.competition,
+		presentation: snapshot.presentation,
+		teams: snapshot.teams
+	};
+	const shown = {
+		...snapshot,
+		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		publications: { ...snapshot.publications, 'in-game': held }
+	};
+	const view = render(GraphicRenderer, { snapshot: shown, graphic: 'in-game' });
+	expect(view.container.querySelectorAll('[data-match-banner]')).toHaveLength(1);
+	await view.rerender({ snapshot, graphic: 'in-game' });
+	expect(view.container.querySelectorAll('[data-match-banner]')).toHaveLength(0);
+	await view.rerender({ snapshot: shown, graphic: 'in-game' });
+	expect(view.container.querySelectorAll('[data-match-banner]')).toHaveLength(1);
 });
