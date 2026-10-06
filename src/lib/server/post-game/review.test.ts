@@ -66,7 +66,8 @@ export async function prepare({ db }: ManagementFixture) {
 it('previews ten exact Riot ID mappings and imports canonical data without changing results', async () => {
 	await withManagementFixture(async (fixture) => {
 		await prepare(fixture);
-		const { createPostGameReview, importPostGameReport } = await import('./review');
+		const { createPostGameReview, importPostGameReport, discardGamePlayerStatistics } =
+			await import('./review');
 		const review = await createPostGameReview({
 			gameId: 'g',
 			expectedGameRevision: 1,
@@ -81,6 +82,14 @@ it('previews ten exact Riot ID mappings and imports canonical data without chang
 			proposed: { kills: 10 },
 			availability: { kills: true, performanceScore: false }
 		});
+		await expect(
+			importPostGameReport({
+				token: review.token,
+				gameId: 'g',
+				expectedGameRevision: 1,
+				resolutions: { a1: { statistics: 'use-provider' } }
+			})
+		).rejects.toMatchObject({ code: 'invalid' });
 		const saved = await importPostGameReport({
 			token: review.token,
 			gameId: 'g',
@@ -95,6 +104,15 @@ it('previews ten exact Riot ID mappings and imports canonical data without chang
 			mvpPlayerId: null
 		});
 		expect((await fixture.db.select().from(s.gameLineups))[0].agentId).toBe('jett');
+		await expect(
+			discardGamePlayerStatistics({
+				gameId: 'g',
+				expectedGameRevision: 2,
+				playerId: 'a1',
+				confirmation: true
+			})
+		).rejects.toMatchObject({ code: 'blocked' });
+		expect((await fixture.db.select().from(s.games))[0].revision).toBe(2);
 		const again = await createPostGameReview({
 			gameId: 'g',
 			expectedGameRevision: 2,
@@ -106,6 +124,35 @@ it('previews ten exact Riot ID mappings and imports canonical data without chang
 				.gameRevision
 		).toBe(3);
 		expect(await fixture.db.select().from(s.gamePlayerStatistics)).toHaveLength(10);
+	});
+});
+
+it('blocks contradictory provider agent id and name evidence', async () => {
+	await withManagementFixture(async (fixture) => {
+		await prepare(fixture);
+		await fixture.db.insert(s.agents).values({
+			id: 'sage',
+			key: 'sage',
+			displayName: 'Sage',
+			valorantApiUuid: 'sage-uuid'
+		});
+		await fixture.db
+			.update(s.agents)
+			.set({ valorantApiUuid: 'jett-uuid' })
+			.where(eq(s.agents.id, 'jett'));
+		const data = report();
+		data.players[0].agentExternalId = 'jett-uuid';
+		data.players[0].agentName = 'Sage';
+		const { createPostGameReview } = await import('./review');
+		const review = await createPostGameReview({
+			gameId: 'g',
+			expectedGameRevision: 1,
+			report: data
+		});
+		expect(review.canConfirm).toBe(false);
+		expect(review.validation).toContain(
+			'Provider player 1 has contradictory agent identity evidence.'
+		);
 	});
 });
 
