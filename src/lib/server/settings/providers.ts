@@ -81,6 +81,13 @@ function boundedInteger(value: unknown, fallback: number, min: number, max: numb
 	return result as number;
 }
 
+function optionalGroupCode(value: unknown) {
+	const result = typeof value === 'string' ? value.trim() : '';
+	if (result.length > 128 || [...result].some((char) => char.charCodeAt(0) < 32))
+		throw new Error('Enter a valid Spectra post-game group code.');
+	return result;
+}
+
 export function normalizeProviderSettings(input: Partial<ProviderSettingsValue>): ProviderSettingsValue {
 	const value = { ...defaultProviderSettings, ...input };
 	const live = normalizeConfig(
@@ -131,14 +138,7 @@ export function normalizeProviderSettings(input: Partial<ProviderSettingsValue>)
 			'Post-game request timeout'
 		),
 		spectraPostGameBaseUrl: host(value.spectraPostGameBaseUrl, 'Spectra post-game'),
-		spectraPostGameGroupCode:
-			typeof value.spectraPostGameGroupCode === 'string' &&
-			value.spectraPostGameGroupCode.length <= 128 &&
-			![...value.spectraPostGameGroupCode].some((char) => char.charCodeAt(0) < 32)
-				? value.spectraPostGameGroupCode.trim()
-				: (() => {
-						throw new Error('Enter a valid Spectra post-game group code.');
-					})(),
+		spectraPostGameGroupCode: optionalGroupCode(value.spectraPostGameGroupCode),
 		spectraPostGamePollIntervalMs: boundedInteger(
 			value.spectraPostGamePollIntervalMs,
 			15000,
