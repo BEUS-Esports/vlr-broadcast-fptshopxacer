@@ -41,10 +41,12 @@ export const load: PageServerLoad = async ({ params }) => {
 			gameId: params.gameId,
 			availability: config.availability,
 			groupCode: config.spectra?.groupCode ?? '',
-			discardablePlayers: management.statistics.provenance.discardablePlayerIds
-				.map((playerId) => management.players.find((player) => player.id === playerId))
-				.filter((player): player is NonNullable<typeof player> => !!player)
-				.map((player) => ({ id: player.id, displayName: player.displayName })),
+			discardablePlayers: management.statistics.provenance.discardablePlayerIds.flatMap(
+				(playerId) => {
+					const player = management.players.find((candidate) => candidate.id === playerId);
+					return player ? [{ id: player.id, displayName: player.displayName }] : [];
+				}
+			),
 			anchors: management.players
 				.filter(
 					(player) => player.riotId && management.lineup.some((row) => row.playerId === player.id)
