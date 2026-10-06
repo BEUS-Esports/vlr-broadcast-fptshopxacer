@@ -309,6 +309,7 @@
 			<Tabs.Content value="statistics" class="admin-editor" aria-label="Post-Game Report">
 				<h2 class="h3">Post-Game Report</h2>
 				<PostGameEditor
+					postGame={data.postGame}
 					revision={data.game.revision}
 					entries={[teamA, teamB]}
 					scoreboard={data.statistics.scoreboard}

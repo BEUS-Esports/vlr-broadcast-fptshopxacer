@@ -1,0 +1,2250 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "628b0dba-6e8d-47d8-8593-0c465df5a76d",
+  "prevId": "ad40424f-25bd-48ba-9156-b3f6217d824d",
+  "tables": {
+    "broadcast_state": {
+      "name": "broadcast_state",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "selected_game_id": {
+          "name": "selected_game_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "control_revision": {
+          "name": "control_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "swapped": {
+          "name": "swapped",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "pause": {
+          "name": "pause",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{\"type\":\"none\"}'"
+        },
+        "ceremony": {
+          "name": "ceremony",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "current_attackers_entry_id": {
+          "name": "current_attackers_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{\"player-lineup\":false,\"player-stats\":false,\"map-veto\":false,\"agent-select\":false,\"in-game\":false,\"post-game\":false,\"mvp\":false}'"
+        },
+        "publications": {
+          "name": "publications",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{\"player-lineup\":null,\"player-stats\":null,\"map-veto\":null,\"agent-select\":null,\"in-game\":null,\"post-game\":null,\"mvp\":null}'"
+        },
+        "player_stats": {
+          "name": "player_stats",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{\"mode\":\"single\",\"scope\":\"game\",\"playerId\":null,\"opponentPlayerId\":null}'"
+        },
+        "mvp_scope": {
+          "name": "mvp_scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'game'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "broadcast_state_selected_game_id_games_id_fk": {
+          "name": "broadcast_state_selected_game_id_games_id_fk",
+          "tableFrom": "broadcast_state",
+          "tableTo": "games",
+          "columnsFrom": [
+            "selected_game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "broadcast_state_current_attackers_entry_id_tournament_entries_id_fk": {
+          "name": "broadcast_state_current_attackers_entry_id_tournament_entries_id_fk",
+          "tableFrom": "broadcast_state",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "current_attackers_entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "broadcast_singleton_check": {
+          "name": "broadcast_singleton_check",
+          "value": "\"broadcast_state\".\"id\" = 1"
+        },
+        "broadcast_revision_check": {
+          "name": "broadcast_revision_check",
+          "value": "\"broadcast_state\".\"revision\" > 0"
+        },
+        "broadcast_swapped_check": {
+          "name": "broadcast_swapped_check",
+          "value": "\"broadcast_state\".\"swapped\" in (0, 1)"
+        },
+        "broadcast_mvp_scope_check": {
+          "name": "broadcast_mvp_scope_check",
+          "value": "\"broadcast_state\".\"mvp_scope\" in ('game', 'match', 'tournament')"
+        }
+      }
+    },
+    "game_lineups": {
+      "name": "game_lineups",
+      "columns": {
+        "game_id": {
+          "name": "game_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entry_id": {
+          "name": "entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slot": {
+          "name": "slot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "game_lineups_game_player_unique": {
+          "name": "game_lineups_game_player_unique",
+          "columns": [
+            "game_id",
+            "player_id"
+          ],
+          "isUnique": true
+        },
+        "game_lineups_entry_idx": {
+          "name": "game_lineups_entry_idx",
+          "columns": [
+            "entry_id"
+          ],
+          "isUnique": false
+        },
+        "game_lineups_player_idx": {
+          "name": "game_lineups_player_idx",
+          "columns": [
+            "player_id"
+          ],
+          "isUnique": false
+        },
+        "game_lineups_agent_idx": {
+          "name": "game_lineups_agent_idx",
+          "columns": [
+            "agent_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "game_lineups_game_id_games_id_fk": {
+          "name": "game_lineups_game_id_games_id_fk",
+          "tableFrom": "game_lineups",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "game_lineups_entry_id_tournament_entries_id_fk": {
+          "name": "game_lineups_entry_id_tournament_entries_id_fk",
+          "tableFrom": "game_lineups",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "game_lineups_player_id_players_id_fk": {
+          "name": "game_lineups_player_id_players_id_fk",
+          "tableFrom": "game_lineups",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "game_lineups_agent_id_agents_id_fk": {
+          "name": "game_lineups_agent_id_agents_id_fk",
+          "tableFrom": "game_lineups",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "agent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "game_lineups_game_id_entry_id_slot_pk": {
+          "columns": [
+            "game_id",
+            "entry_id",
+            "slot"
+          ],
+          "name": "game_lineups_game_id_entry_id_slot_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "game_lineups_slot_check": {
+          "name": "game_lineups_slot_check",
+          "value": "\"game_lineups\".\"slot\" between 1 and 5"
+        }
+      }
+    },
+    "games": {
+      "name": "games",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "number": {
+          "name": "number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "starting_attackers_entry_id": {
+          "name": "starting_attackers_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "starting_defenders_entry_id": {
+          "name": "starting_defenders_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "score_a": {
+          "name": "score_a",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "score_b": {
+          "name": "score_b",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "result_type": {
+          "name": "result_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "winner_entry_id": {
+          "name": "winner_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "mvp_player_id": {
+          "name": "mvp_player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "games_match_number_unique": {
+          "name": "games_match_number_unique",
+          "columns": [
+            "match_id",
+            "number"
+          ],
+          "isUnique": true
+        },
+        "games_map_idx": {
+          "name": "games_map_idx",
+          "columns": [
+            "map_id"
+          ],
+          "isUnique": false
+        },
+        "games_winner_entry_idx": {
+          "name": "games_winner_entry_idx",
+          "columns": [
+            "winner_entry_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "games_match_id_matches_id_fk": {
+          "name": "games_match_id_matches_id_fk",
+          "tableFrom": "games",
+          "tableTo": "matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "games_map_id_maps_id_fk": {
+          "name": "games_map_id_maps_id_fk",
+          "tableFrom": "games",
+          "tableTo": "maps",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "games_starting_attackers_entry_id_tournament_entries_id_fk": {
+          "name": "games_starting_attackers_entry_id_tournament_entries_id_fk",
+          "tableFrom": "games",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "starting_attackers_entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "games_starting_defenders_entry_id_tournament_entries_id_fk": {
+          "name": "games_starting_defenders_entry_id_tournament_entries_id_fk",
+          "tableFrom": "games",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "starting_defenders_entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "games_winner_entry_id_tournament_entries_id_fk": {
+          "name": "games_winner_entry_id_tournament_entries_id_fk",
+          "tableFrom": "games",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "winner_entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "games_mvp_player_id_players_id_fk": {
+          "name": "games_mvp_player_id_players_id_fk",
+          "tableFrom": "games",
+          "tableTo": "players",
+          "columnsFrom": [
+            "mvp_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "games_number_check": {
+          "name": "games_number_check",
+          "value": "\"games\".\"number\" > 0"
+        },
+        "games_score_a_check": {
+          "name": "games_score_a_check",
+          "value": "\"games\".\"score_a\" is null or \"games\".\"score_a\" >= 0"
+        },
+        "games_score_b_check": {
+          "name": "games_score_b_check",
+          "value": "\"games\".\"score_b\" is null or \"games\".\"score_b\" >= 0"
+        },
+        "games_scores_pair_check": {
+          "name": "games_scores_pair_check",
+          "value": "(\"games\".\"score_a\" is null and \"games\".\"score_b\" is null) or (\"games\".\"score_a\" is not null and \"games\".\"score_b\" is not null)"
+        },
+        "games_starting_sides_check": {
+          "name": "games_starting_sides_check",
+          "value": "(\"games\".\"starting_attackers_entry_id\" is null and \"games\".\"starting_defenders_entry_id\" is null) or (\"games\".\"starting_attackers_entry_id\" is not null and \"games\".\"starting_defenders_entry_id\" is not null and \"games\".\"starting_attackers_entry_id\" <> \"games\".\"starting_defenders_entry_id\")"
+        },
+        "games_result_type_check": {
+          "name": "games_result_type_check",
+          "value": "\"games\".\"result_type\" is null or \"games\".\"result_type\" in ('normal', 'forfeit', 'walkover', 'cancelled')"
+        },
+        "games_result_state_check": {
+          "name": "games_result_state_check",
+          "value": "(\n\t\t\t\t(\"games\".\"result_type\" is null and \"games\".\"winner_entry_id\" is null)\n\t\t\t\tor (\n\t\t\t\t\t\"games\".\"result_type\" = 'normal'\n\t\t\t\t\tand \"games\".\"winner_entry_id\" is not null\n\t\t\t\t\tand \"games\".\"score_a\" is not null\n\t\t\t\t\tand \"games\".\"score_b\" is not null\n\t\t\t\t\tand \"games\".\"score_a\" <> \"games\".\"score_b\"\n\t\t\t\t)\n\t\t\t\tor (\n\t\t\t\t\t\"games\".\"result_type\" in ('forfeit', 'walkover')\n\t\t\t\t\tand \"games\".\"winner_entry_id\" is not null\n\t\t\t\t\tand \"games\".\"score_a\" is null\n\t\t\t\t\tand \"games\".\"score_b\" is null\n\t\t\t\t)\n\t\t\t\tor (\n\t\t\t\t\t\"games\".\"result_type\" = 'cancelled'\n\t\t\t\t\tand \"games\".\"winner_entry_id\" is null\n\t\t\t\t\tand \"games\".\"score_a\" is null\n\t\t\t\t\tand \"games\".\"score_b\" is null\n\t\t\t\t)\n\t\t\t)"
+        }
+      }
+    },
+    "players": {
+      "name": "players",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "riot_id": {
+          "name": "riot_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "portrait_path": {
+          "name": "portrait_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "players_display_name_idx": {
+          "name": "players_display_name_idx",
+          "columns": [
+            "display_name"
+          ],
+          "isUnique": false
+        },
+        "players_riot_id_idx": {
+          "name": "players_riot_id_idx",
+          "columns": [
+            "riot_id"
+          ],
+          "isUnique": false
+        },
+        "players_archived_at_idx": {
+          "name": "players_archived_at_idx",
+          "columns": [
+            "archived_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "teams": {
+      "name": "teams",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tag": {
+          "name": "tag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "logo_path": {
+          "name": "logo_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "logo_white_path": {
+          "name": "logo_white_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "logo_black_path": {
+          "name": "logo_black_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "teams_name_idx": {
+          "name": "teams_name_idx",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        },
+        "teams_tag_idx": {
+          "name": "teams_tag_idx",
+          "columns": [
+            "tag"
+          ],
+          "isUnique": false
+        },
+        "teams_archived_at_idx": {
+          "name": "teams_archived_at_idx",
+          "columns": [
+            "archived_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "agents": {
+      "name": "agents",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valorant_api_uuid": {
+          "name": "valorant_api_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_name": {
+          "name": "role_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "display_icon_path": {
+          "name": "display_icon_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "full_portrait_path": {
+          "name": "full_portrait_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "bust_portrait_path": {
+          "name": "bust_portrait_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "role_icon_path": {
+          "name": "role_icon_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "abilities": {
+          "name": "abilities",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "agents_valorant_api_uuid_unique": {
+          "name": "agents_valorant_api_uuid_unique",
+          "columns": [
+            "valorant_api_uuid"
+          ],
+          "isUnique": true
+        },
+        "agents_key_unique": {
+          "name": "agents_key_unique",
+          "columns": [
+            "key"
+          ],
+          "isUnique": true
+        },
+        "agents_display_name_idx": {
+          "name": "agents_display_name_idx",
+          "columns": [
+            "display_name"
+          ],
+          "isUnique": false
+        },
+        "agents_is_active_idx": {
+          "name": "agents_is_active_idx",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "maps": {
+      "name": "maps",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valorant_api_uuid": {
+          "name": "valorant_api_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_icon_path": {
+          "name": "display_icon_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "list_view_icon_path": {
+          "name": "list_view_icon_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "splash_path": {
+          "name": "splash_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "stylized_background_path": {
+          "name": "stylized_background_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "maps_valorant_api_uuid_unique": {
+          "name": "maps_valorant_api_uuid_unique",
+          "columns": [
+            "valorant_api_uuid"
+          ],
+          "isUnique": true
+        },
+        "maps_key_unique": {
+          "name": "maps_key_unique",
+          "columns": [
+            "key"
+          ],
+          "isUnique": true
+        },
+        "maps_display_name_idx": {
+          "name": "maps_display_name_idx",
+          "columns": [
+            "display_name"
+          ],
+          "isUnique": false
+        },
+        "maps_is_active_idx": {
+          "name": "maps_is_active_idx",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "weapons": {
+      "name": "weapons",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valorant_api_uuid": {
+          "name": "valorant_api_uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "display_icon_path": {
+          "name": "display_icon_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "kill_stream_icon_path": {
+          "name": "kill_stream_icon_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "weapons_valorant_api_uuid_unique": {
+          "name": "weapons_valorant_api_uuid_unique",
+          "columns": [
+            "valorant_api_uuid"
+          ],
+          "isUnique": true
+        },
+        "weapons_key_unique": {
+          "name": "weapons_key_unique",
+          "columns": [
+            "key"
+          ],
+          "isUnique": true
+        },
+        "weapons_display_name_idx": {
+          "name": "weapons_display_name_idx",
+          "columns": [
+            "display_name"
+          ],
+          "isUnique": false
+        },
+        "weapons_category_idx": {
+          "name": "weapons_category_idx",
+          "columns": [
+            "category"
+          ],
+          "isUnique": false
+        },
+        "weapons_is_active_idx": {
+          "name": "weapons_is_active_idx",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tournament_entries": {
+      "name": "tournament_entries",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tournament_id": {
+          "name": "tournament_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "tournament_entries_tournament_team_unique": {
+          "name": "tournament_entries_tournament_team_unique",
+          "columns": [
+            "tournament_id",
+            "team_id"
+          ],
+          "isUnique": true
+        },
+        "tournament_entries_id_tournament_unique": {
+          "name": "tournament_entries_id_tournament_unique",
+          "columns": [
+            "id",
+            "tournament_id"
+          ],
+          "isUnique": true
+        },
+        "tournament_entries_tournament_idx": {
+          "name": "tournament_entries_tournament_idx",
+          "columns": [
+            "tournament_id"
+          ],
+          "isUnique": false
+        },
+        "tournament_entries_team_idx": {
+          "name": "tournament_entries_team_idx",
+          "columns": [
+            "team_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "tournament_entries_tournament_id_tournaments_id_fk": {
+          "name": "tournament_entries_tournament_id_tournaments_id_fk",
+          "tableFrom": "tournament_entries",
+          "tableTo": "tournaments",
+          "columnsFrom": [
+            "tournament_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "tournament_entries_team_id_teams_id_fk": {
+          "name": "tournament_entries_team_id_teams_id_fk",
+          "tableFrom": "tournament_entries",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tournament_entry_players": {
+      "name": "tournament_entry_players",
+      "columns": {
+        "entry_id": {
+          "name": "entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "tournament_entry_players_player_idx": {
+          "name": "tournament_entry_players_player_idx",
+          "columns": [
+            "player_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "tournament_entry_players_entry_id_tournament_entries_id_fk": {
+          "name": "tournament_entry_players_entry_id_tournament_entries_id_fk",
+          "tableFrom": "tournament_entry_players",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tournament_entry_players_player_id_players_id_fk": {
+          "name": "tournament_entry_players_player_id_players_id_fk",
+          "tableFrom": "tournament_entry_players",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "tournament_entry_players_entry_id_player_id_pk": {
+          "columns": [
+            "entry_id",
+            "player_id"
+          ],
+          "name": "tournament_entry_players_entry_id_player_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tournament_map_pool": {
+      "name": "tournament_map_pool",
+      "columns": {
+        "tournament_id": {
+          "name": "tournament_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "tournament_map_pool_map_idx": {
+          "name": "tournament_map_pool_map_idx",
+          "columns": [
+            "map_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "tournament_map_pool_tournament_id_tournaments_id_fk": {
+          "name": "tournament_map_pool_tournament_id_tournaments_id_fk",
+          "tableFrom": "tournament_map_pool",
+          "tableTo": "tournaments",
+          "columnsFrom": [
+            "tournament_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tournament_map_pool_map_id_maps_id_fk": {
+          "name": "tournament_map_pool_map_id_maps_id_fk",
+          "tableFrom": "tournament_map_pool",
+          "tableTo": "maps",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "tournament_map_pool_tournament_id_map_id_pk": {
+          "columns": [
+            "tournament_id",
+            "map_id"
+          ],
+          "name": "tournament_map_pool_tournament_id_map_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tournaments": {
+      "name": "tournaments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mvp_player_id": {
+          "name": "mvp_player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "tournaments_slug_unique": {
+          "name": "tournaments_slug_unique",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": true
+        },
+        "tournaments_name_idx": {
+          "name": "tournaments_name_idx",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        },
+        "tournaments_archived_at_idx": {
+          "name": "tournaments_archived_at_idx",
+          "columns": [
+            "archived_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "tournaments_mvp_player_id_players_id_fk": {
+          "name": "tournaments_mvp_player_id_players_id_fk",
+          "tableFrom": "tournaments",
+          "tableTo": "players",
+          "columnsFrom": [
+            "mvp_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "match_veto_actions": {
+      "name": "match_veto_actions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "acting_entry_id": {
+          "name": "acting_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "game_number": {
+          "name": "game_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "side_chooser_entry_id": {
+          "name": "side_chooser_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "side_choice": {
+          "name": "side_choice",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "match_veto_actions_match_sequence_unique": {
+          "name": "match_veto_actions_match_sequence_unique",
+          "columns": [
+            "match_id",
+            "sequence"
+          ],
+          "isUnique": true
+        },
+        "match_veto_actions_match_map_unique": {
+          "name": "match_veto_actions_match_map_unique",
+          "columns": [
+            "match_id",
+            "map_id"
+          ],
+          "isUnique": true
+        },
+        "match_veto_actions_match_game_number_unique": {
+          "name": "match_veto_actions_match_game_number_unique",
+          "columns": [
+            "match_id",
+            "game_number"
+          ],
+          "isUnique": true
+        },
+        "match_veto_actions_map_idx": {
+          "name": "match_veto_actions_map_idx",
+          "columns": [
+            "map_id"
+          ],
+          "isUnique": false
+        },
+        "match_veto_actions_acting_entry_idx": {
+          "name": "match_veto_actions_acting_entry_idx",
+          "columns": [
+            "acting_entry_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "match_veto_actions_match_id_matches_id_fk": {
+          "name": "match_veto_actions_match_id_matches_id_fk",
+          "tableFrom": "match_veto_actions",
+          "tableTo": "matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "match_veto_actions_map_id_maps_id_fk": {
+          "name": "match_veto_actions_map_id_maps_id_fk",
+          "tableFrom": "match_veto_actions",
+          "tableTo": "maps",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "match_veto_actions_acting_entry_id_tournament_entries_id_fk": {
+          "name": "match_veto_actions_acting_entry_id_tournament_entries_id_fk",
+          "tableFrom": "match_veto_actions",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "acting_entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "match_veto_actions_side_chooser_entry_id_tournament_entries_id_fk": {
+          "name": "match_veto_actions_side_chooser_entry_id_tournament_entries_id_fk",
+          "tableFrom": "match_veto_actions",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "side_chooser_entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "match_veto_actions_sequence_check": {
+          "name": "match_veto_actions_sequence_check",
+          "value": "\"match_veto_actions\".\"sequence\" > 0"
+        },
+        "match_veto_actions_game_number_check": {
+          "name": "match_veto_actions_game_number_check",
+          "value": "\"match_veto_actions\".\"game_number\" is null or \"match_veto_actions\".\"game_number\" > 0"
+        },
+        "match_veto_actions_action_check": {
+          "name": "match_veto_actions_action_check",
+          "value": "\"match_veto_actions\".\"action\" in ('ban', 'pick', 'decider')"
+        },
+        "match_veto_actions_side_choice_check": {
+          "name": "match_veto_actions_side_choice_check",
+          "value": "\"match_veto_actions\".\"side_choice\" is null or \"match_veto_actions\".\"side_choice\" in ('attack', 'defense')"
+        },
+        "match_veto_actions_side_assignment_check": {
+          "name": "match_veto_actions_side_assignment_check",
+          "value": "(\"match_veto_actions\".\"side_chooser_entry_id\" is null and \"match_veto_actions\".\"side_choice\" is null) or (\"match_veto_actions\".\"side_chooser_entry_id\" is not null and \"match_veto_actions\".\"side_choice\" is not null and \"match_veto_actions\".\"game_number\" is not null)"
+        }
+      }
+    },
+    "matches": {
+      "name": "matches",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tournament_id": {
+          "name": "tournament_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "team_a_entry_id": {
+          "name": "team_a_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "team_b_entry_id": {
+          "name": "team_b_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "best_of": {
+          "name": "best_of",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 3
+        },
+        "result_type": {
+          "name": "result_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "winner_entry_id": {
+          "name": "winner_entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "mvp_player_id": {
+          "name": "mvp_player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "matches_tournament_idx": {
+          "name": "matches_tournament_idx",
+          "columns": [
+            "tournament_id"
+          ],
+          "isUnique": false
+        },
+        "matches_team_a_entry_idx": {
+          "name": "matches_team_a_entry_idx",
+          "columns": [
+            "team_a_entry_id"
+          ],
+          "isUnique": false
+        },
+        "matches_team_b_entry_idx": {
+          "name": "matches_team_b_entry_idx",
+          "columns": [
+            "team_b_entry_id"
+          ],
+          "isUnique": false
+        },
+        "matches_winner_entry_idx": {
+          "name": "matches_winner_entry_idx",
+          "columns": [
+            "winner_entry_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "matches_tournament_id_tournaments_id_fk": {
+          "name": "matches_tournament_id_tournaments_id_fk",
+          "tableFrom": "matches",
+          "tableTo": "tournaments",
+          "columnsFrom": [
+            "tournament_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "matches_mvp_player_id_players_id_fk": {
+          "name": "matches_mvp_player_id_players_id_fk",
+          "tableFrom": "matches",
+          "tableTo": "players",
+          "columnsFrom": [
+            "mvp_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "matches_team_a_tournament_fk": {
+          "name": "matches_team_a_tournament_fk",
+          "tableFrom": "matches",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "team_a_entry_id",
+            "tournament_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tournament_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "matches_team_b_tournament_fk": {
+          "name": "matches_team_b_tournament_fk",
+          "tableFrom": "matches",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "team_b_entry_id",
+            "tournament_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tournament_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "matches_winner_tournament_fk": {
+          "name": "matches_winner_tournament_fk",
+          "tableFrom": "matches",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "winner_entry_id",
+            "tournament_id"
+          ],
+          "columnsTo": [
+            "id",
+            "tournament_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "matches_distinct_teams_check": {
+          "name": "matches_distinct_teams_check",
+          "value": "\"matches\".\"team_a_entry_id\" <> \"matches\".\"team_b_entry_id\""
+        },
+        "matches_winner_participant_check": {
+          "name": "matches_winner_participant_check",
+          "value": "\"matches\".\"winner_entry_id\" is null or \"matches\".\"winner_entry_id\" = \"matches\".\"team_a_entry_id\" or \"matches\".\"winner_entry_id\" = \"matches\".\"team_b_entry_id\""
+        },
+        "matches_best_of_check": {
+          "name": "matches_best_of_check",
+          "value": "\"matches\".\"best_of\" in (1, 2, 3, 5)"
+        },
+        "matches_result_type_check": {
+          "name": "matches_result_type_check",
+          "value": "\"matches\".\"result_type\" is null or \"matches\".\"result_type\" in ('normal', 'forfeit', 'walkover', 'cancelled')"
+        },
+        "matches_result_state_check": {
+          "name": "matches_result_state_check",
+          "value": "(\n\t\t\t\t(\"matches\".\"result_type\" is null and \"matches\".\"winner_entry_id\" is null)\n\t\t\t\tor (\"matches\".\"result_type\" = 'normal' and (\"matches\".\"winner_entry_id\" is not null or \"matches\".\"best_of\" = 2))\n\t\t\t\tor (\"matches\".\"result_type\" in ('forfeit', 'walkover') and \"matches\".\"winner_entry_id\" is not null)\n\t\t\t\tor (\"matches\".\"result_type\" = 'cancelled' and \"matches\".\"winner_entry_id\" is null)\n\t\t\t)"
+        }
+      }
+    },
+    "game_player_statistics": {
+      "name": "game_player_statistics",
+      "columns": {
+        "game_id": {
+          "name": "game_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entry_id": {
+          "name": "entry_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kills": {
+          "name": "kills",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deaths": {
+          "name": "deaths",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "assists": {
+          "name": "assists",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "performance_score": {
+          "name": "performance_score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "trades": {
+          "name": "trades",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "first_bloods": {
+          "name": "first_bloods",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "plants": {
+          "name": "plants",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "defuses": {
+          "name": "defuses",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "manually_edited_at": {
+          "name": "manually_edited_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "agent_manually_edited_at": {
+          "name": "agent_manually_edited_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "statistics_manual_override": {
+          "name": "statistics_manual_override",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "agent_manual_override": {
+          "name": "agent_manual_override",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "game_player_statistics_player_idx": {
+          "name": "game_player_statistics_player_idx",
+          "columns": [
+            "player_id"
+          ],
+          "isUnique": false
+        },
+        "game_player_statistics_entry_idx": {
+          "name": "game_player_statistics_entry_idx",
+          "columns": [
+            "entry_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "game_player_statistics_game_id_games_id_fk": {
+          "name": "game_player_statistics_game_id_games_id_fk",
+          "tableFrom": "game_player_statistics",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "game_player_statistics_player_id_players_id_fk": {
+          "name": "game_player_statistics_player_id_players_id_fk",
+          "tableFrom": "game_player_statistics",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "game_player_statistics_entry_id_tournament_entries_id_fk": {
+          "name": "game_player_statistics_entry_id_tournament_entries_id_fk",
+          "tableFrom": "game_player_statistics",
+          "tableTo": "tournament_entries",
+          "columnsFrom": [
+            "entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "game_player_statistics_game_id_player_id_pk": {
+          "columns": [
+            "game_id",
+            "player_id"
+          ],
+          "name": "game_player_statistics_game_id_player_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "game_player_statistics_kills_check": {
+          "name": "game_player_statistics_kills_check",
+          "value": "\"game_player_statistics\".\"kills\" is null or \"game_player_statistics\".\"kills\" >= 0"
+        },
+        "game_player_statistics_deaths_check": {
+          "name": "game_player_statistics_deaths_check",
+          "value": "\"game_player_statistics\".\"deaths\" is null or \"game_player_statistics\".\"deaths\" >= 0"
+        },
+        "game_player_statistics_assists_check": {
+          "name": "game_player_statistics_assists_check",
+          "value": "\"game_player_statistics\".\"assists\" is null or \"game_player_statistics\".\"assists\" >= 0"
+        },
+        "game_player_statistics_performanceScore_check": {
+          "name": "game_player_statistics_performanceScore_check",
+          "value": "\"game_player_statistics\".\"performance_score\" is null or \"game_player_statistics\".\"performance_score\" >= 0"
+        },
+        "game_player_statistics_trades_check": {
+          "name": "game_player_statistics_trades_check",
+          "value": "\"game_player_statistics\".\"trades\" is null or \"game_player_statistics\".\"trades\" >= 0"
+        },
+        "game_player_statistics_firstBloods_check": {
+          "name": "game_player_statistics_firstBloods_check",
+          "value": "\"game_player_statistics\".\"first_bloods\" is null or \"game_player_statistics\".\"first_bloods\" >= 0"
+        },
+        "game_player_statistics_plants_check": {
+          "name": "game_player_statistics_plants_check",
+          "value": "\"game_player_statistics\".\"plants\" is null or \"game_player_statistics\".\"plants\" >= 0"
+        },
+        "game_player_statistics_defuses_check": {
+          "name": "game_player_statistics_defuses_check",
+          "value": "\"game_player_statistics\".\"defuses\" is null or \"game_player_statistics\".\"defuses\" >= 0"
+        }
+      }
+    },
+    "game_statistics_meta": {
+      "name": "game_statistics_meta",
+      "columns": {
+        "game_id": {
+          "name": "game_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "import_source": {
+          "name": "import_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "external_match_id": {
+          "name": "external_match_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_manual_edit_at": {
+          "name": "last_manual_edit_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch('subsecond') * 1000)"
+        }
+      },
+      "indexes": {
+        "game_statistics_meta_source_match_unique": {
+          "name": "game_statistics_meta_source_match_unique",
+          "columns": [
+            "import_source",
+            "external_match_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "game_statistics_meta_game_id_games_id_fk": {
+          "name": "game_statistics_meta_game_id_games_id_fk",
+          "tableFrom": "game_statistics_meta",
+          "tableTo": "games",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

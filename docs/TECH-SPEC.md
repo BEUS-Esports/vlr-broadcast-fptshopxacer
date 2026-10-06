@@ -191,12 +191,12 @@ Use small provider-specific readers/mappers feeding shared application data shap
 
 Transport-level details, ports, wire formats, command mappings, snapshot/delta behavior, and provider-specific parser requirements are maintained in [LIVE-PROVIDER-TRANSPORT.md](./LIVE-PROVIDER-TRANSPORT.md). This specification keeps the product ownership, capability, security, and acceptance rules.
 
-| Source                             | Source-code/documentation evidence                                                                                                                                                                                                                                        | What remains unverified                                                                                                                                               |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ValoSpectra live                   | The current public server exposes Socket.IO output on the outgoing service: emit `logon` with a group code, receive `logon_success`, then consume `match_data`. The current frontend models per-player auxiliary availability for health/abilities/scoreboard.            | Real event-session field availability, side changes, disconnect/recovery behavior, and Player Client coverage.                                                        |
-| GStack live                        | A concrete `/livenow` schema and real sample are available from port 57780. Player/game values are largely strings; enhanced `Skill * Points`, `XHP`, and `XShield` may remain blank without the Expansion Client. `/controlpanel` and `/mapbans` schemas are also known. | Exact live WebSocket contract for the event build, cadence/disconnect behavior, and verified meanings for remaining encoded fields such as round history/spike masks. |
-| Spectra post-game                  | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint.                                                    | Hosted-service availability/access for the chosen setup and a successful completed-game response.                                                                     |
-| HenrikDev post-game               | Current upstream v4 API supports recent/cached match discovery and exact historical match detail with players, teams, rounds and kills. Requires a server-only API key; current Basic-key documentation states 30 requests/minute and requires authorized/consensual data use.                              | Real event/custom-game discovery and exact-detail verification for the intended tournament workflow.                                                                  |
+| Source              | Source-code/documentation evidence                                                                                                                                                                                                                                             | What remains unverified                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ValoSpectra live    | The current public server exposes Socket.IO output on the outgoing service: emit `logon` with a group code, receive `logon_success`, then consume `match_data`. The current frontend models per-player auxiliary availability for health/abilities/scoreboard.                 | Real event-session field availability, side changes, disconnect/recovery behavior, and Player Client coverage.                                                        |
+| GStack live         | A concrete `/livenow` schema and real sample are available from port 57780. Player/game values are largely strings; enhanced `Skill * Points`, `XHP`, and `XShield` may remain blank without the Expansion Client. `/controlpanel` and `/mapbans` schemas are also known.      | Exact live WebSocket contract for the event build, cadence/disconnect behavior, and verified meanings for remaining encoded fields such as round history/spike masks. |
+| Spectra post-game   | Both linked frontend variants request `https://stats.valospectra.com/getStats?code=<groupCode>` and poll every 15 seconds until player data arrives. Team presentation is obtained separately from an extras endpoint.                                                         | Hosted-service availability/access for the chosen setup and a successful completed-game response.                                                                     |
+| HenrikDev post-game | Current upstream v4 API supports recent/cached match discovery and exact historical match detail with players, teams, rounds and kills. Requires a server-only API key; current Basic-key documentation states 30 requests/minute and requires authorized/consensual data use. | Real event/custom-game discovery and exact-detail verification for the intended tournament workflow.                                                                  |
 
 #### Post-game import provider ownership
 
@@ -268,279 +268,15 @@ Rules:
 - `/mapbans` is diagnostic/comparison input only because the app's saved veto is authoritative;
 - preserve unresolved spike encodings raw until confirmed; GStack round-history codes are now confirmed and documented in the live-provider transport reference.
 
-#### HenriksDev Third Party Valorant API
+#### HenrikDev post-game
 
-Serves as _**almost**_ a replacement for the Riot's Official APIs. Provides a lot of match data. Example schema (`https://api.henrikdev.xyz/valorant/v4/match/{region}/{matchUuid}`), fetched from my own game data:
+The server uses `GET /valorant/v4/matches/{affinity}/{platform}/{name}/{tag}?size=N` for discovery and `GET /valorant/v4/match/{affinity}/{matchId}` for exact detail, with the API key in the `Authorization` header. Dynamic path segments are encoded. Requests have a bounded timeout, reject redirects, and distinguish authorization, not-found, rate-limit, unavailable and malformed responses. Discovery and detail are explicit operator actions; HenrikDev is never polled or used as automatic fallback.
 
-```typescript
-export interface JSONSchema {
-	status: number;
-	data: Data;
-}
+Configuration is declared as private, dynamic SvelteKit 3 environment variables in `src/env.ts`. Defaults are affinity `ap`, platform `pc`, five candidates and a 15-second request timeout; deployments can override these on the server. A missing/invalid key disables HenrikDev while preserving Spectra and manual entry. Only query participants whose data use is authorized under HenrikDev's current consent/use requirements; handle 429 rather than retrying blindly.
 
-export interface Data {
-	metadata: Metadata;
-	players: Player[];
-	observers: any[];
-	coaches: any[];
-	teams: Team[];
-	rounds: Round[];
-	kills: Kill[];
-}
+Both sources decode unknown v4-shaped payloads into the [shared report contract](../src/lib/post-game/types.ts). Player K/D/A and agent identities are direct fields. Plants/defuses require complete, authoritative round credits. First Bloods credits the earliest valid opposing-player kill in each played round, with complete kill-credit coverage; an ambiguous earliest-time tie stays unknown. Missing event coverage remains null. The conservative scored-round completeness check also leaves event-derived metrics unavailable on surrendered reports with an extra terminal round record. Performance Score and Trades stay null for both current adapters; combat score is not Performance Score.
 
-export interface Kill {
-	time_in_round_in_ms: number;
-	time_in_match_in_ms: number;
-	round: number;
-	killer: Killer;
-	victim: Killer;
-	assistants: Killer[];
-	location: Location;
-	weapon: Weapon;
-	secondary_fire_mode: boolean;
-	player_locations: PlayerLocation[];
-}
-
-export interface Killer {
-	puuid: string;
-	name: Name;
-	tag: string;
-	team: TeamID;
-}
-
-export enum Name {
-	REDACTED1 = 'Player1Redacted',
-	REDACTED2 = 'Player2Redacted',
-	REDACTED3 = 'Player3Redacted',
-	REDACTED4 = 'Player4Redacted',
-	REDACTED5 = 'Player5Redacted',
-	REDACTED6 = 'Player6Redacted',
-	REDACTED7 = 'Player7Redacted',
-	REDACTED8 = 'Player8Redacted',
-	REDACTED9 = 'Player9Redacted',
-	USECRookieNguyen = 'USECRookieNguyen'
-}
-
-export enum TeamID {
-	Blue = 'Blue',
-	Red = 'Red'
-}
-
-export interface Location {
-	x: number;
-	y: number;
-}
-
-export interface PlayerLocation {
-	player: Killer;
-	view_radians: number;
-	location: Location;
-}
-
-export interface Weapon {
-	id: string;
-	name: null | string;
-	type: Type;
-}
-
-export enum Type {
-	Ability = 'Ability',
-	Bomb = 'Bomb',
-	Weapon = 'Weapon'
-}
-
-export interface Metadata {
-	match_id: string;
-	map: Map;
-	game_version: string;
-	game_length_in_ms: number;
-	started_at: Date;
-	is_completed: boolean;
-	queue: Queue;
-	season: Season;
-	platform: Platform;
-	premier: null;
-	party_rr_penaltys: PartyRrPenalty[];
-	region: string;
-	cluster: string;
-}
-
-export interface Map {
-	id: string;
-	name: string;
-}
-
-export interface PartyRrPenalty {
-	party_id: string;
-	penalty: number;
-}
-
-export enum Platform {
-	PC = 'pc'
-}
-
-export interface Queue {
-	id: string;
-	name: string;
-	mode_type: string;
-}
-
-export interface Season {
-	id: string;
-	short: string;
-}
-
-export interface Player {
-	puuid: string;
-	name: Name;
-	tag: string;
-	team_id: TeamID;
-	platform: Platform;
-	party_id: string;
-	agent: Map;
-	stats: PlayerStats;
-	ability_casts: PlayerAbilityCasts;
-	tier: Tier;
-	customization: Customization;
-	account_level: number;
-	session_playtime_in_ms: number;
-	behavior: Behavior;
-	economy: PlayerEconomy;
-}
-
-export interface PlayerAbilityCasts {
-	grenade: number;
-	ability1: number;
-	ability2: number;
-	ultimate: number;
-}
-
-export interface Behavior {
-	afk_rounds: number;
-	friendly_fire: FriendlyFire;
-	rounds_in_spawn: number;
-}
-
-export interface FriendlyFire {
-	incoming: number;
-	outgoing: number;
-}
-
-export interface Customization {
-	card: string;
-	title: string;
-	preferred_level_border: null | string;
-}
-
-export interface PlayerEconomy {
-	spent: LoadoutValue;
-	loadout_value: LoadoutValue;
-}
-
-export interface LoadoutValue {
-	overall: number;
-	average: number;
-}
-
-export interface PlayerStats {
-	score: number;
-	kills: number;
-	deaths: number;
-	assists: number;
-	headshots: number;
-	bodyshots: number;
-	legshots: number;
-	damage: Damage;
-}
-
-export interface Damage {
-	dealt: number;
-	received: number;
-}
-
-export interface Tier {
-	id: number;
-	name: string;
-}
-
-export interface Round {
-	id: number;
-	result: Result;
-	ceremony: string;
-	winning_team: TeamID;
-	plant: Defuse | null;
-	defuse: Defuse | null;
-	stats: Stat[];
-}
-
-export interface Defuse {
-	round_time_in_ms: number;
-	location: Location;
-	player: Killer;
-	player_locations: PlayerLocation[];
-	site?: string;
-}
-
-export enum Result {
-	Defuse = 'Defuse',
-	Detonate = 'Detonate',
-	Elimination = 'Elimination',
-	Surrendered = 'Surrendered'
-}
-
-export interface Stat {
-	player: Killer;
-	ability_casts: StatAbilityCasts;
-	damage_events: DamageEvent[];
-	stats: StatStats;
-	economy: StatEconomy;
-	was_afk: boolean;
-	received_penalty: boolean;
-	stayed_in_spawn: boolean;
-}
-
-export interface StatAbilityCasts {
-	grenade: null;
-	ability_1: null;
-	ability_2: null;
-	ultimate: null;
-}
-
-export interface DamageEvent {
-	player: Killer;
-	bodyshots: number;
-	headshots: number;
-	legshots: number;
-	damage: number;
-}
-
-export interface StatEconomy {
-	loadout_value: number;
-	remaining: number;
-	weapon: Weapon | null;
-	armor: Map | null;
-}
-
-export interface StatStats {
-	score: number;
-	kills: number;
-	headshots: number;
-	bodyshots: number;
-	legshots: number;
-}
-
-export interface Team {
-	team_id: TeamID;
-	rounds: Rounds;
-	won: boolean;
-	premier_roster: null;
-}
-
-export interface Rounds {
-	won: number;
-	lost: number;
-}
-```
+Public endpoint/type evidence and live HenrikDev retrieval were checked on 2026-10-05. The supplied completed AP/PC competitive Lotus report appeared in recent discovery and exact detail returned ten players with K/D/A and agents. This proves retrieval for that competitive match; event/custom queue behavior and Spectra hosted success still need separate acceptance. See the Phase 7 verification record for sanitized proof and operational limits.
 
 #### General Notes
 
@@ -553,6 +289,12 @@ Manual post-game entry is a required feature even when imports work. Both paths 
 The baseline manual scoreboard supports agent, kills, deaths, assists, Performance Score, trades, first bloods, plants, and defuses — the fields intended for convenient entry from the spectator end-game screen. Performance Score is an opaque Riot-facing value: do not calculate it locally, alias it to ACS, or map HenrikDev `players[].stats.score` to it unless that relationship is explicitly verified. Rounds played, combat score/ACS, damage, hit counts, economy, and detailed events are provider-enhanced or future inputs to add only when a graphic or approved import requirement consumes them.
 
 Retain source identity, external match ID when known, import time, and enough provenance to distinguish manual corrections from imported values. Reimporting the same report must not duplicate records. When a reimport conflicts with operator-edited data, preview the conflict and require an explicit replacement action; do not silently clobber the edit.
+
+The shared review service binds a cloned normalized report, approved player mappings and current game context to a server-only random review token. Tokens expire after ten minutes, are capped at 100 process-local reviews and fail closed after restart or on another process. Mapping changes retire the old token and require a refreshed preview. Confirmation locks the game revision, reloads current lineup/profile/resource/statistic state, rechecks the reviewed context and report association, then writes canonical rows and approved lineup agents in one transaction. Fetching and previewing never advance the game revision. Accepted imports, including unchanged reimports, follow the existing save convention by advancing the revision and import timestamp without duplicating player rows.
+
+Migration `0010_post_game_import` adds unique source/external-report association and independent per-player statistics/agent manual ownership plus agent-edit timestamps. Keeping a local group retains ownership across subsequent imports; only explicitly using that group's provider values releases it. Historical manual timestamps remain available. Agent-only saves do not mark statistics as edited. Legacy imported agents are conservatively protected, including provenance-only rows where an old saved lineup player had no statistics row, because phase 4 did not record agent correction history.
+
+Imported rows cleared to all-null remain protected. The operator can explicitly confirm discarding one named player's canonical statistics/provenance row under the current game revision; it does not change their lineup/agent, other players or the game report association. This permits subsequent normal lineup identity correction. A later import must review the corrected lineup again. Import confirmation never changes scores/results, MVP, broadcast selection or live provider/HUD mode.
 
 Keep missing values nullable. An absent OCR/provider field is not zero. Invalid numbers, incomplete identities, or unsupported fields should be reported or omitted, not guessed. Only publish the statistics needed by the graphic, not the provider's entire raw response.
 
@@ -668,4 +410,4 @@ Synthetic fixtures prove application behavior, not provider availability. Keep f
 - [Spectra endpoint configuration](https://github.com/ValoSpectra/Spectra-Frontend/blob/main/src/app/shared/config.ts) and [post-game response types](https://github.com/ValoSpectra/Spectra-Frontend/blob/main/src/app/components/breakdown/StatsApiMapping.ts).
 - [Spectra backend connector](https://github.com/ValoSpectra/Spectra-Server/blob/main/src/connector/databaseConnector.ts) and [match lifecycle](https://github.com/ValoSpectra/Spectra-Server/blob/main/src/model/Match.ts).
 
-External links describe the source inspected during planning and can change. Confirm the supported contracts when integrating; the project has not yet validated them against a real match.
+External links describe inspected source and can change. HenrikDev competitive-match discovery/detail has real evidence in [Phase 7 verification](./2026-10-05-phase-7-verification.md); custom/event-queue acceptance and a real Spectra hosted report remain unverified.

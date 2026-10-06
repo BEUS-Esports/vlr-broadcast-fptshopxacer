@@ -2,6 +2,8 @@
 
 > For agentic workers: implement this plan task-by-task using the repository's existing SvelteKit page/action -> domain service -> Drizzle/libSQL architecture. Preserve unrelated working-tree changes and existing Phase 1-6.1 behavior. This phase adds provider retrieval and import around the canonical Phase 4 statistics model; it does not replace manual entry or introduce a general plugin framework.
 
+**Documentation for HenrikDev's API**: <https://docs.henrikdev.xyz/llms.txt>
+
 **Goal:** Add a safe post-game import workflow with HenrikDev as the primary provider and ValoSpectra as a side-by-side secondary provider. Both must feed one normalized review/import pipeline and the same canonical per-game statistics records used by manual entry.
 
 **Architecture:** Provider-specific code owns authentication, retrieval, polling and payload decoding only. It must normalize candidate/report data before returning it to shared identity validation, mapping, conflict preview and transactional import services. The operator explicitly selects and confirms a report. A provider response must never silently choose a local game, overwrite a manual correction, change the live game, switch the Live Data HUD, or select an MVP.

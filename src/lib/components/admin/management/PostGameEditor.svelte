@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ManagementForm from './ManagementForm.svelte';
+	import PostGameImport, { type PostGameControls } from './PostGameImport.svelte';
 
 	let {
 		revision,
@@ -10,7 +11,8 @@
 		provenance,
 		resultType,
 		action = '?/statistics',
-		disabled = false
+		disabled = false,
+		postGame
 	}: {
 		revision: number;
 		entries: Array<{ id: string; name: string }>;
@@ -40,6 +42,7 @@
 		resultType: string | null;
 		action?: string;
 		disabled?: boolean;
+		postGame?: PostGameControls;
 	} = $props();
 
 	const fields = [
@@ -53,6 +56,9 @@
 		['defuses', 'Defuses']
 	] as const;
 </script>
+
+{#if postGame}<PostGameImport controls={postGame} {revision} {entries} {disabled} />{/if}
+<h3 class="h4">Manual Statistics</h3>
 
 <p class="mt-2 text-sm text-surface-600-400">
 	{resultType === 'normal'

@@ -68,7 +68,8 @@ export async function getGameStatistics(gameId: string) {
 				return {
 					...row,
 					...Object.fromEntries(statisticFields.map((field) => [field, saved?.[field] ?? null])),
-					manuallyEditedAt: saved?.manuallyEditedAt ?? null
+					manuallyEditedAt: saved?.manuallyEditedAt ?? null,
+					agentManuallyEditedAt: saved?.agentManuallyEditedAt ?? null
 				};
 			}),
 		provenance: {
@@ -77,9 +78,7 @@ export async function getGameStatistics(gameId: string) {
 			importedAt: meta[0]?.importedAt ?? null,
 			lastManualEditAt: meta[0]?.lastManualEditAt ?? null,
 			manuallyChangedPlayerIds: meta[0]?.importedAt
-				? stats
-						.filter((row) => row.manuallyEditedAt && row.manuallyEditedAt > meta[0].importedAt!)
-						.map((row) => row.playerId)
+				? stats.filter((row) => row.statisticsManualOverride).map((row) => row.playerId)
 				: []
 		}
 	};
@@ -115,7 +114,13 @@ export async function saveGameStatistics(input: {
 				);
 		}
 		let changed = false;
-		const now = new Date();
+		const now = new Date(
+			Math.max(
+				Date.now(),
+				(meta?.importedAt?.getTime() ?? 0) + 1,
+				...current.map((row) => (row.manuallyEditedAt?.getTime() ?? 0) + 1)
+			)
+		);
 		for (const player of players) {
 			const saved = current.find((row) => row.playerId === player.playerId);
 			const statsChanged = statisticsDiffer(saved ?? null, player);
@@ -129,7 +134,8 @@ export async function saveGameStatistics(input: {
 						.update(gamePlayerStatistics)
 						.set({
 							...Object.fromEntries(statisticFields.map((field) => [field, null])),
-							manuallyEditedAt: now
+							manuallyEditedAt: now,
+							statisticsManualOverride: imported
 						})
 						.where(
 							and(
@@ -151,7 +157,8 @@ export async function saveGameStatistics(input: {
 					.update(gamePlayerStatistics)
 					.set({
 						...Object.fromEntries(statisticFields.map((field) => [field, player[field]])),
-						manuallyEditedAt: now
+						manuallyEditedAt: now,
+						statisticsManualOverride: imported
 					})
 					.where(
 						and(
@@ -165,7 +172,8 @@ export async function saveGameStatistics(input: {
 					playerId: player.playerId,
 					entryId: player.entryId,
 					...Object.fromEntries(statisticFields.map((field) => [field, player[field]])),
-					manuallyEditedAt: now
+					manuallyEditedAt: now,
+					statisticsManualOverride: imported
 				});
 			}
 		}

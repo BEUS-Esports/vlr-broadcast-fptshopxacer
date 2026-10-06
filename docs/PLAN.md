@@ -4,7 +4,7 @@
 
 Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the November 2026 broadcast. Build the management foundation first, establish manual graphics operation, then connect providers and complete broadcast rehearsal.
 
-**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5/5.1 implementation, automated Node/browser verification, and real Valorant/OBS graphics acceptance are complete. Phase 6 provider/external-HUD implementation is complete pending separately recorded real provider sessions and external-HUD OBS acceptance. Phase 6.1 in-game match banners are planned on `feat/phase-6.1-match-banners`; Phases 7 onward remain open. The design team supplies final layouts/assets; developers first build functional test templates.
+**Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5/5.1 implementation, automated Node/browser verification, and real Valorant/OBS graphics acceptance are complete. Phase 6 provider/external-HUD implementation is complete pending separately recorded real provider sessions and external-HUD OBS acceptance. Phase 6.1 in-game match banners are planned on `feat/phase-6.1-match-banners`. Phase 7 import implementation has provider/domain and browser proof; custom-event HenrikDev acceptance and a real Spectra hosted report remain open. Phases 8–9 remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
@@ -220,15 +220,15 @@ Detailed implementation plan: [2026-10-05-phase-7-post-game-provider-import.md](
 
 ### Work
 
-- [ ] Build one provider-neutral post-game contract and shared review/import pipeline. Provider-specific retrieval/decoding must stop at normalization; do not create HenrikDev/Spectra statistics tables.
-- [ ] Implement HenrikDev first as the recommended operator path: use a saved lineup Riot ID to fetch recent candidates, require the operator to select the intended match, then fetch exact match detail for review. Keep API key/config server-only and respect current provider consent/rate-limit rules.
-- [ ] Implement ValoSpectra beside HenrikDev, not as an automatic fallback. Fetch by group code with bounded pending/error behavior using the hosted statistics service, separate from the Phase 6 live-HUD coordinator.
-- [ ] Validate report completion/identity, map, teams, participants and statistic formats against the selected local game. Auto-map only strong identities such as unique Riot ID matches; require explicit operator mapping/review for ambiguity.
-- [ ] Preview local -> proposed changes and import into the same records used by manual entry. Repeat imports must be idempotent; provider replacement and manual conflicts require explicit resolution. Provider null must not silently erase known local data.
-- [ ] Resolve the Phase 4 provenance gaps before reimport: track agent-only manual corrections at player level and provide an explicit discard/resolution path for imported all-null manually cleared rows before lineup identity changes.
-- [ ] Add source + external match ID uniqueness so one provider report cannot be associated with two local games.
-- [ ] Keep Performance Score distinct from HenrikDev score. Derive event-backed metrics only from documented/tested semantics; leave Trades unavailable until an approved definition exists.
-- [ ] Do not finalize game results, switch live providers/HUDs, change broadcast selection, or auto-select MVP from an import.
+- [x] Build one provider-neutral post-game contract and shared review/import pipeline. Provider-specific retrieval/decoding must stop at normalization; do not create HenrikDev/Spectra statistics tables.
+- [x] Implement HenrikDev first as the recommended operator path: use a saved lineup Riot ID to fetch recent candidates, require the operator to select the intended match, then fetch exact match detail for review. Keep API key/config server-only and respect current provider consent/rate-limit rules.
+- [x] Implement ValoSpectra beside HenrikDev, not as an automatic fallback. Fetch by group code with bounded pending/error behavior using the hosted statistics service, separate from the Phase 6 live-HUD coordinator.
+- [x] Validate report completion/identity, map, teams, participants and statistic formats against the selected local game. Auto-map only strong identities such as unique Riot ID matches; require explicit operator mapping/review for ambiguity.
+- [x] Preview local -> proposed changes and import into the same records used by manual entry. Repeat imports must be idempotent; provider replacement and manual conflicts require explicit resolution. Provider null must not silently erase known local data.
+- [x] Resolve the Phase 4 provenance gaps before reimport: track agent-only manual corrections at player level and provide an explicit discard/resolution path for imported all-null manually cleared rows before lineup identity changes.
+- [x] Add source + external match ID uniqueness so one provider report cannot be associated with two local games.
+- [x] Keep Performance Score distinct from HenrikDev score. Derive event-backed metrics only from documented/tested semantics; leave Trades unavailable until an approved definition exists.
+- [x] Do not finalize game results, switch live providers/HUDs, change broadcast selection, or auto-select MVP from an import.
 - [ ] Validate one real authorized HenrikDev completed-game workflow. Validate one real Spectra hosted report when available; otherwise keep that dependency explicitly unresolved. Preserve the full manual workflow if either provider is unavailable.
 
 ### Done when
@@ -243,6 +243,8 @@ Detailed implementation plan: [2026-10-05-phase-7-post-game-provider-import.md](
 ### Focused proof
 
 Test candidate selection, identity mismatch, duplicate mappings, duplicate report association, pending Spectra reports, HTTP auth/rate-limit/provider failure, partial payloads, provider-null vs local-known values, transaction failure, manual stat conflict, agent-only conflict, all-null clear/discard, provider replacement, and a late response after game/navigation state changes.
+
+Progress, 2026-10-05: both source controls feed the same server-held review and transactional canonical import. The deterministic browser journeys cover candidate choice, explicit mapping, import, persisted manual conflicts, repeated keep-local protection, Spectra pending/cancel, errors and late responses. Migration **0010** adds report uniqueness and statistics/agent ownership; disposable upgrade tests protect legacy imported agents. Real AP/PC HenrikDev discovery and exact detail succeeded for the supplied competitive Lotus match. Custom/event queue operation and a successful real Spectra hosted report remain release acceptance dependencies. The persistent local/event database has not been migrated. See [Phase 7 verification](./2026-10-05-phase-7-verification.md) for the separate automated and real-provider evidence.
 
 ## Phase 8 — Integrate design-team layouts and assets
 
@@ -309,4 +311,4 @@ Our own OCR client, direct Riot API/RSO integration, automated brackets, multipl
 
 ## Next execution step
 
-Next, implement Phase 6.1 from its dedicated plan while preserving the completed Phase 6 provider foundation. Provider real-session verification can proceed independently when Spectra/GStack access is available. Phase 6.1 pause/ceremony controls must remain provider-independent and share one center-banner layer across Native and Live Data HUDs.
+Next, verify an authorized completed custom/event match through the Phase 7 review/import workflow and obtain a real Spectra hosted report when available. Design-team asset integration and deployment rehearsal can proceed independently; keep provider release acceptance separate from fixture proof.

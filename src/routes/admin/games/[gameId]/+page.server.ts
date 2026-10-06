@@ -1,4 +1,4 @@
-import { redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { games } from '#lib/server/db/schema/index.ts';
@@ -17,8 +17,120 @@ import { saveGameStatistics } from '#lib/server/services/statistics.ts';
 import { setGameMvp } from '#lib/server/services/mvp.ts';
 import { loadGameManagement } from '#lib/server/services/game-management.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { loadPostGameConfig } from '#lib/server/post-game/config.ts';
+import { createHenrikDevClient } from '#lib/server/post-game/providers/henrikdev.ts';
+import { createSpectraClient } from '#lib/server/post-game/providers/spectra.ts';
+import { PostGameProviderError } from '#lib/server/post-game/providers/http.ts';
+import {
+	createPostGameReview,
+	revisePostGameReview,
+	importPostGameReport,
+	discardGamePlayerStatistics,
+	loadPostGameContext
+} from '#lib/server/post-game/review.ts';
+import type { PostGameMappings, PostGameResolutions } from '#lib/post-game/review.ts';
 
-export const load: PageServerLoad = ({ params }) => loadGameManagement(params.gameId);
+export const load: PageServerLoad = async ({ params }) => {
+	const [management, config] = await Promise.all([
+		loadGameManagement(params.gameId),
+		loadPostGameConfig()
+	]);
+	return {
+		...management,
+		postGame: {
+			gameId: params.gameId,
+			availability: config.availability,
+			groupCode: config.spectra?.groupCode ?? '',
+			anchors: management.players
+				.filter(
+					(player) => player.riotId && management.lineup.some((row) => row.playerId === player.id)
+				)
+				.map((player) => ({
+					id: player.id,
+					displayName: player.displayName,
+					riotId: player.riotId!
+				}))
+		}
+	};
+};
+
+const postGameAction: Actions[string] = async ({ request, params, fetch }) => {
+	try {
+		const draft = readPayload(await request.formData());
+		const gameId = params.gameId;
+		if (draft.operation === 'revise')
+			return {
+				review: await revisePostGameReview({
+					gameId,
+					token: draft.token as string,
+					mappings: draft.mappings as PostGameMappings
+				})
+			};
+		if (draft.operation === 'import')
+			return {
+				imported: await importPostGameReport({
+					gameId,
+					token: draft.token as string,
+					expectedGameRevision: draft.expectedGameRevision as number,
+					resolutions: draft.resolutions as PostGameResolutions,
+					confirmReplacement: draft.confirmReplacement === true
+				})
+			};
+		if (draft.operation === 'discard')
+			return {
+				discarded: await discardGamePlayerStatistics({
+					gameId,
+					expectedGameRevision: draft.expectedGameRevision as number,
+					playerId: draft.playerId as string,
+					confirmation: draft.confirmation === true
+				})
+			};
+		const context = await loadPostGameContext(gameId);
+		if (context.game.revision !== draft.expectedGameRevision)
+			throw new SaveError('stale', 'The game changed. Reload and fetch a new review.');
+		const config = await loadPostGameConfig();
+		if (draft.operation === 'discover') {
+			if (!config.henrikdev) throw new PostGameProviderError('unavailable');
+			const anchor = context.profiles.find((player) => player.id === draft.anchorPlayerId);
+			if (!anchor?.riotId)
+				throw new SaveError('invalid', 'Choose a saved lineup player with a Riot ID.');
+			return {
+				candidates: await createHenrikDevClient(config.henrikdev, fetch).discoverRecentMatches({
+					riotId: anchor.riotId,
+					signal: request.signal
+				})
+			};
+		}
+		const report =
+			draft.operation === 'henrik'
+				? config.henrikdev &&
+					(await createHenrikDevClient(config.henrikdev, fetch).fetchMatchDetail({
+						externalMatchId: draft.externalMatchId as string,
+						signal: request.signal
+					}))
+				: draft.operation === 'spectra' &&
+					config.spectra &&
+					(await createSpectraClient(config.spectra, fetch).fetchReport({
+						groupCode: draft.groupCode as string,
+						signal: request.signal
+					}));
+		if (!report) throw new PostGameProviderError('unavailable');
+		return {
+			review: await createPostGameReview({
+				gameId,
+				expectedGameRevision: draft.expectedGameRevision as number,
+				report
+			})
+		};
+	} catch (cause) {
+		if (cause instanceof PostGameProviderError)
+			return fail(400, { error: cause.message, code: cause.code });
+		if (cause instanceof SaveError) return formError(cause);
+		return fail(500, {
+			error: 'Could not load or import this report. Manual entry remains available.'
+		});
+	}
+};
 function revisions(gameId: string, draft: Record<string, unknown>) {
 	return {
 		gameId,
@@ -28,6 +140,7 @@ function revisions(gameId: string, draft: Record<string, unknown>) {
 }
 
 export const actions: Actions = {
+	postGame: postGameAction,
 	agents: async ({ request, params }) => {
 		const form = await request.formData();
 		let draft: Record<string, unknown> = {};
