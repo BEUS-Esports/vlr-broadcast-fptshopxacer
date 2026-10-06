@@ -109,7 +109,7 @@ export async function loadPostGameConfig() {
 				SPECTRA_POST_GAME_POLL_INTERVAL_MS: String(settings.spectraPostGamePollIntervalMs),
 				SPECTRA_POST_GAME_MAX_ATTEMPTS: String(settings.spectraPostGameMaxAttempts)
 			},
-			settings.spectraGroupCode
+			settings.spectraPostGameGroupCode || settings.spectraGroupCode
 		);
 	} catch {
 		return {
