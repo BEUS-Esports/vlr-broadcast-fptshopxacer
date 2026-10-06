@@ -43,10 +43,19 @@ Keep pre-existing graphics assertions separate from phase 7 regressions; a faili
 
 ## Operations and acceptance boundaries
 
-Keep `HENRIKDEV_API_KEY` server-only in deployment environment or the local ignored `.env`; do not post it into chat, put it in form data, or include it in fixtures. Use only event participants whose data use is authorized under HenrikDev's current consent/use requirements. Discovery/detail are explicit actions, with no continuous HenrikDev polling or automatic provider fallback. Treat rate-limit errors as a reason to wait.
+HenrikDev and ValoSpectra credentials are now managed from the server-side Settings screen and stored encrypted in SQLite by migration `0011_provider_settings`; do not post them into chat, put them in public variables, include them in fixtures, or expose them to OBS/client output. `SETTINGS_ENCRYPTION_KEY` (or the generated ignored `data/settings.key`) remains outside the database. Use only event participants whose data use is authorized under HenrikDev's current consent/use requirements. Discovery/detail are explicit actions, with no continuous HenrikDev polling or automatic provider fallback. Treat rate-limit errors as a reason to wait.
 
-The adapters default to AP/PC, five candidates and a 15-second request timeout. Spectra defaults to three attempts with 15-second pending intervals. All provider settings remain private runtime configuration; an invalid provider configuration must not disable manual operation or the other provider.
+The adapters default to AP/PC, five candidates and a 15-second request timeout. Spectra defaults to three attempts with 15-second pending intervals. Provider settings are DB-backed server configuration; legacy Phase 7 environment variables are first-run bootstrap inputs only. An invalid provider configuration must not disable manual operation or the other provider.
 
 When either source is unavailable, enter or correct statistics in the existing manual Post-Game Report editor. Blank means unknown and zero means measured zero. Canonical saved records continue to serve aggregation and graphics. Provider work never finalizes game scores/results, selects MVP, switches live provider/HUD mode or changes broadcast selection.
 
 Migration `0010_post_game_import` adds source/report uniqueness and independent statistics/agent ownership. The disposable populated-upgrade test protects legacy agent corrections, including saved lineup players without statistics rows, without inventing timestamps. Existing duplicate source/report associations cause the unique index to reject the upgrade and require reviewed reconciliation. Back up the database/assets and rehearse the forward migration against a disposable copy before deployment; do not run `db:push` on event data. The persistent local/event database has not been migrated.
+
+
+## 2026-10-06 follow-up — Settings consolidation
+
+After the verification run above, Phase 7 provider configuration was consolidated with the existing Settings screen. Migration `0011_provider_settings` adds a singleton DB-backed provider settings record; ValoSpectra Org/access credentials and HenrikDev API credentials are AES-256-GCM encrypted at rest, with the encryption root kept outside SQLite. The existing plaintext `data/live-provider.json` is now a first-run migration input only and is removed after a successful DB bootstrap. HenrikDev affinity, platform, API host, candidate count and request timeout, plus Spectra hosted post-game host/poll settings, are editable from Settings. The old environment variables are bootstrap-only when no settings row exists.
+
+This follow-up also preserves Phase 6's existing Save-and-connect flow while adding a save-only action; post-game-only changes do not restart an otherwise healthy live provider session. Focused settings persistence tests were added, and the Phase 7 migration-upgrade test now rewinds both `0010` and `0011` before replay.
+
+The release-command results earlier in this document predate this follow-up. In the current ChatGPT execution environment, the GitHub connector can read/write the branch but the execution container cannot resolve `github.com`, so `pnpm check`, Vitest, build, lint and Playwright have **not** been independently rerun for the Settings-consolidation commits. Re-run those gates locally before treating this follow-up as release-verified.
