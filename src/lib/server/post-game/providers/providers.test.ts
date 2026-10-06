@@ -14,27 +14,43 @@ import {
 	surrenderedMatch
 } from './fixtures';
 
-vi.mock('$app/env/private', () => ({
-	HENRIKDEV_API_KEY: 'runtime-secret',
-	HENRIKDEV_BASE_URL: undefined,
-	HENRIKDEV_AFFINITY: undefined,
-	HENRIKDEV_PLATFORM: undefined,
-	HENRIKDEV_CANDIDATE_LIMIT: undefined,
-	POST_GAME_REQUEST_TIMEOUT_MS: undefined,
-	SPECTRA_POST_GAME_BASE_URL: undefined,
-	SPECTRA_POST_GAME_GROUP_CODE: 'runtime-group',
-	SPECTRA_POST_GAME_POLL_INTERVAL_MS: undefined,
-	SPECTRA_POST_GAME_MAX_ATTEMPTS: undefined
+vi.mock('#lib/server/settings/providers.ts', () => ({
+	loadProviderSettings: async () => ({
+		revision: 4,
+		spectraRegion: 'eu',
+		spectraHost: 'https://eu.valospectra.com',
+		spectraAccessKey: '',
+		spectraGroupCode: 'runtime-group',
+		gstackUrl: 'http://localhost:57780/',
+		henrikdevBaseUrl: 'https://api.henrikdev.xyz',
+		henrikdevApiKey: 'runtime-secret',
+		henrikdevAffinity: 'kr',
+		henrikdevPlatform: 'pc',
+		henrikdevCandidateLimit: 4,
+		postGameRequestTimeoutMs: 12000,
+		spectraPostGameBaseUrl: 'https://stats.valospectra.com',
+		spectraPostGamePollIntervalMs: 10000,
+		spectraPostGameMaxAttempts: 2
+	})
 }));
 
 const env = { HENRIKDEV_API_KEY: 'api-secret', SPECTRA_POST_GAME_GROUP_CODE: 'group-secret' };
 const configs = () => normalizePostGameConfig(env);
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 describe('post-game provider configuration', () => {
-	it('reads declared runtime private environment rather than process.env', async () => {
+	it('reads saved database provider settings rather than environment overrides', async () => {
 		const config = await loadPostGameConfig();
-		expect(config.henrikdev?.apiKey).toBe('runtime-secret');
-		expect(config.spectra?.groupCode).toBe('runtime-group');
+		expect(config.henrikdev).toMatchObject({
+			apiKey: 'runtime-secret',
+			affinity: 'kr',
+			candidateLimit: 4,
+			timeoutMs: 12000
+		});
+		expect(config.spectra).toMatchObject({
+			groupCode: 'runtime-group',
+			pollIntervalMs: 10000,
+			maxAttempts: 2
+		});
 		expect(JSON.stringify(config)).not.toContain('runtime-secret');
 	});
 	it('keeps secrets out of serialized configuration and availability', () => {
