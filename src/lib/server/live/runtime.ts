@@ -179,6 +179,7 @@ export function operateLiveProvider(input: Record<string, unknown>) {
 }
 export async function getLiveDiagnostics() {
 	await initializeLiveSettings();
+	if (!settings) throw new Error('Provider settings are not initialized.');
 	const state = liveCoordinator.getState();
 	return {
 		normalized: state,
@@ -186,6 +187,6 @@ export async function getLiveDiagnostics() {
 		mapping: liveCoordinator.getMapping(),
 		suggestions: state ? suggestMapping(state, binding) : null,
 		raw: redactDiagnostics(liveCoordinator.getRaw(), [config.accessKey]),
-		config: settings ? publicProviderSettings(settings) : null
+		config: publicProviderSettings(settings)
 	};
 }
