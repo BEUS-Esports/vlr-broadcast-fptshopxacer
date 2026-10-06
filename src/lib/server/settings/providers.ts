@@ -226,6 +226,7 @@ async function bootstrapSettings() {
 	} catch {
 		/* Invalid legacy live settings do not prevent the Settings page from recovering. */
 	}
+	const legacyDefaults = { ...defaults };
 	try {
 		const env = await import('$app/env/private');
 		const text = (key: string) => {
@@ -260,7 +261,7 @@ async function bootstrapSettings() {
 	try {
 		return normalizeProviderSettings(defaults);
 	} catch {
-		return normalizeProviderSettings(defaultProviderSettings);
+		return normalizeProviderSettings(legacyDefaults);
 	}
 }
 
