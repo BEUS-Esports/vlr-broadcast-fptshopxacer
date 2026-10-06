@@ -4,6 +4,7 @@
 		anchors: Array<{ id: string; displayName: string; riotId: string }>;
 		availability: Record<'henrikdev' | 'spectra', { available: boolean; message: string | null }>;
 		groupCode: string;
+		discardablePlayers?: Array<{ id: string; displayName: string }>;
 	};
 </script>
 
@@ -276,6 +277,35 @@
 				</p>{/if}
 		</section>
 	</div>
+	{#if controls.discardablePlayers?.length}
+		<section
+			class="space-y-3 rounded-container border border-surface-300-700 p-4"
+			aria-label="Lineup correction"
+		>
+			<h3 class="h4">Lineup correction</h3>
+			<p>
+				These imported player rows have no saved statistics. Discard a row before removing or moving
+				that player in the saved lineup.
+			</p>
+			<div class="flex flex-wrap gap-2">
+				{#each controls.discardablePlayers as player (player.id)}
+					<button
+						type="button"
+						class="btn preset-tonal-error"
+						disabled={disabled || !!pending}
+						onclick={() => {
+							if (
+								window.confirm(
+									`Discard the cleared imported statistics row for ${player.displayName}? This cannot be undone.`
+								)
+							)
+								void command('discard', { playerId: player.id, confirmation: true });
+						}}>Discard {player.displayName} cleared row</button
+					>
+				{/each}
+			</div>
+		</section>
+	{/if}
 	{#if pending}<p role="status">
 			{pending === 'import'
 				? 'Importing…'
@@ -396,19 +426,6 @@
 									></label
 								>{/if}
 						{/each}
-						{#if row.manual.statistics}<button
-								type="button"
-								class="btn preset-tonal-error"
-								disabled={disabled || !!pending}
-								onclick={() => {
-									if (
-										window.confirm(
-											`Discard saved statistics and import provenance for ${row.localIdentity?.displayName}? This cannot be undone.`
-										)
-									)
-										void command('discard', { playerId: row.playerId, confirmation: true });
-								}}>Discard {row.localIdentity?.displayName} statistics</button
-							>{/if}
 					{/if}
 				</section>
 			{/each}
