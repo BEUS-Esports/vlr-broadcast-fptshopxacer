@@ -17,6 +17,7 @@ export const actions: Actions = {
 			const provider = field('provider');
 			if (provider !== 'spectra' && provider !== 'gstack')
 				return fail(400, { error: 'Choose a provider.' });
+			const connect = field('connect') === 'on' ? provider : null;
 			syncLiveBinding(await buildBroadcastSnapshot());
 			await configureLiveProvider(
 				{
@@ -38,7 +39,7 @@ export const actions: Actions = {
 					spectraPostGameMaxAttempts: field('spectraPostGameMaxAttempts')
 				},
 				Number(field('revision')),
-				provider
+				connect
 			);
 			return { saved: true };
 		} catch {
