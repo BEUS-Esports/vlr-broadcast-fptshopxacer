@@ -259,8 +259,18 @@ export function buildPostGameReview(
 					)
 				)
 			: [];
-		const agent = candidates.length === 1 ? candidates[0] : named.length === 1 ? named[0] : null;
-		if (
+		const contradictoryAgent =
+			candidates.length === 1 && named.length === 1 && candidates[0].id !== named[0].id;
+		const agent = contradictoryAgent
+			? null
+			: candidates.length === 1
+				? candidates[0]
+				: named.length === 1
+					? named[0]
+					: null;
+		if (contradictoryAgent)
+			validation.push(`Provider player ${providerIndex + 1} has contradictory agent identity evidence.`);
+		else if (
 			((provider.agentExternalId || provider.agentName) && !agent) ||
 			(agent && !agent.isActive && agent.id !== lineup?.agentId)
 		)
@@ -490,19 +500,22 @@ function validateResolutions(value: PostGameResolutions = {}, preview: PostGameR
 	if (!value || typeof value !== 'object' || Array.isArray(value))
 		throw new SaveError('invalid', 'Submit scoped player conflict choices.');
 	for (const [playerId, choices] of Object.entries(value)) {
+		const row = preview.players.find((item) => item.playerId === playerId);
 		if (
-			!preview.players.some((row) => row.playerId === playerId) ||
+			!row ||
 			!choices ||
 			typeof choices !== 'object' ||
 			Array.isArray(choices) ||
 			Object.entries(choices).some(
 				([key, choice]) =>
-					!['statistics', 'agent'].includes(key) || !['keep-local', 'use-provider'].includes(choice)
+					!['statistics', 'agent'].includes(key) ||
+					!['keep-local', 'use-provider'].includes(choice) ||
+					!row.conflicts[key as 'statistics' | 'agent']
 			)
 		)
 			throw new SaveError(
 				'invalid',
-				'Choose keep local or use provider separately for statistics and agents.'
+				'Choose keep local or use provider only for an active statistics or agent conflict.'
 			);
 	}
 	for (const row of preview.players)
@@ -679,17 +692,33 @@ export async function discardGamePlayerStatistics(input: {
 		const game = await bumpGameRevision(tx, input.gameId, input.expectedGameRevision);
 		const [match] = await tx.select().from(matches).where(eq(matches.id, game.matchId));
 		await assertTournamentWritable(tx, match.tournamentId);
-		const removed = await tx
+		const [saved] = await tx
+			.select()
+			.from(gamePlayerStatistics)
+			.where(
+				and(
+					eq(gamePlayerStatistics.gameId, game.id),
+					eq(gamePlayerStatistics.playerId, input.playerId)
+				)
+			);
+		if (!saved) throw new SaveError('not-found', 'This player has no saved statistics to discard.');
+		const [meta] = await tx
+			.select({ importedAt: gameStatisticsMeta.importedAt })
+			.from(gameStatisticsMeta)
+			.where(eq(gameStatisticsMeta.gameId, game.id));
+		if (!meta?.importedAt || statisticFields.some((field) => saved[field] !== null))
+			throw new SaveError(
+				'blocked',
+				'Only an imported player row with all statistics cleared can be discarded.'
+			);
+		await tx
 			.delete(gamePlayerStatistics)
 			.where(
 				and(
 					eq(gamePlayerStatistics.gameId, game.id),
 					eq(gamePlayerStatistics.playerId, input.playerId)
 				)
-			)
-			.returning();
-		if (!removed.length)
-			throw new SaveError('not-found', 'This player has no saved statistics to discard.');
+			);
 		return game.revision;
 	});
 	return { gameRevision, ...(await getGameStatistics(input.gameId)) };
