@@ -91,6 +91,7 @@ export default async function setup() {
 	}
 
 	process.env.ORIGIN = 'http://localhost:4173';
+	process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 5).toString('base64');
 	// Override the credential BEFORE routing outbound traffic to the local fixture service.
 	process.env.HENRIKDEV_API_KEY = 'synthetic-e2e-key';
 	process.env.HENRIKDEV_AFFINITY = 'ap';
