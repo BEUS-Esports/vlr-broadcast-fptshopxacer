@@ -4,7 +4,12 @@ import { dirname, resolve } from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { providerSettings } from '#lib/server/db/schema/index.ts';
-import { defaultConfig as defaultLiveConfig, loadLegacyProviderConfig, normalizeConfig } from '#lib/server/live/config.ts';
+import {
+	defaultConfig as defaultLiveConfig,
+	loadLegacyProviderConfig,
+	normalizeConfig,
+	removeLegacyProviderConfig
+} from '#lib/server/live/config.ts';
 
 export const henrikdevAffinities = ['ap', 'br', 'eu', 'kr', 'latam', 'na'] as const;
 export const henrikdevPlatforms = ['pc', 'console'] as const;
@@ -308,6 +313,7 @@ export async function loadProviderSettings(): Promise<ProviderSettingsValue> {
 	if (!row) {
 		await insertSettings(await bootstrapSettings());
 		[row] = await db.select().from(providerSettings).where(eq(providerSettings.id, 1));
+		if (row) await removeLegacyProviderConfig();
 	}
 	if (!row) throw new Error('Could not initialize provider settings.');
 	return rowToSettings(row);
