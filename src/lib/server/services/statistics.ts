@@ -79,6 +79,11 @@ export async function getGameStatistics(gameId: string) {
 			lastManualEditAt: meta[0]?.lastManualEditAt ?? null,
 			manuallyChangedPlayerIds: meta[0]?.importedAt
 				? stats.filter((row) => row.statisticsManualOverride).map((row) => row.playerId)
+				: [],
+			discardablePlayerIds: meta[0]?.importedAt
+				? stats
+						.filter((row) => statisticFields.every((field) => row[field] === null))
+						.map((row) => row.playerId)
 				: []
 		}
 	};
