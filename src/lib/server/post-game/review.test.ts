@@ -832,7 +832,7 @@ it('upgrades legacy imported rows with persistent stat and conservative agent ow
 		])
 			await fixture.client.execute(`ALTER TABLE game_player_statistics DROP COLUMN ${column}`);
 		await fixture.client.execute(
-			'DELETE FROM __drizzle_migrations WHERE created_at IN (SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 2)'
+			'DELETE FROM __drizzle_migrations WHERE created_at IN (SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 3)'
 		);
 		await migrate(fixture.db, { migrationsFolder: join(process.cwd(), 'drizzle') });
 		const rows = await fixture.db.select().from(s.gamePlayerStatistics);
