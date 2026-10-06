@@ -98,6 +98,7 @@ export function configureLiveProvider(
 				henrikdevCandidateLimit: value.henrikdevCandidateLimit as number,
 				postGameRequestTimeoutMs: value.postGameRequestTimeoutMs as number,
 				spectraPostGameBaseUrl: value.spectraPostGameBaseUrl as string,
+				spectraPostGameGroupCode: value.spectraPostGameGroupCode as string,
 				spectraPostGamePollIntervalMs: value.spectraPostGamePollIntervalMs as number,
 				spectraPostGameMaxAttempts: value.spectraPostGameMaxAttempts as number
 			},
