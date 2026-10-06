@@ -81,6 +81,10 @@ export function configureLiveProvider(
 		const value = input as Record<string, unknown>;
 		const previous = settings;
 		const activeProvider = liveCoordinator.getStatus().provider;
+		const submittedGroup =
+			typeof value.groupCode === 'string' ? value.groupCode.trim() : settings.spectraGroupCode;
+		if (connect === 'spectra' && !submittedGroup)
+			throw new Error('Set a Spectra group code before connecting.');
 		const next = await saveProviderSettings(
 			{
 				...value,
