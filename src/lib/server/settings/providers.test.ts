@@ -1,14 +1,19 @@
+import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 import * as s from '#lib/server/db/schema/index.ts';
 import { withManagementFixture } from '#lib/server/testing/management-fixture.ts';
 
 afterEach(() => {
 	delete process.env.SETTINGS_ENCRYPTION_KEY;
+	delete process.env.SETTINGS_ENCRYPTION_KEY_FILE;
+	delete process.env.LIVE_PROVIDER_CONFIG_FILE;
 });
 
 it('encrypts provider credentials in SQLite and never exposes them through public settings', async () => {
 	await withManagementFixture(async (fixture) => {
 		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+		process.env.LIVE_PROVIDER_CONFIG_FILE = join(fixture.directory, 'legacy-live-provider.json');
+		process.env.SETTINGS_ENCRYPTION_KEY_FILE = join(fixture.directory, 'settings.key');
 		const { loadProviderSettings, publicProviderSettings, saveProviderSettings } =
 			await import('./providers');
 		const initial = await loadProviderSettings();
@@ -48,6 +53,8 @@ it('encrypts provider credentials in SQLite and never exposes them through publi
 it('keeps saved credentials unless explicitly cleared', async () => {
 	await withManagementFixture(async () => {
 		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
+		process.env.LIVE_PROVIDER_CONFIG_FILE = join(fixture.directory, 'legacy-live-provider.json');
+		process.env.SETTINGS_ENCRYPTION_KEY_FILE = join(fixture.directory, 'settings.key');
 		const { loadProviderSettings, saveProviderSettings } = await import('./providers');
 		const initial = await loadProviderSettings();
 		const withSecrets = await saveProviderSettings(
