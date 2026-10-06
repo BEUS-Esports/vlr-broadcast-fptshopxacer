@@ -36,3 +36,6 @@ test-results
 /docs/gstack-reference/
 /data/live-provider.json
 /data/live-provider.json.*.tmp
+
+# Local provider-settings encryption root; never commit.
+/data/settings.key
