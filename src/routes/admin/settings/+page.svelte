@@ -56,7 +56,7 @@
 			<div class="grid gap-4 md:grid-cols-2">
 				<label class="label">
 					<span>Live region</span>
-					<select class="select" name="spectraRegion" bind:value={region}>
+					<select class="select" name="spectraRegion" aria-label="Region" bind:value={region}>
 						<option value="eu">Europe · eu.valospectra.com</option>
 						<option value="na">North America · na.valospectra.com</option>
 						<option value="custom">Custom / self-hosted</option>
@@ -77,6 +77,7 @@
 					<input
 						class="input"
 						name="accessKey"
+						aria-label="Access key"
 						type="password"
 						autocomplete="new-password"
 						bind:value={accessKey}
@@ -248,7 +249,7 @@
 		{#if form?.saved}<p role="status">
 				Settings saved. The selected live provider connection is being checked.
 			</p>{/if}
-		<button class="btn preset-filled-primary-500">Save settings and connect</button>
+		<button class="btn preset-filled-primary-500">Save and connect</button>
 	</form>
 
 	<p>
