@@ -79,12 +79,10 @@ describe('strict v4 normalization', () => {
 	it('ignores non-playing participants outside the two game teams', () => {
 		const fixture = structuredClone(completedMatch);
 		fixture.data.players.push({
+			...fixture.data.players[0],
 			puuid: 'observer',
 			name: 'Observer',
-			tag: 'EVENT',
-			team_id: 'Observer',
-			agent: { id: null, name: null },
-			stats: { kills: 0, deaths: 0, assists: 0, score: 0 }
+			team_id: 'Observer'
 		});
 		const report = decodeHenrikMatch(fixture);
 		expect(report.players).toHaveLength(10);
