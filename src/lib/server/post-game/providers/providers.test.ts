@@ -29,6 +29,7 @@ vi.mock('#lib/server/settings/providers.ts', () => ({
 		henrikdevCandidateLimit: 4,
 		postGameRequestTimeoutMs: 12000,
 		spectraPostGameBaseUrl: 'https://stats.valospectra.com',
+		spectraPostGameGroupCode: 'post-game-group',
 		spectraPostGamePollIntervalMs: 10000,
 		spectraPostGameMaxAttempts: 2
 	})
@@ -47,7 +48,7 @@ describe('post-game provider configuration', () => {
 			timeoutMs: 12000
 		});
 		expect(config.spectra).toMatchObject({
-			groupCode: 'runtime-group',
+			groupCode: 'post-game-group',
 			pollIntervalMs: 10000,
 			maxAttempts: 2
 		});
