@@ -321,14 +321,22 @@ async function insertSettings(value: ProviderSettingsValue) {
 		.onConflictDoNothing();
 }
 
+async function cleanupLegacyConfig() {
+	try {
+		await removeLegacyProviderConfig();
+	} catch {
+		console.warn('Could not remove the legacy plaintext provider settings file after migration.');
+	}
+}
+
 export async function loadProviderSettings(): Promise<ProviderSettingsValue> {
 	let [row] = await db.select().from(providerSettings).where(eq(providerSettings.id, 1));
 	if (!row) {
 		await insertSettings(await bootstrapSettings());
 		[row] = await db.select().from(providerSettings).where(eq(providerSettings.id, 1));
-		if (row) await removeLegacyProviderConfig();
 	}
 	if (!row) throw new Error('Could not initialize provider settings.');
+	await cleanupLegacyConfig();
 	return rowToSettings(row);
 }
 
