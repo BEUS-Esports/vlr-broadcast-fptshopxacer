@@ -28,6 +28,7 @@ export type ProviderSettingsValue = {
 	henrikdevCandidateLimit: number;
 	postGameRequestTimeoutMs: number;
 	spectraPostGameBaseUrl: string;
+	spectraPostGameGroupCode: string;
 	spectraPostGamePollIntervalMs: number;
 	spectraPostGameMaxAttempts: number;
 };
@@ -46,6 +47,7 @@ export const defaultProviderSettings: ProviderSettingsValue = {
 	henrikdevCandidateLimit: 5,
 	postGameRequestTimeoutMs: 15000,
 	spectraPostGameBaseUrl: 'https://stats.valospectra.com',
+	spectraPostGameGroupCode: '',
 	spectraPostGamePollIntervalMs: 15000,
 	spectraPostGameMaxAttempts: 3
 };
@@ -129,6 +131,14 @@ export function normalizeProviderSettings(input: Partial<ProviderSettingsValue>)
 			'Post-game request timeout'
 		),
 		spectraPostGameBaseUrl: host(value.spectraPostGameBaseUrl, 'Spectra post-game'),
+		spectraPostGameGroupCode:
+			typeof value.spectraPostGameGroupCode === 'string' &&
+			value.spectraPostGameGroupCode.length <= 128 &&
+			![...value.spectraPostGameGroupCode].some((char) => char.charCodeAt(0) < 32)
+				? value.spectraPostGameGroupCode.trim()
+				: (() => {
+						throw new Error('Enter a valid Spectra post-game group code.');
+					})(),
 		spectraPostGamePollIntervalMs: boundedInteger(
 			value.spectraPostGamePollIntervalMs,
 			15000,
@@ -248,8 +258,8 @@ async function bootstrapSettings() {
 				text('POST_GAME_REQUEST_TIMEOUT_MS') || defaults.postGameRequestTimeoutMs,
 			spectraPostGameBaseUrl:
 				text('SPECTRA_POST_GAME_BASE_URL') || defaults.spectraPostGameBaseUrl,
-			spectraGroupCode:
-				text('SPECTRA_POST_GAME_GROUP_CODE')?.trim() || defaults.spectraGroupCode,
+			spectraPostGameGroupCode:
+				text('SPECTRA_POST_GAME_GROUP_CODE')?.trim() || defaults.spectraPostGameGroupCode,
 			spectraPostGamePollIntervalMs:
 				text('SPECTRA_POST_GAME_POLL_INTERVAL_MS') || defaults.spectraPostGamePollIntervalMs,
 			spectraPostGameMaxAttempts:
@@ -280,6 +290,7 @@ async function rowToSettings(row: typeof providerSettings.$inferSelect): Promise
 		henrikdevCandidateLimit: row.henrikdevCandidateLimit,
 		postGameRequestTimeoutMs: row.postGameRequestTimeoutMs,
 		spectraPostGameBaseUrl: row.spectraPostGameBaseUrl,
+		spectraPostGameGroupCode: row.spectraPostGameGroupCode,
 		spectraPostGamePollIntervalMs: row.spectraPostGamePollIntervalMs,
 		spectraPostGameMaxAttempts: row.spectraPostGameMaxAttempts
 	});
@@ -303,6 +314,7 @@ async function insertSettings(value: ProviderSettingsValue) {
 			henrikdevCandidateLimit: value.henrikdevCandidateLimit,
 			postGameRequestTimeoutMs: value.postGameRequestTimeoutMs,
 			spectraPostGameBaseUrl: value.spectraPostGameBaseUrl,
+			spectraPostGameGroupCode: value.spectraPostGameGroupCode,
 			spectraPostGamePollIntervalMs: value.spectraPostGamePollIntervalMs,
 			spectraPostGameMaxAttempts: value.spectraPostGameMaxAttempts
 		})
@@ -391,6 +403,7 @@ export async function saveProviderSettings(
 				henrikdevCandidateLimit: next.henrikdevCandidateLimit,
 				postGameRequestTimeoutMs: next.postGameRequestTimeoutMs,
 				spectraPostGameBaseUrl: next.spectraPostGameBaseUrl,
+				spectraPostGameGroupCode: next.spectraPostGameGroupCode,
 				spectraPostGamePollIntervalMs: next.spectraPostGamePollIntervalMs,
 				spectraPostGameMaxAttempts: next.spectraPostGameMaxAttempts
 			})
