@@ -31,6 +31,7 @@ export const providerSettings = sqliteTable(
 		spectraPostGameBaseUrl: text('spectra_post_game_base_url')
 			.notNull()
 			.default('https://stats.valospectra.com'),
+		spectraPostGameGroupCode: text('spectra_post_game_group_code').notNull().default(''),
 		spectraPostGamePollIntervalMs: integer('spectra_post_game_poll_interval_ms')
 			.notNull()
 			.default(15000),
