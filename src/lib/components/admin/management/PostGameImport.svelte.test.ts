@@ -113,13 +113,23 @@ it.each(['import', 'discard'] as const)(
 				return response({ review });
 			})
 		);
-		const view = render(PostGameImport, props);
+		const renderProps =
+			operation === 'discard'
+				? {
+						...props,
+						controls: {
+							...props.controls,
+							discardablePlayers: [{ id: 'p0', displayName: 'Player 0' }]
+						}
+					}
+				: props;
+		const view = render(PostGameImport, renderProps);
 		await page.getByRole('button', { name: 'Fetch Report', exact: true }).click();
 		await page.getByLabelText('Player 0 statistics conflict').selectOptions('keep-local');
 		await page.getByRole('checkbox').click();
 		await page
 			.getByRole('button', {
-				name: operation === 'import' ? 'Confirm Import' : 'Discard Player 0 statistics',
+				name: operation === 'import' ? 'Confirm Import' : 'Discard Player 0 cleared row',
 				exact: true
 			})
 			.click();
@@ -136,7 +146,7 @@ it.each(['import', 'discard'] as const)(
 		// Queued input events must not retire a write even when a control is disabled.
 		view.container.querySelector('select')!.dispatchEvent(new Event('change', { bubbles: true }));
 		view.container.querySelector('input')!.dispatchEvent(new Event('input', { bubbles: true }));
-		await view.rerender({ ...props, revision: 2 });
+		await view.rerender({ ...renderProps, revision: 2 });
 		expect.soft(writeSignal?.aborted ?? false).toBe(false);
 		release!(response({ [operation === 'import' ? 'imported' : 'discarded']: true }));
 		await expect
@@ -154,6 +164,39 @@ it.each(['import', 'discard'] as const)(
 			.not.toBeInTheDocument();
 	}
 );
+
+it('allows an imported cleared row to be discarded without either provider', async () => {
+	vi.spyOn(window, 'confirm').mockReturnValue(true);
+	const fetcher = vi.fn(async (_url: string, init: RequestInit) => {
+		const input = JSON.parse((init.body as FormData).get('payload') as string);
+		expect(input).toMatchObject({
+			operation: 'discard',
+			playerId: 'p0',
+			confirmation: true,
+			expectedGameRevision: 1
+		});
+		return response({ discarded: true });
+	});
+	vi.stubGlobal('fetch', fetcher);
+	render(PostGameImport, {
+		...props,
+		controls: {
+			...props.controls,
+			availability: {
+				henrikdev: { available: false, message: 'HenrikDev unavailable.' },
+				spectra: { available: false, message: 'Spectra unavailable.' }
+			},
+			discardablePlayers: [{ id: 'p0', displayName: 'Player 0' }]
+		}
+	});
+	await expect.element(page.getByRole('region', { name: 'Lineup correction' })).toBeVisible();
+	await page.getByRole('button', { name: 'Discard Player 0 cleared row' }).click();
+	await expect
+		.element(page.getByText('Player statistics discarded. Correct the lineup before fetching again.'))
+		.toBeVisible();
+	expect(fetcher).toHaveBeenCalledTimes(1);
+	expect(refreshAll).toHaveBeenCalledExactlyOnceWith();
+});
 
 it('still aborts read-only requests and ignores their late review after Stop / Cancel', async () => {
 	let release: ((value: Response) => void) | undefined;
