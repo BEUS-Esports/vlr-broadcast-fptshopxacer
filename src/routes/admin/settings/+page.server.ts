@@ -35,6 +35,7 @@ export const actions: Actions = {
 					henrikdevCandidateLimit: field('henrikdevCandidateLimit'),
 					postGameRequestTimeoutMs: field('postGameRequestTimeoutMs'),
 					spectraPostGameBaseUrl: field('spectraPostGameBaseUrl'),
+					spectraPostGameGroupCode: field('spectraPostGameGroupCode'),
 					spectraPostGamePollIntervalMs: field('spectraPostGamePollIntervalMs'),
 					spectraPostGameMaxAttempts: field('spectraPostGameMaxAttempts')
 				},
