@@ -238,9 +238,9 @@ async function bootstrapSettings() {
 	}
 	const legacyDefaults = { ...defaults };
 	try {
-		const env = await import('$app/env/private');
+		const env = Object.fromEntries(Object.entries(await import('$app/env/private')));
 		const text = (key: string) => {
-			const value = (env as Record<string, unknown>)[key];
+			const value = env[key];
 			return typeof value === 'string' ? value : undefined;
 		};
 		Object.assign(defaults, {
@@ -325,7 +325,7 @@ async function cleanupLegacyConfig() {
 	try {
 		await removeLegacyProviderConfig();
 	} catch {
-		console.warn('Could not remove the legacy plaintext provider settings file after migration.');
+		/* Keep encrypted DB settings usable; retry legacy cleanup on the next load. */
 	}
 }
 
