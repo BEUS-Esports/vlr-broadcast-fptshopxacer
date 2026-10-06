@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 export type LiveProviderConfig = {
@@ -88,6 +88,13 @@ export async function loadLegacyProviderConfig(): Promise<LiveProviderConfig> {
 		// JSON parse errors can contain the credential-bearing source text.
 		// eslint-disable-next-line preserve-caught-error
 		throw new Error('Could not read live-provider settings. Check the server configuration file.');
+	}
+}
+export async function removeLegacyProviderConfig() {
+	try {
+		await unlink(configFile());
+	} catch (cause) {
+		if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause;
 	}
 }
 /** Bounded admin-only diagnostics. Never echo form values or upstream transport error objects. */
