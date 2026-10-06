@@ -29,12 +29,22 @@ export function decodeV4Report(
 		};
 	});
 	if (new Set(teams.map((t) => t.key)).size !== 2) throw new PostGameProviderError('malformed');
-	const players = data.players.map((value) => {
-		const row = object(value);
+	const teamKeys = new Set(teams.map((team) => team.key));
+	const gamePlayers = data.players
+		.map((value) => object(value))
+		.filter((row) => {
+			const teamKey = text(row.team_id);
+			return !!teamKey && teamKeys.has(teamKey);
+		});
+	if (
+		gamePlayers.length !== 10 ||
+		teams.some((team) => gamePlayers.filter((row) => text(row.team_id) === team.key).length !== 5)
+	)
+		throw new PostGameProviderError('malformed');
+	const players = gamePlayers.map((row) => {
 		const externalPlayerId = text(row.puuid);
 		const teamKey = text(row.team_id);
-		if (!externalPlayerId || !teamKey || !teams.some((t) => t.key === teamKey))
-			throw new PostGameProviderError('malformed');
+		if (!externalPlayerId || !teamKey) throw new PostGameProviderError('malformed');
 		const name = text(row.name);
 		const tag = text(row.tag);
 		const agent = object(row.agent);
