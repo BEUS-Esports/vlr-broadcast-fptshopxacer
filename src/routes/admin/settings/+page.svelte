@@ -116,6 +116,17 @@
 							required
 						/>
 					</label>
+					<label class="label md:col-span-3">
+						<span>Default post-game group code</span>
+						<input
+							class="input"
+							name="spectraPostGameGroupCode"
+							value={data.config.spectraPostGameGroupCode}
+							maxlength="128"
+							placeholder="Blank uses the live group code"
+							autocomplete="off"
+						/>
+					</label>
 					<label class="label">
 						<span>Poll interval (ms)</span>
 						<input
