@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { providerSettings } from '#lib/server/db/schema/index.ts';
 import { defaultConfig as defaultLiveConfig, loadLegacyProviderConfig, normalizeConfig } from '#lib/server/live/config.ts';
@@ -387,7 +387,12 @@ export async function saveProviderSettings(
 				spectraPostGamePollIntervalMs: next.spectraPostGamePollIntervalMs,
 				spectraPostGameMaxAttempts: next.spectraPostGameMaxAttempts
 			})
-			.where(eq(providerSettings.id, 1))
+			.where(
+				and(
+					eq(providerSettings.id, 1),
+					eq(providerSettings.revision, expectedRevision)
+				)
+			)
 			.returning();
 		if (!updated.length) throw new Error('Provider settings changed. Reload before saving.');
 		return next;
