@@ -13,7 +13,7 @@ export type SpectraConfig = {
 	pollIntervalMs: number;
 	maxAttempts: number;
 };
-import { loadProviderConfig } from '#lib/server/live/config.ts';
+import { loadProviderSettings } from '#lib/server/settings/providers.ts';
 
 function host(value: string) {
 	const url = new URL(value);
@@ -95,19 +95,36 @@ export function normalizePostGameConfig(
 	return { henrikdev, spectra, availability };
 }
 export async function loadPostGameConfig() {
-	let groupCode = '';
 	try {
-		groupCode = (await loadProviderConfig()).groupCode;
+		const settings = await loadProviderSettings();
+		return normalizePostGameConfig(
+			{
+				HENRIKDEV_API_KEY: settings.henrikdevApiKey,
+				HENRIKDEV_BASE_URL: settings.henrikdevBaseUrl,
+				HENRIKDEV_AFFINITY: settings.henrikdevAffinity,
+				HENRIKDEV_PLATFORM: settings.henrikdevPlatform,
+				HENRIKDEV_CANDIDATE_LIMIT: String(settings.henrikdevCandidateLimit),
+				POST_GAME_REQUEST_TIMEOUT_MS: String(settings.postGameRequestTimeoutMs),
+				SPECTRA_POST_GAME_BASE_URL: settings.spectraPostGameBaseUrl,
+				SPECTRA_POST_GAME_POLL_INTERVAL_MS: String(settings.spectraPostGamePollIntervalMs),
+				SPECTRA_POST_GAME_MAX_ATTEMPTS: String(settings.spectraPostGameMaxAttempts)
+			},
+			settings.spectraGroupCode
+		);
 	} catch {
-		/* Live settings must not disable post-game/manual use. */
+		return {
+			henrikdev: null,
+			spectra: null,
+			availability: {
+				henrikdev: {
+					available: false,
+					message: 'HenrikDev settings could not be loaded.'
+				},
+				spectra: {
+					available: false,
+					message: 'Spectra post-game settings could not be loaded.'
+				}
+			}
+		};
 	}
-	const privateEnv = await import('$app/env/private');
-	return normalizePostGameConfig(
-		Object.fromEntries(
-			Object.entries(privateEnv).filter(
-				(entry): entry is [string, string] => typeof entry[1] === 'string'
-			)
-		),
-		groupCode
-	);
 }
