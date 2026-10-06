@@ -93,7 +93,6 @@
 						name="groupCode"
 						value={data.config.spectraGroupCode}
 						maxlength="128"
-						required={provider === 'spectra'}
 						autocomplete="off"
 					/>
 				</label>
