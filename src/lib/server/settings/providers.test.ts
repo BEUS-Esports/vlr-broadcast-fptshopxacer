@@ -51,7 +51,7 @@ it('encrypts provider credentials in SQLite and never exposes them through publi
 });
 
 it('keeps saved credentials unless explicitly cleared', async () => {
-	await withManagementFixture(async () => {
+	await withManagementFixture(async (fixture) => {
 		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
 		process.env.LIVE_PROVIDER_CONFIG_FILE = join(fixture.directory, 'legacy-live-provider.json');
 		process.env.SETTINGS_ENCRYPTION_KEY_FILE = join(fixture.directory, 'settings.key');
