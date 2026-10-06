@@ -6,3 +6,5 @@ export * from './matches';
 export * from './games';
 export * from './statistics';
 export * from './broadcast';
+
+export * from './settings';
