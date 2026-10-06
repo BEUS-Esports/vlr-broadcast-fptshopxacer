@@ -76,6 +76,20 @@ describe('strict v4 normalization', () => {
 	it('rejects unusable player identities instead of trusting a cast', () => {
 		expect(() => decodeHenrikMatch(partialPlayer)).toThrow();
 	});
+	it('ignores non-playing participants outside the two game teams', () => {
+		const fixture = structuredClone(completedMatch);
+		fixture.data.players.push({
+			puuid: 'observer',
+			name: 'Observer',
+			tag: 'EVENT',
+			team_id: 'Observer',
+			agent: { id: null, name: null },
+			stats: { kills: 0, deaths: 0, assists: 0, score: 0 }
+		});
+		const report = decodeHenrikMatch(fixture);
+		expect(report.players).toHaveLength(10);
+		expect(report.players.some((player) => player.externalPlayerId === 'observer')).toBe(false);
+	});
 	it('normalizes optional malformed numbers and IDs to null', () => {
 		const fixture = structuredClone(completedMatch);
 		const payload: unknown = {
