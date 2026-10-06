@@ -2349,14 +2349,6 @@
           "autoincrement": false,
           "default": "'https://stats.valospectra.com'"
         },
-        "spectra_post_game_group_code": {
-          "name": "spectra_post_game_group_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "''"
-        },
         "spectra_post_game_poll_interval_ms": {
           "name": "spectra_post_game_poll_interval_ms",
           "type": "integer",
