@@ -79,6 +79,8 @@ export function configureLiveProvider(
 		if (!settings || expectedRevision !== settings.revision)
 			throw new Error('Provider settings changed. Reload before saving.');
 		const value = input as Record<string, unknown>;
+		const previous = settings;
+		const activeProvider = liveCoordinator.getStatus().provider;
 		const next = await saveProviderSettings(
 			{
 				...value,
@@ -101,11 +103,20 @@ export function configureLiveProvider(
 			},
 			expectedRevision
 		);
+		const liveChanged =
+			previous.spectraRegion !== next.spectraRegion ||
+			previous.spectraHost !== next.spectraHost ||
+			previous.spectraAccessKey !== next.spectraAccessKey ||
+			previous.spectraGroupCode !== next.spectraGroupCode ||
+			previous.gstackUrl !== next.gstackUrl;
 		settings = next;
 		config = liveConfig(next);
-		supporter = null;
-		liveCoordinator.disconnect();
-		if (connect) liveCoordinator.connect(connect);
+		if (liveChanged) supporter = null;
+		if (connect || liveChanged) {
+			liveCoordinator.disconnect();
+			const target = connect ?? activeProvider;
+			if (target) liveCoordinator.connect(target);
+		}
 		return getLiveSettings();
 	});
 }
