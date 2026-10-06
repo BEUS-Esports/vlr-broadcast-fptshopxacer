@@ -13,7 +13,6 @@ CREATE TABLE `provider_settings` (
 	`henrikdev_candidate_limit` integer DEFAULT 5 NOT NULL,
 	`post_game_request_timeout_ms` integer DEFAULT 15000 NOT NULL,
 	`spectra_post_game_base_url` text DEFAULT 'https://stats.valospectra.com' NOT NULL,
-	`spectra_post_game_group_code` text DEFAULT '' NOT NULL,
 	`spectra_post_game_poll_interval_ms` integer DEFAULT 15000 NOT NULL,
 	`spectra_post_game_max_attempts` integer DEFAULT 3 NOT NULL,
 	`created_at` integer DEFAULT (unixepoch('subsecond') * 1000) NOT NULL,
