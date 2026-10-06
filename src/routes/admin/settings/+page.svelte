@@ -249,7 +249,12 @@
 		{#if form?.saved}<p role="status">
 				Settings saved. The selected live provider connection is being checked.
 			</p>{/if}
-		<button class="btn preset-filled-primary-500">Save and connect</button>
+		<div class="flex flex-wrap gap-3">
+			<button class="btn preset-tonal-primary" type="submit">Save settings</button>
+			<button class="btn preset-filled-primary-500" type="submit" name="connect" value="on"
+				>Save and connect</button
+			>
+		</div>
 	</form>
 
 	<p>
