@@ -14,9 +14,7 @@ export const providerSettings = sqliteTable(
 		spectraAccessKeyEncrypted: text('spectra_access_key_encrypted'),
 		spectraGroupCode: text('spectra_group_code').notNull().default(''),
 		gstackUrl: text('gstack_url').notNull().default('http://localhost:57780/'),
-		henrikdevBaseUrl: text('henrikdev_base_url')
-			.notNull()
-			.default('https://api.henrikdev.xyz'),
+		henrikdevBaseUrl: text('henrikdev_base_url').notNull().default('https://api.henrikdev.xyz'),
 		henrikdevApiKeyEncrypted: text('henrikdev_api_key_encrypted'),
 		henrikdevAffinity: text('henrikdev_affinity', {
 			enum: ['ap', 'br', 'eu', 'kr', 'latam', 'na']

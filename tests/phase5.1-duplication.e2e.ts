@@ -1,5 +1,6 @@
 import { createClient } from '@libsql/client';
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 import { createGame, createMatch, prepareTournament, save } from './management-helpers';
 
 test('duplication retains stale and ineligible drafts, copies lineup safely and leaves shown program alone', async ({

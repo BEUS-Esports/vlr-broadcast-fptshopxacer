@@ -824,7 +824,9 @@ it('upgrades legacy imported rows with persistent stat and conservative agent ow
 			},
 			{ gameId: 'g', playerId: 'a2', entryId: 'entry-a', kills: 10 }
 		]);
+		// Recreate the 0009 schema before replaying 0010–0012.
 		await fixture.client.execute('DROP INDEX game_statistics_meta_source_match_unique');
+		await fixture.client.execute('DROP TABLE provider_settings');
 		for (const column of [
 			'agent_manually_edited_at',
 			'statistics_manual_override',
@@ -837,11 +839,14 @@ it('upgrades legacy imported rows with persistent stat and conservative agent ow
 		await migrate(fixture.db, { migrationsFolder: join(process.cwd(), 'drizzle') });
 		const rows = await fixture.db.select().from(s.gamePlayerStatistics);
 		expect(rows.find((row) => row.playerId === 'a1')).toMatchObject({
+			kills: 7,
+			manuallyEditedAt: new Date(importedAt.getTime() + 1),
 			statisticsManualOverride: true,
 			agentManualOverride: true,
 			agentManuallyEditedAt: null
 		});
 		expect(rows.find((row) => row.playerId === 'a2')).toMatchObject({
+			kills: 10,
 			statisticsManualOverride: false,
 			agentManualOverride: true
 		});
@@ -852,6 +857,11 @@ it('upgrades legacy imported rows with persistent stat and conservative agent ow
 			agentManuallyEditedAt: null
 		});
 		expect(rows).toHaveLength(10);
+		expect((await fixture.client.execute('PRAGMA foreign_key_check')).rows).toEqual([]);
+		await fixture.db.insert(s.providerSettings).values({ id: 1 });
+		expect((await fixture.db.select().from(s.providerSettings))[0].spectraPostGameGroupCode).toBe(
+			''
+		);
 	});
 });
 
@@ -866,28 +876,34 @@ it('protects a known saved agent on same-report reimport when its statistics row
 		} = await import('./review');
 		const initial = await review({ gameId: 'g', expectedGameRevision: 1, report: report() });
 		await apply({ token: initial.token, gameId: 'g', expectedGameRevision: 1 });
-		await discardGamePlayerStatistics({
+		const { saveGameStatistics } = await import('../services/statistics');
+		await saveGameStatistics({
 			gameId: 'g',
 			expectedGameRevision: 2,
+			players: [{ playerId: 'a1', entryId: 'entry-a' }]
+		});
+		await discardGamePlayerStatistics({
+			gameId: 'g',
+			expectedGameRevision: 3,
 			playerId: 'a1',
 			confirmation: true
 		});
-		const agreeing = await review({ gameId: 'g', expectedGameRevision: 3, report: report() });
-		await apply({ token: agreeing.token, gameId: 'g', expectedGameRevision: 3 });
+		const agreeing = await review({ gameId: 'g', expectedGameRevision: 4, report: report() });
+		await apply({ token: agreeing.token, gameId: 'g', expectedGameRevision: 4 });
 		const changed = report();
 		changed.players[0].agentName = 'Sage';
-		const preview = await review({ gameId: 'g', expectedGameRevision: 4, report: changed });
+		const preview = await review({ gameId: 'g', expectedGameRevision: 5, report: changed });
 		expect(preview.players[0].conflicts).toEqual({ statistics: false, agent: true });
 		await expect(
-			apply({ token: preview.token, gameId: 'g', expectedGameRevision: 4 })
+			apply({ token: preview.token, gameId: 'g', expectedGameRevision: 5 })
 		).rejects.toMatchObject({ code: 'blocked' });
 		await apply({
 			token: preview.token,
 			gameId: 'g',
-			expectedGameRevision: 4,
+			expectedGameRevision: 5,
 			resolutions: { a1: { agent: 'keep-local' } }
 		});
-		const again = await review({ gameId: 'g', expectedGameRevision: 5, report: changed });
+		const again = await review({ gameId: 'g', expectedGameRevision: 6, report: changed });
 		expect(again.players[0].conflicts.agent).toBe(true);
 	});
 });

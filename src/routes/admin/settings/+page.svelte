@@ -4,9 +4,7 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
-	let provider = $state(
-		untrack(() => (data.status.provider === 'gstack' ? 'gstack' : 'spectra'))
-	);
+	let provider = $state(untrack(() => (data.status.provider === 'gstack' ? 'gstack' : 'spectra')));
 	let region = $state(untrack(() => data.config.spectraRegion));
 	let accessKey = $state('');
 	let henrikdevApiKey = $state('');
@@ -46,8 +44,9 @@
 				</select>
 			</label>
 			<p class="text-sm text-surface-600-400">
-				Saving provider settings restarts the current live provider session and connects the source
-				selected here.
+				Save settings keeps the current live session unless live connection settings change. Save
+				and connect restarts the session with the source selected here. Post-game-only changes do
+				not reconnect the live source.
 			</p>
 		</section>
 
@@ -256,9 +255,7 @@
 		</section>
 
 		{#if form?.error}<p role="alert">{form.error}</p>{/if}
-		{#if form?.saved}<p role="status">
-				Settings saved. The selected live provider connection is being checked.
-			</p>{/if}
+		{#if form?.saved}<p role="status">Settings saved.</p>{/if}
 		<div class="flex flex-wrap gap-3">
 			<button class="btn preset-tonal-primary" type="submit">Save settings</button>
 			<button class="btn preset-filled-primary-500" type="submit" name="connect" value="on"

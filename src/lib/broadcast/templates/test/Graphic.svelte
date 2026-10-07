@@ -11,18 +11,12 @@
 	import { dev } from '$app/env';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
-	const pregame = $derived(
-		snapshot.selection !== null &&
-			['player-lineup', 'map-veto', 'agent-select', 'post-game', 'player-stats', 'mvp'].includes(
-				graphic
-			)
-	);
 </script>
 
 {#if graphic === 'in-game'}
 	<InGame {snapshot} />
 {:else}
-	<section class:pregame aria-label={graphicLabels[graphic]}>
+	<section class="pregame" aria-label={graphicLabels[graphic]}>
 		<header class="package-header">
 			<div class="title-lockup">
 				<p class="event-name">{snapshot.tournament?.name ?? 'VALORANT'}</p>

@@ -28,6 +28,7 @@
 <style>
 	.identity {
 		display: flex;
+		min-width: 0;
 		align-items: center;
 		gap: 12px;
 		border-inline-start: 4px solid var(--side-color, #888);
@@ -39,7 +40,15 @@
 	.identity[data-side='defense'] {
 		--side-color: #ff4655;
 	}
+	.identity > div {
+		min-width: 0;
+		max-width: 100%;
+	}
+	strong,
 	small {
 		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

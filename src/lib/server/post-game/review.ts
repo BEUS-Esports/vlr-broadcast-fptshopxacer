@@ -269,7 +269,9 @@ export function buildPostGameReview(
 					? named[0]
 					: null;
 		if (contradictoryAgent)
-			validation.push(`Provider player ${providerIndex + 1} has contradictory agent identity evidence.`);
+			validation.push(
+				`Provider player ${providerIndex + 1} has contradictory agent identity evidence.`
+			);
 		else if (
 			((provider.agentExternalId || provider.agentName) && !agent) ||
 			(agent && !agent.isActive && agent.id !== lineup?.agentId)

@@ -159,12 +159,12 @@ it('uses prepared sides and saved agents despite opposite manual current sides',
 	expect(right.textContent).toContain('First A');
 	expect(right.textContent).toContain('Saved agent');
 	expect(left.querySelectorAll('[data-slot]')).toHaveLength(5);
-	expect(
-		getComputedStyle(left.querySelector('[data-side="defense"]')!).borderInlineStartColor
-	).toBe('rgb(255, 70, 85)');
-	expect(
-		getComputedStyle(right.querySelector('[data-side="attack"]')!).borderInlineStartColor
-	).toBe('rgb(36, 139, 255)');
+	expect(getComputedStyle(left.querySelector('.side[data-side="defense"]')!).borderLeftColor).toBe(
+		'rgb(255, 70, 85)'
+	);
+	expect(getComputedStyle(right.querySelector('.side[data-side="attack"]')!).borderLeftColor).toBe(
+		'rgb(36, 139, 255)'
+	);
 	expect(view.container.textContent).toContain('Saved map');
 	await view.rerender({ snapshot: { ...snapshot, teams: [] }, graphic: 'agent-select' });
 	expect(view.container.querySelector('[data-position="right"]')?.textContent).toContain('First A');
@@ -184,7 +184,7 @@ it('uses prepared sides and saved agents despite opposite manual current sides',
 	expect(view.container.textContent).toContain('Team unavailable');
 	expect(view.container.textContent).toContain('Agent unavailable');
 	expect(view.container.textContent).toContain('Map unavailable');
-	expect(view.container.textContent).toContain('Starting side unavailable');
+	expect(view.container.textContent).toContain('SIDE TBD');
 });
 
 it('renders saved veto sequence, actors and side choice, and preserves the fallback shells', async () => {
@@ -194,11 +194,11 @@ it('renders saved veto sequence, actors and side choice, and preserves the fallb
 	expect([...steps].map((node) => node.getAttribute('data-sequence'))).toEqual(['1', '2']);
 	expect(steps[0].textContent).toContain('Team b');
 	expect(steps[1].textContent).toContain('Team a');
-	expect(steps[1].textContent).toContain('Game 1');
-	expect(steps[1].textContent).toContain('Team b · Defender');
+	expect(steps[1].textContent).toContain('GAME 1');
+	expect(steps[1].textContent).toContain('b · DEFENSE');
 	expect(snapshot.veto.map((step) => step.sequence)).toEqual([2, 1]);
 	await view.rerender({ snapshot: { ...snapshot, veto: [] }, graphic: 'map-veto' });
-	expect(view.container.textContent).toContain('Veto unavailable');
+	expect(view.container.textContent).toContain('VETO TBD');
 	await view.rerender({ snapshot: { ...snapshot, selection: null }, graphic: 'player-lineup' });
 	expect(view.container.textContent).toContain('No game selected');
 	expect(view.container.querySelector('[data-slot]')).toBeNull();
@@ -216,13 +216,36 @@ it('bounds long names within transparent 1920x1080 concept margins', () => {
 		const view = render(Graphic, { snapshot, graphic });
 		const section = view.container.querySelector('section')!;
 		const bounds = section.getBoundingClientRect();
-		expect([bounds.x, bounds.y, bounds.width, bounds.height]).toEqual([64, 64, 1792, 952]);
+		expect([bounds.x, bounds.y, bounds.width, bounds.height]).toEqual([48, 48, 1824, 936]);
 		expect(getComputedStyle(section).backgroundColor).toBe('rgba(0, 0, 0, 0)');
 		expect(section.scrollWidth).toBeLessThanOrEqual(section.clientWidth);
 		expect(section.scrollHeight).toBeLessThanOrEqual(section.clientHeight);
 		for (const identity of section.querySelectorAll('.identity')) {
-			expect(identity.scrollWidth).toBeLessThanOrEqual(identity.clientWidth);
+			expect(identity.scrollWidth, `${graphic} identity overflow`).toBeLessThanOrEqual(
+				identity.clientWidth
+			);
 		}
+	}
+});
+
+it('keeps empty prepared previews visible within the fixed canvas', async () => {
+	const snapshot = { ...preparedSnapshot(), selection: null };
+	for (const graphic of [
+		'player-lineup',
+		'agent-select',
+		'map-veto',
+		'post-game',
+		'player-stats',
+		'mvp'
+	] as const) {
+		const view = render(Graphic, { snapshot, graphic });
+		await expect.element(page.getByText('No game selected', { exact: true })).toBeVisible();
+		const section = view.container.querySelector('section')!.getBoundingClientRect();
+		const message = view.container.querySelector('.empty-state p')!.getBoundingClientRect();
+		expect([section.x, section.y, section.width, section.height]).toEqual([48, 48, 1824, 936]);
+		expect(message.left).toBeGreaterThanOrEqual(section.left);
+		expect(message.right).toBeLessThanOrEqual(section.right);
+		await view.unmount();
 	}
 });
 
@@ -263,8 +286,8 @@ it('keeps every action of a prepared seven-step veto visible without scrolling',
 			expect(step.textContent).toContain(snapshot.veto[index].map.displayName);
 			expect(step.textContent).toContain(index % 2 === 0 ? 'Team a' : 'Team b');
 			if (snapshot.veto[index].gameNumber !== null) {
-				expect(step.textContent).toContain(`Game ${snapshot.veto[index].gameNumber}`);
-				expect(step.textContent).toContain(`${snapshot.teams[1].name} · Defender`);
+				expect(step.textContent).toContain(`GAME ${snapshot.veto[index].gameNumber}`);
+				expect(step.textContent).toContain(`${snapshot.teams[1].tag} · DEFENSE`);
 			}
 		}
 		expect(steps[6].getBoundingClientRect().bottom).toBeLessThanOrEqual(1016);
@@ -278,14 +301,10 @@ it('renders current in-game sides and changes colors without moving team ownersh
 	const left = () => view.container.querySelector('[data-position="left"]')!;
 	const right = () => view.container.querySelector('[data-position="right"]')!;
 	expect(left()?.textContent ?? '').toContain('Team b');
-	expect(left().textContent).toContain('Attacker');
-	expect(right().textContent).toContain('Defender');
-	expect(getComputedStyle(left().querySelector('[data-side]')!).borderInlineStartColor).toBe(
-		'rgb(36, 139, 255)'
-	);
-	expect(getComputedStyle(right().querySelector('[data-side]')!).borderInlineStartColor).toBe(
-		'rgb(255, 70, 85)'
-	);
+	expect(left().getAttribute('data-side')).toBe('attack');
+	expect(right().getAttribute('data-side')).toBe('defense');
+	expect(getComputedStyle(left()).borderBottomColor).toBe('rgb(36, 139, 255)');
+	expect(getComputedStyle(right()).borderBottomColor).toBe('rgb(255, 70, 85)');
 	await view.rerender({
 		snapshot: {
 			...snapshot,
@@ -294,20 +313,16 @@ it('renders current in-game sides and changes colors without moving team ownersh
 		graphic: 'in-game'
 	});
 	expect(left().getAttribute('data-entry-id')).toBe('b');
-	expect(left().textContent).toContain('Defender');
-	expect(right().textContent).toContain('Attacker');
-	expect(getComputedStyle(left().querySelector('[data-side]')!).borderInlineStartColor).toBe(
-		'rgb(255, 70, 85)'
-	);
-	expect(getComputedStyle(right().querySelector('[data-side]')!).borderInlineStartColor).toBe(
-		'rgb(36, 139, 255)'
-	);
+	expect(left().getAttribute('data-side')).toBe('defense');
+	expect(right().getAttribute('data-side')).toBe('attack');
+	expect(getComputedStyle(left()).borderBottomColor).toBe('rgb(255, 70, 85)');
+	expect(getComputedStyle(right()).borderBottomColor).toBe('rgb(36, 139, 255)');
 	await view.rerender({
 		snapshot: { ...snapshot, presentation: { leftEntryId: 'a', rightEntryId: 'b' } },
 		graphic: 'in-game'
 	});
 	expect(left().textContent).toContain('Team a');
-	expect(left().textContent).toContain('Defender');
+	expect(left().getAttribute('data-side')).toBe('defense');
 	expect(right().textContent).toContain('Team b');
 	expect(snapshot).toEqual(saved);
 	expect(view.container.querySelector('h1')).toBeNull();
@@ -325,10 +340,12 @@ it('renders prepared fallback and unknown in-game sides without invented live co
 		source: 'prepared'
 	};
 	const view = render(Graphic, { snapshot, graphic: 'in-game' });
-	expect(view.container.querySelector('[data-position="left"]')?.textContent ?? '').toContain(
-		'Defender'
+	expect(view.container.querySelector('[data-position="left"]')?.getAttribute('data-side')).toBe(
+		'defense'
 	);
-	expect(view.container.textContent).toContain('Prepared sides');
+	expect(view.container.querySelector('section')?.getAttribute('data-side-source')).toBe(
+		'prepared'
+	);
 	expect(view.container.textContent).toContain('Saved map');
 	expect(view.container.textContent).toContain('Game 1');
 	await view.rerender({
@@ -347,26 +364,23 @@ it('renders prepared fallback and unknown in-game sides without invented live co
 		graphic: 'in-game'
 	});
 	expect(view.container.textContent).toContain('Team unavailable');
-	expect(view.container.textContent).toContain('Map unavailable');
-	expect(view.container.textContent).toContain('Side unavailable');
+	expect(view.container.textContent).toContain('MAP TBD');
+	expect(view.container.querySelector('section')?.getAttribute('data-side-source')).toBe('unknown');
 	expect(
-		[...view.container.querySelectorAll('[data-side]')].map((node) =>
-			node.getAttribute('data-side')
-		)
+		[...view.container.querySelectorAll('.team-rail')].map((node) => node.getAttribute('data-side'))
 	).toEqual(['neutral', 'neutral']);
 	expect(view.container.textContent).not.toMatch(
 		/live score|round|health|armor|ammo|economy|killfeed|alive|K\/D\/A/i
 	);
 });
 
-it('keeps all in-game content outside provisional native HUD areas at 1920x1080', async () => {
+it('bounds native team rails and match context while reserving timer and killfeed space', async () => {
 	await page.viewport(1920, 1080);
-	// Provisional rehearsal bounds, not measured Valorant compatibility.
+	// Regression bounds for the accepted native composition; OBS rehearsal remains separate.
 	const protectedAreas = [
-		{ left: 0, top: 0, right: 460, bottom: 420 },
-		{ left: 460, top: 0, right: 1460, bottom: 200 },
-		{ left: 1460, top: 0, right: 1920, bottom: 420 },
-		{ left: 0, top: 680, right: 1920, bottom: 1080 }
+		{ left: 850, top: 0, right: 1070, bottom: 50 },
+		{ left: 1460, top: 100, right: 1920, bottom: 420 },
+		{ left: 400, top: 680, right: 1920, bottom: 1080 }
 	];
 	const snapshot = preparedSnapshot();
 	const longName = 'Long saved identity '.repeat(50);
@@ -404,17 +418,18 @@ it('keeps all in-game content outside provisional native HUD areas at 1920x1080'
 		await view.rerender({ snapshot: state, graphic: 'in-game' });
 		const section = view.container.querySelector('section')!;
 		const bounds = section.getBoundingClientRect();
-		expect([bounds.x, bounds.y, bounds.width, bounds.height]).toEqual([480, 224, 960, 112]);
+		expect([bounds.x, bounds.y, bounds.width, bounds.height]).toEqual([0, 0, 1920, 1080]);
 		expect(section.scrollWidth).toBeLessThanOrEqual(section.clientWidth);
 		expect(section.scrollHeight).toBeLessThanOrEqual(section.clientHeight);
-		for (const element of [section, ...section.querySelectorAll('*')]) {
+		const regions = section.querySelectorAll('.team-rail, .match-bug, .sponsor-slot, .empty');
+		for (const element of regions) {
 			const box = element.getBoundingClientRect();
 			if (!box.width || !box.height) continue;
 			expect(box.left).toBeGreaterThanOrEqual(bounds.left);
 			expect(box.right).toBeLessThanOrEqual(bounds.right);
 			expect(box.top).toBeGreaterThanOrEqual(bounds.top);
 			expect(box.bottom).toBeLessThanOrEqual(bounds.bottom);
-			for (const area of protectedAreas) {
+			for (const area of state.selection ? protectedAreas : []) {
 				expect(
 					box.right <= area.left ||
 						box.left >= area.right ||
@@ -427,7 +442,19 @@ it('keeps all in-game content outside provisional native HUD areas at 1920x1080'
 			expect(section.textContent).toContain('No game selected');
 			expect(section.querySelector('[data-position]')).toBeNull();
 		} else {
-			expect(section.querySelectorAll('.placeholder')).toHaveLength(2);
+			expect(section.querySelectorAll('.team-rail')).toHaveLength(2);
+			const rails = [...section.querySelectorAll('.team-rail')].map((rail) => {
+				const box = rail.getBoundingClientRect();
+				return [box.x, box.y, box.width, box.height];
+			});
+			expect(rails).toEqual([
+				[342, 10, 505, 48],
+				[1073, 10, 505, 48]
+			]);
+			for (const identity of section.querySelectorAll('.identity strong')) {
+				expect(identity.scrollWidth).toBeGreaterThanOrEqual(identity.clientWidth);
+				expect(getComputedStyle(identity).textOverflow).toBe('ellipsis');
+			}
 		}
 	}
 });

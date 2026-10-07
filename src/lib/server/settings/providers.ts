@@ -69,13 +69,15 @@ function host(value: unknown, name: string) {
 		url.hash ||
 		url.pathname !== '/'
 	)
-		throw new Error(`Use an HTTP or HTTPS ${name} host without credentials, query parameters or a path.`);
+		throw new Error(
+			`Use an HTTP or HTTPS ${name} host without credentials, query parameters or a path.`
+		);
 	return url.origin;
 }
 
 function boundedInteger(value: unknown, fallback: number, min: number, max: number, name: string) {
 	const result =
-		typeof value === 'string' && value.trim() ? Number(value.trim()) : value ?? fallback;
+		typeof value === 'string' && value.trim() ? Number(value.trim()) : (value ?? fallback);
 	if (!Number.isSafeInteger(result) || (result as number) < min || (result as number) > max)
 		throw new Error(`${name} must be between ${min} and ${max}.`);
 	return result as number;
@@ -88,7 +90,9 @@ function optionalGroupCode(value: unknown) {
 	return result;
 }
 
-export function normalizeProviderSettings(input: Partial<ProviderSettingsValue>): ProviderSettingsValue {
+export function normalizeProviderSettings(
+	input: Partial<ProviderSettingsValue>
+): ProviderSettingsValue {
 	const value = { ...defaultProviderSettings, ...input };
 	const live = normalizeConfig(
 		{
@@ -112,8 +116,7 @@ export function normalizeProviderSettings(input: Partial<ProviderSettingsValue>)
 	)
 		throw new Error('Enter a valid HenrikDev API key.');
 	return {
-		revision:
-			Number.isSafeInteger(value.revision) && value.revision > 0 ? value.revision : 1,
+		revision: Number.isSafeInteger(value.revision) && value.revision > 0 ? value.revision : 1,
 		spectraRegion: live.spectraRegion,
 		spectraHost: live.spectraHost,
 		spectraAccessKey: live.accessKey,
@@ -256,8 +259,7 @@ async function bootstrapSettings() {
 				text('HENRIKDEV_CANDIDATE_LIMIT') || defaults.henrikdevCandidateLimit,
 			postGameRequestTimeoutMs:
 				text('POST_GAME_REQUEST_TIMEOUT_MS') || defaults.postGameRequestTimeoutMs,
-			spectraPostGameBaseUrl:
-				text('SPECTRA_POST_GAME_BASE_URL') || defaults.spectraPostGameBaseUrl,
+			spectraPostGameBaseUrl: text('SPECTRA_POST_GAME_BASE_URL') || defaults.spectraPostGameBaseUrl,
 			spectraPostGameGroupCode:
 				text('SPECTRA_POST_GAME_GROUP_CODE')?.trim() || defaults.spectraPostGameGroupCode,
 			spectraPostGamePollIntervalMs:
@@ -275,7 +277,9 @@ async function bootstrapSettings() {
 	}
 }
 
-async function rowToSettings(row: typeof providerSettings.$inferSelect): Promise<ProviderSettingsValue> {
+async function rowToSettings(
+	row: typeof providerSettings.$inferSelect
+): Promise<ProviderSettingsValue> {
 	return normalizeProviderSettings({
 		revision: row.revision,
 		spectraRegion: row.spectraRegion,
@@ -395,17 +399,11 @@ export async function saveProviderSettings(
 				revision: next.revision,
 				spectraRegion: next.spectraRegion,
 				spectraHost: next.spectraHost,
-				spectraAccessKeyEncrypted: await encryptSecret(
-					next.spectraAccessKey,
-					'spectra-access-key'
-				),
+				spectraAccessKeyEncrypted: await encryptSecret(next.spectraAccessKey, 'spectra-access-key'),
 				spectraGroupCode: next.spectraGroupCode,
 				gstackUrl: next.gstackUrl,
 				henrikdevBaseUrl: next.henrikdevBaseUrl,
-				henrikdevApiKeyEncrypted: await encryptSecret(
-					next.henrikdevApiKey,
-					'henrikdev-api-key'
-				),
+				henrikdevApiKeyEncrypted: await encryptSecret(next.henrikdevApiKey, 'henrikdev-api-key'),
 				henrikdevAffinity: next.henrikdevAffinity,
 				henrikdevPlatform: next.henrikdevPlatform,
 				henrikdevCandidateLimit: next.henrikdevCandidateLimit,
@@ -415,12 +413,7 @@ export async function saveProviderSettings(
 				spectraPostGamePollIntervalMs: next.spectraPostGamePollIntervalMs,
 				spectraPostGameMaxAttempts: next.spectraPostGameMaxAttempts
 			})
-			.where(
-				and(
-					eq(providerSettings.id, 1),
-					eq(providerSettings.revision, expectedRevision)
-				)
-			)
+			.where(and(eq(providerSettings.id, 1), eq(providerSettings.revision, expectedRevision)))
 			.returning();
 		if (!updated.length) throw new Error('Provider settings changed. Reload before saving.');
 		return next;

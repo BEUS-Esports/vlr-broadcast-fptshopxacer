@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { createClient } from '@libsql/client';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
@@ -137,10 +138,12 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 
 		await page.goto('/admin/settings');
 		await page.getByRole('combobox', { name: 'Region', exact: true }).selectOption('custom');
-		await page.getByLabel('Custom host', { exact: true }).fill('http://127.0.0.1');
+		await page.getByLabel('Custom live host', { exact: true }).fill('http://127.0.0.1');
 		await page.getByLabel('Access key', { exact: true }).fill(secret);
 		await page.getByLabel('Group code', { exact: true }).fill('phase6-group');
-		await page.getByRole('combobox', { name: 'Provider', exact: true }).selectOption('gstack');
+		await page
+			.getByRole('combobox', { name: 'Connect after saving', exact: true })
+			.selectOption('gstack');
 		await page.getByLabel('Server address', { exact: true }).fill('http://user:password@127.0.0.1');
 		let result = page.waitForResponse(
 			(response) =>
@@ -154,10 +157,14 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		expect(await page.content()).not.toContain(secret);
 
 		// Failed forms must clear the submitted password; enter it again for the valid save.
-		await page.getByRole('combobox', { name: 'Provider', exact: true }).selectOption('spectra');
+		await page
+			.getByRole('combobox', { name: 'Connect after saving', exact: true })
+			.selectOption('spectra');
 		await expect(page.getByLabel('Access key', { exact: true })).toHaveValue('');
 		await page.getByLabel('Access key', { exact: true }).fill(secret);
-		await page.getByRole('combobox', { name: 'Provider', exact: true }).selectOption('gstack');
+		await page
+			.getByRole('combobox', { name: 'Connect after saving', exact: true })
+			.selectOption('gstack');
 		await page
 			.getByLabel('Server address', { exact: true })
 			.fill(`http://127.0.0.1:${address.port}`);

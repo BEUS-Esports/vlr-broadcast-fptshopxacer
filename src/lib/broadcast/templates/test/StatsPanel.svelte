@@ -169,7 +169,12 @@
 		text-transform: uppercase;
 	}
 	.agent {
-		flex: 0 0 auto;
+		flex: 0 1 auto;
+		min-width: 0;
+		max-width: 50%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		padding: 7px 9px;
 		background: #090c1199;
 		border-left: 2px solid var(--gfx-accent);

@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 import { createGame, createMatch, prepareTournament, save, scores } from './management-helpers';
 
 test('manual statistics, derived scopes, MVPs, and stale drafts survive navigation', async ({

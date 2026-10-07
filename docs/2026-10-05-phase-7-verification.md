@@ -10,6 +10,8 @@ The supplied 533,865-byte JSONC response and live exact detail normalize as a co
 
 This is real competitive-match discovery/detail and payload evidence. It does not establish custom/event-queue discovery, event roster mapping, or end-to-end acceptance against the persistent event database. Verify an authorized completed custom/event game before declaring the tournament provider path broadcast-ready. The real check did not import into or migrate the local/event database.
 
+**Editor's note**: Custom games will display the same way, provided that the Match Host does not turn on Hide Match History. To query _ONLY_ custom games, URL Parameter `mode=custom` can help get only Custom Games. It's important to know that, even if the `data.metadata.queue.id` is `custom`, it's unclear if the `data.metadata.queue.mode_type` changes per the Lobby Settings (Standard, Skirmish, etc...). Limited testing with other games from my own time does confirm, but needs more testing.
+
 Spectra's current frontend config and source/type definitions identify `https://stats.valospectra.com/getStats?code=<UPPERCASE_GROUP>` and a v4-compatible response. This hosted statistics dependency is separate from the outgoing live Socket.IO server and extras service. Spectra fixtures are synthetic and source-shaped. No successful real hosted report, pending-to-ready transition or group-code reuse has been observed for this event; these remain release dependencies.
 
 ## Automated proof
@@ -51,7 +53,6 @@ When either source is unavailable, enter or correct statistics in the existing m
 
 Migration `0010_post_game_import` adds source/report uniqueness and independent statistics/agent ownership. The disposable populated-upgrade test protects legacy agent corrections, including saved lineup players without statistics rows, without inventing timestamps. Existing duplicate source/report associations cause the unique index to reject the upgrade and require reviewed reconciliation. Back up the database/assets and rehearse the forward migration against a disposable copy before deployment; do not run `db:push` on event data. The persistent local/event database has not been migrated.
 
-
 ## 2026-10-06 follow-up — Settings consolidation
 
 After the verification run above, Phase 7 provider configuration was consolidated with the existing Settings screen. Migration `0011_provider_settings` adds a singleton DB-backed provider settings record; ValoSpectra Org/access credentials and HenrikDev API credentials are AES-256-GCM encrypted at rest, with the encryption root kept outside SQLite. The existing plaintext `data/live-provider.json` is now a first-run migration input only and is removed after a successful DB bootstrap. HenrikDev affinity, platform, API host, candidate count and request timeout, plus Spectra hosted post-game host/poll settings, are editable from Settings. The old environment variables are bootstrap-only when no settings row exists.
@@ -59,3 +60,84 @@ After the verification run above, Phase 7 provider configuration was consolidate
 This follow-up also preserves Phase 6's existing Save-and-connect flow while adding a save-only action; post-game-only changes do not restart an otherwise healthy live provider session. Focused settings persistence tests were added, and the Phase 7 migration-upgrade test now rewinds both `0010` and `0011` before replay.
 
 The release-command results earlier in this document predate this follow-up. In the current ChatGPT execution environment, the GitHub connector can read/write the branch but the execution container cannot resolve `github.com`, so `pnpm check`, Vitest, build, lint and Playwright have **not** been independently rerun for the Settings-consolidation commits. Re-run those gates locally before treating this follow-up as release-verified.
+
+## Addtional Review
+
+- As noted before, the ValoSpectra group code usually does not need to change between games. Even with that, there are currently 2 settings that control the group code, and either one can be changed. This can cause confusion with Group Code settings.
+- Self-hosted ValoSpectra servers are expected to host the endpoints as HTTPS, including the Socket.IO ports. It might be because of that, this client cannot connect directly to the official Spectra server. It's unclear though, there is no logging to indicate that.
+- For now, there is no button to fetch the HenrikDev's API from the Post-Match GFX graphic control.
+
+## 2026-10-07 local verification
+
+Reviewed the Phase 7 plan and the current implementation at `7b18e6c`, including Settings consolidation and migration `0012_spectra_post_game_group`. The project is **not release-clean**: the provider browser journeys pass, but the full unit/browser suites and formatting gate fail. Earlier successful results do not supersede these fresh failures.
+
+The controlled reruns used Node `24.19.0`, pnpm `11.22.0`, and installed Google Chrome. The unconfigured mise pnpm shim was bypassed for this session without changing global tool settings. The first `mise exec ... pnpm test` run actually launched the system Node `26.5.0`; subsequent commands explicitly prepended the installed Node 24 directory to PATH. All database verification used disposable fixtures. No persistent local/event database was migrated or imported into.
+
+| Check                                                    | Fresh result                                                                                       |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `pnpm check` on Node 24                                  | Passed: zero errors and warnings.                                                                  |
+| `pnpm build`                                             | Passed with adapter-node; browser setup also built successfully on Node 24.                        |
+| `pnpm lint`                                              | Failed: Prettier reported 122 files. This script stops before ESLint.                              |
+| `pnpm exec eslint .`                                     | Passed independently.                                                                              |
+| Initial `pnpm test`                                      | Failed: 324 passed, 16 failed, two skipped; E2E was not reached.                                   |
+| `pnpm exec vitest run --maxWorkers=2` on Node 24         | 326 passed, 14 failed, two skipped across 64 files.                                                |
+| Focused post-game/settings server tests on Node 24       | 53 passed, two failed across four files.                                                           |
+| Post-game import component tests                         | All six passed in the full Chrome unit run.                                                        |
+| `pnpm exec playwright test` on Node 24                   | 16 passed, eight failed across 24 journeys; both Phase 7 journeys and Phase 6.1 banners passed.    |
+| Isolated Phase 6 journey with current Settings selectors | A temporary copy changing only two labels passed in 47.9 seconds; the original test was preserved. |
+
+### Reproduced failures
+
+- `src/lib/server/post-game/review.test.ts:807`: the populated-upgrade test removes the last three migration journal entries, but leaves the already-created `provider_settings` table intact. Replaying `0011` then fails with `table provider_settings already exists`. This fixture does not recreate a genuine pre-0010 database.
+- `src/lib/server/post-game/review.test.ts:858`: the discarded-agent regression imports non-null statistics and immediately calls discard without clearing them. The service correctly rejects that request under the all-null discard invariant, so the intended later agent-conflict assertion is never reached.
+- The remaining 12 controlled unit failures are the previously documented seven `Pregame.svelte.test.ts` and five `Statistics.svelte.test.ts` assertions about graphic labels, colors, and layout. The cache-bound timeout and persistence subprocess failure from the initial unrestricted run did not recur in the controlled run.
+- The full browser run fails the admin clock selector (`Server time` versus the rendered `Server Time`), the broadcast snapshot-version assertion (expected v2, received v3), and the controller's expected `attack` identity (received `neutral`). Five later journeys time out on the disabled Tournament selector while the shared app still has shown graphics from the failed controller journey. Those later timeouts must be separated from independent feature regressions.
+- Running the original Phase 6 journey alone removes that shared-state obstruction, but exposes stale Settings selectors at `tests/phase6-live.e2e.ts:140` and `:143`: `Custom host` was renamed to `Custom live host`, and `Provider` to `Connect after saving`. A temporary copy updating only those two labels passed the complete journey, including safe failed/successful Settings submissions, secret redaction, one shared upstream connection, mapping, HUD previews, native fallback, retry and disconnect. The temporary test was removed; the original journey still fails independently until its selectors are updated.
+
+### Additional proof
+
+An independent populated-database check started with migrations 0000-0009, seeded a ten-player imported game with a later manual statistic correction, and applied the actual 0010-0012 migrations. It passed preservation of the correction and its timestamp, conservative agent ownership for all ten players, creation of missing provenance rows without invented timestamps, the separate post-game group-code column, duplicate report rejection, and `PRAGMA foreign_key_check`. This supports the forward migration itself; the committed failing upgrade test still needs repair.
+
+Both supplied JSONC files were decoded offline through the current v4 normalizer, without querying a provider or importing their data:
+
+| Sample | Normalized observations                                                                                                                                                                            |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Summit | Completed competitive match; provider-order score 9-13; ten K/D/A and agent rows; 22 rounds and 162 kill events; totals of 22 first bloods, 15 plants, and five defuses.                           |
+| Lotus  | Completed competitive match; provider-order score 12-1; ten K/D/A and agent rows; 14 rounds and 98 kill events; all event-derived metrics remain null at the terminal-surrender coverage boundary. |
+
+Performance Score and Trades remain null in both samples. These are real-payload decoding observations, not new live provider retrieval, custom-event acceptance, or real-roster import proof.
+
+The provider review screenshot was inspected at 1440x1000: the recommended HenrikDev card, Spectra card, candidates, and shared review heading/map are readable without overlap. A scan of both generated client builds found no synthetic provider credentials. Fresh Phase 6.1 screenshots and full-suite failure traces were retained in temporary verification artifacts; the previously clean tracked screenshots were restored. Existing editor notes and supplied samples were preserved.
+
+### Acceptance boundaries and editor observations
+
+Custom/event HenrikDev discovery and successful real Spectra hosted retrieval, pending-to-ready behavior, and group reuse remain unverified release dependencies. No live provider request with real credentials was made in this run.
+
+The two Spectra group settings implement the plan's optional post-game override: a blank override falls back to the live group. The current endpoint builder preserves HTTPS for the socket and extras ports; that alone does not diagnose official-service connectivity. HenrikDev controls are present on the saved game's Post-Game Report, while the Post-Game GFX control still exposes the manual editor only, as noted above.
+
+Settings also retains misleading copy saying that saving always restarts/connects the selected source and that the selected connection is being checked. The runtime deliberately preserves a healthy live session for save-only post-game changes; the help/status text should distinguish the two submit buttons.
+
+## 2026-10-07 fixes and final verification
+
+The automated failures recorded above have been fixed. These fresh results supersede the earlier failing checks; real-provider acceptance remains separate and pending.
+
+- Repaired the populated-upgrade fixture to drop `provider_settings` before replaying migrations 0010-0012. The test now also checks preserved statistics/timestamps, foreign keys, and the separate post-game group-code column. The discarded-agent regression clears statistics through the existing save service before discard, preserving the production all-null safeguard and revision checks.
+- Updated graphics assertions and browser selectors to the current labels, snapshot version, side-color rails, statistics scopes, and geometry. Fixed actual text overflow in shared identities and agent labels, and retained the prepared graphics canvas after clearing selection so the empty Large Preview remains visible. Regression checks failed before these fixes and passed afterward; the empty-state unit check covers all six prepared graphics.
+- Added shared browser setup/cleanup for selection, presentation, publications, statistics controls, and banners, so a failed journey cannot leave later journeys blocked by shown graphics. Set the default Vitest worker limit to two after reproducing native-worker overload with unrestricted execution.
+- Corrected Settings help/status text to distinguish save-only from Save and connect. Added an LF checkout policy and formatted the repository, excluding raw provider JSONC captures to preserve the supplied evidence.
+
+The final commands used Node `24.19.0`, pnpm `11.22.0`, installed Google Chrome, and the default two-worker unit configuration. Build/browser runs used `RAYON_NUM_THREADS=1`.
+
+| Check                       | Final result                                                              |
+| --------------------------- | ------------------------------------------------------------------------- |
+| `pnpm check`                | Passed: zero errors and warnings.                                         |
+| `pnpm lint`                 | Passed: repository Prettier and ESLint.                                   |
+| `pnpm build`                | Passed with adapter-node.                                                 |
+| `pnpm exec vitest run`      | Passed: 64 files, 341 tests; two existing helper tests skipped.           |
+| `pnpm exec playwright test` | Passed: all 24 journeys in one full run, including both Phase 7 journeys. |
+
+All four behaviorally changed Svelte files (`Identity.svelte`, `StatsPanel.svelte`, `Graphic.svelte`, and Settings) passed the official autofixer with no issues or suggestions. The unit runner still prints existing SvelteKit transform-hook and `wrapDynamicImport` diagnostics; it exits successfully with all tests passing.
+
+The player-statistics head-to-head and empty-selection Large Preview screenshots were inspected for readable, contained output. The fresh client build contains none of the scanned synthetic credentials. Fresh screenshots, browser results, and verification logs are retained in the temporary `vlr-phase7-fixes-artifacts` directory. Existing editor notes, raw samples, and tracked screenshots were preserved. All database checks used disposable fixtures; the persistent local/event database was not migrated or imported into.
+
+Custom/event HenrikDev discovery and real Spectra hosted retrieval, pending-to-ready behavior, and group reuse still require real-provider acceptance. This fixes pass made no provider request using real credentials. The optional Spectra post-game group override and the location of HenrikDev import controls on the saved game's Post-Game Report remain as documented above.

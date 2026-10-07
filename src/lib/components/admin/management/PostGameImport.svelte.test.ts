@@ -192,7 +192,9 @@ it('allows an imported cleared row to be discarded without either provider', asy
 	await expect.element(page.getByRole('region', { name: 'Lineup correction' })).toBeVisible();
 	await page.getByRole('button', { name: 'Discard Player 0 cleared row' }).click();
 	await expect
-		.element(page.getByText('Player statistics discarded. Correct the lineup before fetching again.'))
+		.element(
+			page.getByText('Player statistics discarded. Correct the lineup before fetching again.')
+		)
 		.toBeVisible();
 	expect(fetcher).toHaveBeenCalledTimes(1);
 	expect(refreshAll).toHaveBeenCalledExactlyOnceWith();

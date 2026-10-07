@@ -195,23 +195,24 @@ it('renders both saved five-player postgame rows, scores, map and manual metrics
 		view.container.querySelector('[data-roster-position="left"]')?.textContent ?? ''
 	).toContain('Saved b0');
 	expect(view.container.textContent).toContain('Saved map');
-	expect(view.container.textContent).toContain('Games contributing: 3 / 4');
-	expect(view.container.textContent).toContain('Normal result');
+	expect(view.container.textContent).toContain('FINAL');
 	expect(view.container.querySelector('[data-position="right"]')?.textContent).toContain('0');
-	expect(view.container.textContent).toContain('Performance Score');
+	expect(view.container.textContent).toContain('Perf. Score');
 	expect(view.container.textContent).not.toContain('ACS');
 	expect(view.container.querySelector('[data-mvp="true"]')?.textContent).toContain('Saved b4');
 	const row = view.container.querySelector('[data-slot="1"]')!;
-	expect(row.textContent).toContain('Games played: 2');
-	expect(row.textContent).toContain('Games with statistics: 1 / 2');
-	expect(row.textContent).toContain('Unavailable');
-	expect(row.textContent).toContain('Partial coverage');
+	expect(row.querySelector('[data-field="deaths"]')?.getAttribute('data-coverage')).toBe('none');
+	expect(row.querySelector('[data-field="deaths"] strong')?.textContent).toBe('—');
+	expect(row.querySelector('[data-field="assists"]')?.getAttribute('data-coverage')).toBe(
+		'partial'
+	);
+	expect(row.textContent).toContain('INCOMPLETE');
 	expect(row.querySelector('[data-field="kills"] strong')?.textContent).toBe('0');
 	await view.rerender({ snapshot: { ...snapshot, teams: [] }, graphic: 'post-game' });
 	expect(view.container.textContent).toContain('Saved b0');
 });
 
-it('renders exactly operator single/head-to-head picks across scopes and explicit appearance coverage', async () => {
+it('renders exactly operator single/head-to-head picks across scopes and explicit metric coverage', async () => {
 	const snapshot = statisticsSnapshot();
 	const view = render(Graphic, { snapshot, graphic: 'player-stats' });
 	for (const scope of ['game', 'match', 'tournament'] as const) {
@@ -242,15 +243,19 @@ it('renders exactly operator single/head-to-head picks across scopes and explici
 					'Saved b4'
 				);
 			expect(view.container.textContent).toContain('Saved a0');
-			expect(view.container.textContent).toContain('Games contributing: 3 / 4');
-			expect(view.container.textContent).toContain('Games played: 2');
-			expect(view.container.textContent).toContain('Games with statistics: 1 / 2');
+			expect(
+				view.container.querySelector('[data-field="kills"]')?.getAttribute('data-coverage')
+			).toBe('complete');
+			expect(
+				view.container.querySelector('[data-field="assists"]')?.getAttribute('data-coverage')
+			).toBe('partial');
+			expect(view.container.textContent).toContain('INCOMPLETE');
 			expect(
 				view.container.querySelector('[data-field="performanceScore"] strong')?.textContent
-			).toBe(scope === 'game' ? '100' : 'Unavailable');
-			expect(view.container.textContent).toContain(
-				scope === 'game' ? 'Saved agent' : 'Agent unavailable'
-			);
+			).toBe(scope === 'game' ? '100' : '—');
+			if (scope === 'game')
+				expect(view.container.querySelector('.agent')?.textContent).toBe('Saved agent');
+			else expect(view.container.querySelector('.agent')).toBeNull();
 		}
 	}
 	await view.rerender({
@@ -269,7 +274,11 @@ it('renders exactly operator single/head-to-head picks across scopes and explici
 		graphic: 'player-stats'
 	});
 	expect(view.container.textContent).toContain('Historical pick');
-	expect(view.container.textContent).toContain('Games played: Unavailable');
+	expect(
+		[...view.container.querySelectorAll('[data-field]')].every(
+			(field) => field.getAttribute('data-coverage') === 'none'
+		)
+	).toBe(true);
 });
 
 it('preserves explicit tournament H2H identity and order for same-team and other-team picks', async () => {
@@ -321,10 +330,8 @@ it('bounds long unbroken saved agent names in player stats and MVP panels', () =
 		const view = render(Graphic, { snapshot, graphic });
 		const section = view.container.querySelector('section')!;
 		for (const panel of section.querySelectorAll('[data-player-panel]')) {
-			const agent = [...panel.querySelectorAll('p')].find((p) =>
-				p.textContent?.startsWith('Agent:')
-			)!;
-			expect(agent.textContent).toBe(`Agent: ${name}`);
+			const agent = panel.querySelector('.agent')!;
+			expect(agent.textContent).toBe(name);
 			expect(getComputedStyle(agent).overflowX).toBe('hidden');
 			expect(getComputedStyle(agent).textOverflow).toBe('ellipsis');
 			expect(agent.getBoundingClientRect().right).toBeLessThanOrEqual(
@@ -354,7 +361,7 @@ it('uses only saved MVP for every scope and distinguishes no pick from missing r
 		},
 		graphic: 'mvp'
 	});
-	expect(view.container.textContent).toContain('No saved MVP selection');
+	expect(view.container.textContent).toContain('MVP TBD');
 	await view.rerender({
 		snapshot: {
 			...snapshot,
@@ -362,7 +369,7 @@ it('uses only saved MVP for every scope and distinguishes no pick from missing r
 		},
 		graphic: 'mvp'
 	});
-	expect(view.container.textContent).toContain('Saved MVP player unavailable');
+	expect(view.container.textContent).toContain('SELECTED PLAYER UNAVAILABLE');
 });
 
 it('fits standard ten-player all-field postgame and head-to-head with long identities without scrolling', () => {
@@ -380,13 +387,13 @@ it('fits standard ten-player all-field postgame and head-to-head with long ident
 		const view = render(Graphic, { snapshot, graphic });
 		const section = view.container.querySelector('section')!;
 		const bounds = section.getBoundingClientRect();
-		expect([bounds.x, bounds.y, bounds.width, bounds.height]).toEqual([64, 64, 1792, 952]);
+		expect([bounds.x, bounds.y, bounds.width, bounds.height]).toEqual([48, 48, 1824, 936]);
 		expect(getComputedStyle(section).backgroundColor).toBe('rgba(0, 0, 0, 0)');
 		expect(section.scrollHeight).toBeLessThanOrEqual(section.clientHeight);
 		expect(section.scrollWidth).toBeLessThanOrEqual(section.clientWidth);
 		const fields = section.querySelectorAll('[data-field]');
 		if (graphic === 'post-game') {
-			const headerText = section.querySelector('.header > p')!;
+			const headerText = section.querySelector('.scoreboard')!;
 			expect(headerText.getBoundingClientRect().bottom).toBeLessThanOrEqual(
 				section.querySelector('[data-slot]')!.getBoundingClientRect().top
 			);

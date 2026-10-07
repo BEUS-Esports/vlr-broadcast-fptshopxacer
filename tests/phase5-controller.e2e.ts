@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 import { createClient } from '@libsql/client';
 import { mkdir } from 'node:fs/promises';
 import { createGame, createMatch, prepareTournament, save, scores } from './management-helpers';
@@ -138,14 +139,14 @@ test('controller commits complete selections and rejects retained stale drafts a
 		.selectOption({ label: 'Bravo' });
 	await save(other, 'Save presentation');
 	await expect(onAir).toContainText('Attackers: Bravo');
-	await expect(left.locator('.identity')).toHaveAttribute('data-side', 'attack');
-	await expect(right.locator('.identity')).toHaveAttribute('data-side', 'defense');
-	expect(
-		await left.locator('.identity').evaluate((el) => getComputedStyle(el).borderInlineStartColor)
-	).toBe('rgb(36, 139, 255)');
-	expect(
-		await right.locator('.identity').evaluate((el) => getComputedStyle(el).borderInlineStartColor)
-	).toBe('rgb(255, 70, 85)');
+	await expect(left).toHaveAttribute('data-side', 'attack');
+	await expect(right).toHaveAttribute('data-side', 'defense');
+	expect(await left.evaluate((el) => getComputedStyle(el).borderBottomColor)).toBe(
+		'rgb(36, 139, 255)'
+	);
+	expect(await right.evaluate((el) => getComputedStyle(el).borderBottomColor)).toBe(
+		'rgb(255, 70, 85)'
+	);
 	await identityOutput.screenshot({
 		path: 'docs/phase-5-screenshots/in-game-current-sides.png',
 		omitBackground: true
@@ -155,8 +156,8 @@ test('controller commits complete selections and rejects retained stale drafts a
 		.selectOption({ label: 'Alpha' });
 	await save(other, 'Save presentation');
 	await expect(left).toContainText('Bravo');
-	await expect(left.locator('.identity')).toHaveAttribute('data-side', 'defense');
-	await expect(right.locator('.identity')).toHaveAttribute('data-side', 'attack');
+	await expect(left).toHaveAttribute('data-side', 'defense');
+	await expect(right).toHaveAttribute('data-side', 'attack');
 	await other.getByRole('combobox', { name: 'Current attackers', exact: true }).selectOption('');
 	await save(other, 'Save presentation');
 	await expect(onAir).toContainText('Attackers: Unknown');
@@ -177,9 +178,10 @@ test('controller commits complete selections and rejects retained stale drafts a
 			.selectOption('Bravo-1');
 		await save(other, 'Save Player Stats controls');
 		await save(other, 'Show Player Stats');
-		await expect(
-			statsOutput.getByText(`Head-to-Head · Scope: ${scope}`, { exact: true })
-		).toBeVisible();
+		await expect(statsOutput.getByText('PLAYER MATCHUP', { exact: true })).toBeVisible();
+		await expect(statsOutput.locator('.stats-heading strong')).toHaveText(
+			{ game: 'CURRENT MAP', match: 'SERIES', tournament: 'TOURNAMENT' }[scope]!
+		);
 		await expect(statsOutput.locator('[data-player-panel]')).toHaveCount(2);
 		await expect(statsOutput.locator('[data-player-panel="Alpha-1"]')).toContainText('Alpha 1');
 		await expect(statsOutput.locator('[data-player-panel="Bravo-1"]')).toContainText('Bravo 1');
@@ -201,7 +203,7 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await save(other, 'Save Player Stats controls');
 	await save(other, 'Show Player Stats');
 	await expect(statsOutput.locator('[data-player-panel]')).toHaveCount(1);
-	await expect(statsOutput.locator('body')).toContainText('Single / Player to Watch');
+	await expect(statsOutput.locator('body')).toContainText('PLAYER TO WATCH');
 	await statsOutput.screenshot({
 		path: 'docs/phase-5-screenshots/player-stats-single.png',
 		omitBackground: true
