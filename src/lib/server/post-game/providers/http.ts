@@ -1,3 +1,8 @@
+import { boundedText } from '#lib/server/http.ts';
+
+// Discovery can return up to ten full reports, including round and kill events.
+const maxResponseBytes = 20 * 1024 * 1024;
+
 export type ProviderErrorCode =
 	| 'invalid-input'
 	| 'auth'
@@ -74,9 +79,12 @@ export async function requestJson(
 	const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
 	try {
 		const response = await fetcher(url, { headers, signal: combined, redirect: 'error' });
-		if (!response.ok) throw statusError(response.status);
+		if (!response.ok) {
+			void response.body?.cancel().catch(() => {});
+			throw statusError(response.status);
+		}
 		try {
-			return await response.json();
+			return JSON.parse(await boundedText(response, combined, maxResponseBytes));
 		} catch {
 			if (combined.aborted)
 				throw new PostGameProviderError(signal?.aborted ? 'cancelled' : 'timeout');
