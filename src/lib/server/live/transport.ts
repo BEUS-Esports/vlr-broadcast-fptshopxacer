@@ -139,8 +139,7 @@ export function startProviderSession(
 			on('logon_success', () => {
 				if (!connected || loggedOn) return;
 				loggedOn = true;
-				clearTimeout(timer);
-				timer = undefined;
+				arm('ValoSpectra match data timed out. Check the group code and retry.');
 				callbacks.connected();
 			});
 			on('match_data', (input) => {
@@ -157,6 +156,8 @@ export function startProviderSession(
 					callbacks.parseError('Malformed ValoSpectra match data. Inspect View Data.');
 					return;
 				}
+				clearTimeout(timer);
+				timer = undefined;
 				callbacks.data(result.state);
 			});
 			on('connect_error', () =>

@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { spectraFixture, gstackFixture } from '#lib/live/fixtures.ts';
 import { defaultConfig } from './config';
+import { createLiveCoordinator } from './coordinator';
+import { externalGame } from '#lib/live/selectors.ts';
+import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 import {
 	lookupSpectraSupporter,
 	startProviderSession,
@@ -60,6 +63,27 @@ afterEach(() => {
 });
 
 describe('Spectra transport', () => {
+	it('requires usable match data within five seconds of logon', () => {
+		vi.useFakeTimers();
+		const socket = new FakeSocket(),
+			events = callbacks();
+		const stop = startProviderSession(options('spectra', events), { createSocket: () => socket });
+		try {
+			socket.receive('connect');
+			socket.receive('logon_success');
+			vi.advanceTimersByTime(4000);
+			socket.receive('match_data', '{');
+			vi.advanceTimersByTime(1000);
+			expect(events.error).toHaveBeenCalledExactlyOnceWith(
+				'ValoSpectra match data timed out. Check the group code and retry.'
+			);
+			expect(socket.disconnect).toHaveBeenCalledTimes(1);
+			socket.receive('match_data', JSON.stringify(spectraFixture()));
+			expect(events.data).not.toHaveBeenCalled();
+		} finally {
+			stop();
+		}
+	});
 	it('uses Socket.IO logon and gates match data until acknowledgment', () => {
 		const socket = new FakeSocket(),
 			events = callbacks();
@@ -379,6 +403,105 @@ describe('GStack snapshot + delta transport', () => {
 		expect(nextEvents.error).toHaveBeenCalledTimes(1);
 		expect(second.close).toHaveBeenCalledTimes(1);
 	});
+});
+
+describe('idle provider recovery', () => {
+	it.each(['spectra', 'gstack'] as const)(
+		'falls back after a silent %s session cannot resynchronize and keeps recovery native',
+		async (provider) => {
+			vi.useFakeTimers();
+			const spectraSockets: FakeSocket[] = [];
+			const gstackSockets: FakeWebSocket[] = [];
+			let available = true;
+			const snapshot = {
+				selection: { gameId: 'game-1' },
+				competition: { teamAEntryId: 'a', teamBEntryId: 'b' },
+				teams: [{ entryId: 'a' }, { entryId: 'b' }],
+				lineups: []
+			} as unknown as BroadcastSnapshot;
+			const coordinator = createLiveCoordinator({
+				publish: vi.fn(),
+				start: (provider, callbacks, generation) =>
+					startProviderSession(
+						{ ...options(provider), callbacks, generation },
+						{
+							createSocket: () => {
+								const socket = new FakeSocket();
+								spectraSockets.push(socket);
+								return socket;
+							},
+							createWebSocket: () => {
+								const socket = new FakeWebSocket();
+								gstackSockets.push(socket);
+								return socket;
+							},
+							fetch: async (_url, init) =>
+								available
+									? Response.json(gstackFixture())
+									: new Promise<Response>((_resolve, reject) => {
+											init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+										})
+						}
+					)
+			});
+			const connect = async () => {
+				if (provider === 'spectra') {
+					const socket = spectraSockets.at(-1)!;
+					socket.receive('connect');
+					socket.receive('logon_success');
+					if (available) socket.receive('match_data', JSON.stringify(spectraFixture()));
+				} else gstackSockets.at(-1)!.open();
+				await settle();
+			};
+			const programState = () =>
+				externalGame(snapshot, {
+					version: 1,
+					stream: { epoch: 'test', sequence: 1 },
+					state: coordinator.getState(),
+					status: coordinator.getStatus()
+				});
+			try {
+				coordinator.bind(snapshot);
+				coordinator.connect(provider);
+				await connect();
+				coordinator.confirmMapping(
+					{
+						teams: coordinator.getState()!.teams.map((team, i) => ({
+							providerSide: team.providerSide,
+							entryId: i ? 'b' : 'a'
+						})),
+						players: []
+					},
+					coordinator.getStatus().generation
+				);
+				coordinator.enableExternal();
+				expect(programState()).not.toBeNull();
+				available = false;
+				await vi.advanceTimersByTimeAsync(30_000);
+				expect([...spectraSockets, ...gstackSockets]).toHaveLength(2);
+				await connect();
+				await vi.advanceTimersByTimeAsync(5000);
+				expect(coordinator.getStatus().health).toBe('retrying');
+				for (const delay of [1000, 2000, 4000, 8000]) {
+					await vi.advanceTimersByTimeAsync(delay);
+					await connect();
+					await vi.advanceTimersByTimeAsync(5000);
+				}
+				expect(coordinator.getStatus()).toMatchObject({ health: 'fallback', mode: 'native' });
+				expect(programState()).toBeNull();
+				available = true;
+				await vi.advanceTimersByTimeAsync(8000);
+				await connect();
+				expect(coordinator.getStatus()).toMatchObject({ health: 'ready', mode: 'native' });
+				expect(programState()).toBeNull();
+				coordinator.enableExternal();
+				expect(programState()).not.toBeNull();
+			} finally {
+				coordinator.dispose();
+			}
+			expect(vi.getTimerCount()).toBe(0);
+		}
+	);
 });
 
 describe('Spectra supporter lookup', () => {

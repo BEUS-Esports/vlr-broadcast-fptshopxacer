@@ -1,6 +1,6 @@
 # Live Provider Transport Reference
 
-Last updated: 2026-10-03
+Last updated: 2026-10-24
 
 ## Purpose
 
@@ -135,6 +135,8 @@ The server responds with `logon_success`.
 After successful logon, consume `match_data` events.
 
 Do not substitute a raw WebSocket client for Socket.IO.
+
+A successful logon must be followed by usable `match_data` within five seconds. An acknowledgment alone does not establish usable telemetry; malformed data does not extend that deadline.
 
 ### 2.3 match_data handling
 
@@ -722,6 +724,18 @@ Examples that may imply failure:
 - required team mapping invalidated.
 
 The shared retry/fallback state machine owns recovery behavior.
+
+### Idle-session resynchronization
+
+After 30 seconds without accepted normalized telemetry, the coordinator closes the current attempt and opens a new one with the same provider generation and mapping. Quiet time requests verification; it does not itself count as failure. The last usable frame remains available during verification and the existing bounded retry sequence.
+
+- Spectra opens a new Socket.IO session and logs on again to obtain the current match snapshot. The inspected [Spectra server](https://github.com/ValoSpectra/Spectra-Server/blob/6e106b5/src/connector/websocketOutgoing.ts) handles `logon` once per socket. Its [send loop](https://github.com/ValoSpectra/Spectra-Server/blob/6e106b5/src/controller/MatchController.ts) emits subsequent data only when its event counter advances; silence alone is not a documented heartbeat failure.
+- GStack reopens its WebSocket and obtains a bounded `/livenow` snapshot, replaying buffered deltas through the existing startup path.
+- Valid snapshots keep the provider usable even when statistics, phase, or auxiliary availability are unchanged. Failed synchronization enters the existing 1/2/4/8-second retry sequence. After fallback, recovery stays native until the operator explicitly enables the external HUD.
+
+Changing games/providers, disconnecting, or disposing the coordinator cancels the idle timer. Old attempts cannot publish data or reschedule checks.
+
+This verifies session responsiveness and snapshot availability, not the freshness of the provider's own capture pipeline. A provider serving a valid cached snapshot cannot be distinguished from a paused match using these contracts. Real event sessions must still verify the synchronization deadlines and operator fallback procedure.
 
 ---
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLiveCoordinator, type ProviderCallbacks } from './coordinator';
 import type { BroadcastPreparedSnapshot } from '#lib/broadcast/types.ts';
-import type { LiveGameState } from '#lib/live/types.ts';
+import type { LiveGamePhase, LiveGameState, LiveProviderId } from '#lib/live/types.ts';
 
 const binding = (id = 'game') =>
 	({
@@ -41,7 +41,7 @@ const mapping = {
 	],
 	players: []
 };
-function setup() {
+function setup(provider: LiveProviderId = 'gstack') {
 	const sessions: ProviderCallbacks[] = [];
 	const stops = vi.fn();
 	const publish = vi.fn();
@@ -53,11 +53,85 @@ function setup() {
 		publish
 	});
 	coordinator.bind(binding());
-	coordinator.connect('gstack');
+	coordinator.connect(provider);
 	return { coordinator, sessions, stops, publish };
 }
 afterEach(() => vi.useRealTimers());
 describe('server-owned live provider session', () => {
+	it.each(['spectra', 'gstack'] as const)(
+		'resynchronizes quiet %s sessions without treating unchanged statistics or phases as failure',
+		(provider) => {
+			vi.useFakeTimers();
+			const { coordinator, sessions, stops } = setup(provider);
+			try {
+				const next = () => ({ ...observation(coordinator.getStatus().generation), provider });
+				sessions[0].data(next());
+				coordinator.confirmMapping(mapping, coordinator.getStatus().generation);
+				coordinator.enableExternal();
+				const phases: LiveGamePhase[] = [
+					'unknown',
+					'lobby',
+					'agent-select',
+					'buy',
+					'combat',
+					'post-round',
+					'game-end'
+				];
+				for (const phase of phases) {
+					const previous = sessions.at(-1)!;
+					previous.data({ ...next(), phase });
+					const count = sessions.length;
+					vi.advanceTimersByTime(30_000);
+					expect(sessions).toHaveLength(count + 1);
+					expect(stops).toHaveBeenCalledTimes(count);
+					previous.error('Retired session');
+					sessions.at(-1)!.data({ ...next(), phase });
+					expect(coordinator.getStatus()).toMatchObject({
+						health: 'live',
+						mode: 'external',
+						mappingReady: true,
+						retryAttempt: 0,
+						lastError: null,
+						lastReceivedAt: Date.now()
+					});
+				}
+			} finally {
+				coordinator.dispose();
+			}
+		}
+	);
+	it('postpones idle resynchronization only for valid current observations', () => {
+		vi.useFakeTimers();
+		const { coordinator, sessions } = setup();
+		try {
+			sessions[0].data(observation(coordinator.getStatus().generation));
+			vi.advanceTimersByTime(29_000);
+			sessions[0].data(observation(coordinator.getStatus().generation));
+			vi.advanceTimersByTime(1000);
+			expect(sessions).toHaveLength(1);
+			sessions[0].data(observation(coordinator.getStatus().generation - 1));
+			vi.advanceTimersByTime(29_000);
+			expect(sessions).toHaveLength(2);
+		} finally {
+			coordinator.dispose();
+		}
+	});
+	it.each(['disconnect', 'dispose', 'change game'])(
+		'cancels pending idle resynchronization on %s',
+		(action) => {
+			vi.useFakeTimers();
+			const { coordinator, sessions } = setup();
+			sessions[0].data(observation(coordinator.getStatus().generation));
+			if (action === 'change game') coordinator.bind(binding('other-game'));
+			else if (action === 'disconnect') coordinator.disconnect();
+			else coordinator.dispose();
+			const count = sessions.length;
+			vi.advanceTimersByTime(60_000);
+			expect(sessions).toHaveLength(count);
+			expect(vi.getTimerCount()).toBe(0);
+			coordinator.dispose();
+		}
+	);
 	it('rejects external mode until game and team identity are confirmed', () => {
 		const { coordinator, sessions } = setup();
 		sessions[0].data(observation(coordinator.getStatus().generation));

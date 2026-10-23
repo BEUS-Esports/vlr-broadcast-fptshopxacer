@@ -273,8 +273,8 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 			await expect(output.locator('[data-ability-charges]')).toHaveCount(0);
 			expect(await output.content()).not.toContain(secret);
 		}
-		expect(connections).toBe(1);
-		expect(snapshots).toBe(1);
+		await expect.poll(() => upstream.clients.size).toBe(1);
+		await expect.poll(() => snapshots - connections).toBe(0);
 		expect(browserSockets).toEqual([]);
 		const heldPublication = String(
 			(await db.execute('SELECT publications FROM broadcast_state WHERE id = 1')).rows[0]
@@ -302,8 +302,8 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await save(page, 'Finish Timeout');
 		for (const output of outputs)
 			await expect(output.locator('[data-match-banner]')).toHaveCount(0);
-		expect(connections).toBe(1);
-		expect(snapshots).toBe(1);
+		await expect.poll(() => upstream.clients.size).toBe(1);
+		await expect.poll(() => snapshots - connections).toBe(0);
 		expect(
 			String(
 				(await db.execute('SELECT publications FROM broadcast_state WHERE id = 1')).rows[0]
@@ -319,6 +319,17 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		expect(JSON.stringify(envelope)).not.toContain(secret);
 		expect(JSON.stringify(envelope)).not.toContain('diagnostics');
 		expect(JSON.stringify(envelope)).not.toContain('TeamLeft');
+		const beforeIdleResync = snapshots;
+		await expect.poll(() => snapshots, { timeout: 40_000 }).toBeGreaterThan(beforeIdleResync);
+		await expect.poll(() => upstream.clients.size).toBe(1);
+		expect((await latestTelemetry(outputs[0])).status).toMatchObject({
+			health: 'live',
+			mode: 'external',
+			mappingReady: true,
+			generation: envelope.status.generation,
+			selectedGameId: gameId
+		});
+		for (const output of outputs) await expect(output.locator('[data-live-hud]')).toBeVisible();
 		for (const peer of upstream.clients) peer.send('[ExecuteScript]: SetPlayerHP(0,1,73)');
 		for (const peer of upstream.clients) peer.send('[ExecuteScript]: SetSkillsPoints(0,0,1,1,2)');
 		for (const output of outputs)
@@ -361,11 +372,13 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 
 		await controls.getByRole('button', { name: 'Use native HUD', exact: true }).click();
 		for (const output of outputs) await expect(output.locator('[data-live-hud]')).toHaveCount(0);
+		const beforeReconnect = connections;
 		for (const peer of upstream.clients) peer.terminate();
-		await expect.poll(() => connections).toBe(2);
+		await expect.poll(() => connections).toBeGreaterThan(beforeReconnect);
 		await expect(controls.getByRole('status')).toContainText('ready');
 		await expect(controls.getByRole('status')).toContainText('Native HUD');
-		expect(snapshots).toBe(2);
+		await expect.poll(() => snapshots - connections).toBe(0);
+		await expect.poll(() => upstream.clients.size).toBe(1);
 		for (const output of outputs) await expect(output.locator('[data-live-hud]')).toHaveCount(0);
 		await controls.getByRole('button', { name: 'Enable external HUD', exact: true }).click();
 		for (const output of outputs) await expect(output.locator('[data-live-hud]')).toBeVisible();
