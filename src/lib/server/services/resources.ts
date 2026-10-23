@@ -1,7 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { agents, maps, weapons } from '#lib/server/db/schema/index.ts';
-import { removeAsset, saveCatalogueImage } from '#lib/server/assets.ts';
+import { assetExists, removeAsset, saveCatalogueImage } from '#lib/server/assets.ts';
 import { hasDatabaseError, SaveError } from './save-error';
 import type { AgentAbilitySlot } from '#lib/resources/types.ts';
 
@@ -225,10 +225,6 @@ async function report(onProgress: ProgressReporter | undefined, progress: Resour
 	await onProgress?.(progress);
 }
 
-function isLocalAsset(path: string | null | undefined) {
-	return Boolean(path?.startsWith('/assets/'));
-}
-
 function normalizedCategory(value: string | null | undefined) {
 	const clean = value?.trim();
 	if (!clean) return null;
@@ -253,7 +249,7 @@ async function assetLocalizer(options: {
 	});
 
 	return async (url: string | null | undefined, old: string | null | undefined, name: string) => {
-		if (isLocalAsset(old)) return old!;
+		if (await assetExists(old)) return old!;
 		if (!url) return null;
 		const cached = resolved.get(url);
 		if (cached) return cached;
@@ -272,12 +268,12 @@ async function assetLocalizer(options: {
 	};
 }
 
-function addMissingUrl(
+async function addMissingUrl(
 	set: Set<string>,
 	url: string | null | undefined,
 	old: string | null | undefined
 ) {
-	if (url && !isLocalAsset(old)) set.add(url);
+	if (url && !(await assetExists(old))) set.add(url);
 }
 
 async function syncMaps(onProgress?: ProgressReporter) {
@@ -302,8 +298,8 @@ async function syncMaps(onProgress?: ProgressReporter) {
 	const missingUrls = new Set<string>();
 	for (const row of rows) {
 		const old = oldByUuid.get(row.uuid);
-		addMissingUrl(missingUrls, row.displayIcon, old?.displayIconPath);
-		addMissingUrl(missingUrls, row.splash, old?.splashPath);
+		await addMissingUrl(missingUrls, row.displayIcon, old?.displayIconPath);
+		await addMissingUrl(missingUrls, row.splash, old?.splashPath);
 	}
 
 	const created: string[] = [];
@@ -374,13 +370,13 @@ async function syncAgents(onProgress?: ProgressReporter) {
 	const missingUrls = new Set<string>();
 	for (const row of rows) {
 		const old = oldByUuid.get(row.uuid);
-		addMissingUrl(missingUrls, row.displayIcon, old?.displayIconPath);
-		addMissingUrl(missingUrls, row.fullPortrait, old?.fullPortraitPath);
-		addMissingUrl(missingUrls, row.role?.displayIcon, old?.roleIconPath);
+		await addMissingUrl(missingUrls, row.displayIcon, old?.displayIconPath);
+		await addMissingUrl(missingUrls, row.fullPortrait, old?.fullPortraitPath);
+		await addMissingUrl(missingUrls, row.role?.displayIcon, old?.roleIconPath);
 		for (const ability of row.abilities ?? []) {
 			const slot = abilitySlot(ability.slot);
 			if (slot)
-				addMissingUrl(
+				await addMissingUrl(
 					missingUrls,
 					ability.displayIcon,
 					old?.abilities.find((item) => item.slot === slot)?.displayIconPath
@@ -496,8 +492,8 @@ async function syncWeapons(onProgress?: ProgressReporter) {
 	const missingUrls = new Set<string>();
 	for (const row of rows) {
 		const old = oldByUuid.get(row.uuid);
-		addMissingUrl(missingUrls, row.displayIcon, old?.displayIconPath);
-		addMissingUrl(missingUrls, row.killStreamIcon, old?.killStreamIconPath);
+		await addMissingUrl(missingUrls, row.displayIcon, old?.displayIconPath);
+		await addMissingUrl(missingUrls, row.killStreamIcon, old?.killStreamIconPath);
 	}
 
 	const created: string[] = [];

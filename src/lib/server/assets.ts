@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SaveError } from './services/save-error';
 
@@ -64,6 +64,17 @@ export async function saveCatalogueImage(url: string) {
 		offset += chunk.length;
 	}
 	return saveBytes(bytes);
+}
+
+export async function assetExists(path: string | null | undefined) {
+	const name = path?.startsWith('/assets/') ? path.slice('/assets/'.length) : '';
+	if (!filenamePattern.test(name)) return false;
+	try {
+		return (await stat(join(directory, name))).isFile();
+	} catch (cause) {
+		if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return false;
+		throw cause;
+	}
 }
 
 export async function readAsset(name: string) {
