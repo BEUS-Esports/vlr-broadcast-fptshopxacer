@@ -4,6 +4,7 @@ import {
 	agents,
 	gameLineups,
 	gamePlayerStatistics,
+	gameStatisticsMeta,
 	games,
 	matches
 } from '#lib/server/db/schema/index.ts';
@@ -203,6 +204,21 @@ export async function saveGameAgents(input: {
 		const available = agentIds.length
 			? await tx.select().from(agents).where(inArray(agents.id, agentIds))
 			: [];
+		const [meta] = await tx
+			.select()
+			.from(gameStatisticsMeta)
+			.where(eq(gameStatisticsMeta.gameId, game.id));
+		const statistics = await tx
+			.select()
+			.from(gamePlayerStatistics)
+			.where(eq(gamePlayerStatistics.gameId, game.id));
+		const now = new Date(
+			Math.max(
+				Date.now(),
+				(meta?.importedAt?.getTime() ?? 0) + 1,
+				...statistics.map((row) => (row.agentManuallyEditedAt?.getTime() ?? 0) + 1)
+			)
+		);
 		for (const row of selections) {
 			const saved = lineup.find((player) => player.playerId === row.playerId);
 			if (!saved || saved.entryId !== row.entryId)
@@ -219,11 +235,26 @@ export async function saveGameAgents(input: {
 					'invalid',
 					'Choose an active agent, or retain this player’s saved agent.'
 				);
-			if (row.agentId !== saved.agentId)
+			if (row.agentId !== saved.agentId) {
 				await tx
 					.update(gameLineups)
 					.set({ agentId: row.agentId })
 					.where(and(eq(gameLineups.gameId, game.id), eq(gameLineups.playerId, row.playerId)));
+				if (meta?.importedAt)
+					await tx
+						.insert(gamePlayerStatistics)
+						.values({
+							gameId: game.id,
+							playerId: row.playerId,
+							entryId: row.entryId,
+							agentManuallyEditedAt: now,
+							agentManualOverride: true
+						})
+						.onConflictDoUpdate({
+							target: [gamePlayerStatistics.gameId, gamePlayerStatistics.playerId],
+							set: { agentManuallyEditedAt: now, agentManualOverride: true }
+						});
+			}
 		}
 		return { gameId: game.id, gameRevision: game.revision };
 	});

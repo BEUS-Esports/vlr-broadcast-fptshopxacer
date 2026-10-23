@@ -1,19 +1,19 @@
 import type { BroadcastPreparedSnapshot } from '#lib/broadcast/types.ts';
 import type { LiveProviderId } from '#lib/live/types.ts';
+import { defaultConfig, normalizeConfig, redactDiagnostics } from './config';
 import {
-	defaultConfig,
-	loadProviderConfig,
-	normalizeConfig,
-	publicConfig,
-	redactDiagnostics,
-	saveProviderConfig
-} from './config';
+	loadProviderSettings,
+	publicProviderSettings,
+	saveProviderSettings,
+	type ProviderSettingsValue
+} from '#lib/server/settings/providers.ts';
 import { createLiveCoordinator } from './coordinator';
 import { livePublisher } from './publisher';
 import { suggestMapping } from './mapping';
 import { startProviderSession, lookupSpectraSupporter } from './transport';
 
 let config = { ...defaultConfig };
+let settings: ProviderSettingsValue | null = null;
 let initialized: Promise<void> | undefined;
 let queue: Promise<unknown> = Promise.resolve();
 let binding: BroadcastPreparedSnapshot | null = null;
@@ -40,9 +40,23 @@ export function syncLiveBinding(snapshot: BroadcastPreparedSnapshot) {
 	binding = snapshot;
 	liveCoordinator.bind(snapshot);
 }
+function liveConfig(value: ProviderSettingsValue) {
+	return normalizeConfig(
+		{
+			revision: value.revision,
+			spectraRegion: value.spectraRegion,
+			spectraHost: value.spectraHost,
+			accessKey: value.spectraAccessKey,
+			groupCode: value.spectraGroupCode,
+			gstackUrl: value.gstackUrl
+		},
+		false
+	);
+}
 export function initializeLiveSettings() {
-	return (initialized ??= loadProviderConfig().then((saved) => {
-		config = saved;
+	return (initialized ??= loadProviderSettings().then((saved) => {
+		settings = saved;
+		config = liveConfig(saved);
 	}));
 }
 function serialize<T>(operation: () => Promise<T>) {
@@ -52,7 +66,8 @@ function serialize<T>(operation: () => Promise<T>) {
 }
 export async function getLiveSettings() {
 	await initializeLiveSettings();
-	return { config: publicConfig(config), status: liveCoordinator.getStatus() };
+	if (!settings) throw new Error('Provider settings are not initialized.');
+	return { config: publicProviderSettings(settings), status: liveCoordinator.getStatus() };
 }
 export function configureLiveProvider(
 	input: unknown,
@@ -61,29 +76,52 @@ export function configureLiveProvider(
 ) {
 	return serialize(async () => {
 		await initializeLiveSettings();
-		if (expectedRevision !== config.revision)
+		if (!settings || expectedRevision !== settings.revision)
 			throw new Error('Provider settings changed. Reload before saving.');
 		const value = input as Record<string, unknown>;
-		const next = normalizeConfig(
+		const previous = settings;
+		const activeProvider = liveCoordinator.getStatus().provider;
+		const submittedGroup =
+			typeof value.groupCode === 'string' ? value.groupCode.trim() : settings.spectraGroupCode;
+		if (connect === 'spectra' && !submittedGroup)
+			throw new Error('Set a Spectra group code before connecting.');
+		const next = await saveProviderSettings(
 			{
-				...config,
 				...value,
-				accessKey:
-					value.clearKey === true
-						? ''
-						: typeof value.accessKey === 'string' && value.accessKey
-							? value.accessKey
-							: config.accessKey,
-				revision: config.revision + 1
+				spectraRegion: value.spectraRegion as ProviderSettingsValue['spectraRegion'],
+				spectraHost: value.spectraHost as string,
+				spectraGroupCode: value.groupCode as string,
+				spectraAccessKey: value.accessKey as string,
+				clearSpectraAccessKey: value.clearKey === true,
+				gstackUrl: value.gstackUrl as string,
+				henrikdevBaseUrl: value.henrikdevBaseUrl as string,
+				henrikdevApiKey: value.henrikdevApiKey as string,
+				clearHenrikdevApiKey: value.clearHenrikdevApiKey === true,
+				henrikdevAffinity: value.henrikdevAffinity as ProviderSettingsValue['henrikdevAffinity'],
+				henrikdevPlatform: value.henrikdevPlatform as ProviderSettingsValue['henrikdevPlatform'],
+				henrikdevCandidateLimit: value.henrikdevCandidateLimit as number,
+				postGameRequestTimeoutMs: value.postGameRequestTimeoutMs as number,
+				spectraPostGameBaseUrl: value.spectraPostGameBaseUrl as string,
+				spectraPostGameGroupCode: value.spectraPostGameGroupCode as string,
+				spectraPostGamePollIntervalMs: value.spectraPostGamePollIntervalMs as number,
+				spectraPostGameMaxAttempts: value.spectraPostGameMaxAttempts as number
 			},
-			connect === 'spectra'
+			expectedRevision
 		);
-		await saveProviderConfig(next);
-		config = next;
-		supporter = null;
-		// Endpoint-affecting saves invalidate the session even when it is currently native.
-		liveCoordinator.disconnect();
-		if (connect) liveCoordinator.connect(connect);
+		const liveChanged =
+			previous.spectraRegion !== next.spectraRegion ||
+			previous.spectraHost !== next.spectraHost ||
+			previous.spectraAccessKey !== next.spectraAccessKey ||
+			previous.spectraGroupCode !== next.spectraGroupCode ||
+			previous.gstackUrl !== next.gstackUrl;
+		settings = next;
+		config = liveConfig(next);
+		if (liveChanged) supporter = null;
+		if (connect || liveChanged) {
+			liveCoordinator.disconnect();
+			const target = connect ?? activeProvider;
+			if (target) liveCoordinator.connect(target);
+		}
 		return getLiveSettings();
 	});
 }
@@ -122,13 +160,13 @@ export function operateLiveProvider(input: Record<string, unknown>) {
 				if (input.configRevision !== config.revision)
 					throw new Error('Provider settings changed. Reload before changing the group.');
 				{
-					const next = normalizeConfig({
-						...config,
-						groupCode: input.groupCode,
-						revision: config.revision + 1
-					});
-					await saveProviderConfig(next);
-					config = next;
+					if (!settings) throw new Error('Provider settings are not initialized.');
+					const next = await saveProviderSettings(
+						{ spectraGroupCode: input.groupCode as string },
+						config.revision
+					);
+					settings = next;
+					config = liveConfig(next);
 					if (liveCoordinator.getStatus().provider === 'spectra')
 						liveCoordinator.connect('spectra');
 				}
@@ -141,6 +179,7 @@ export function operateLiveProvider(input: Record<string, unknown>) {
 }
 export async function getLiveDiagnostics() {
 	await initializeLiveSettings();
+	if (!settings) throw new Error('Provider settings are not initialized.');
 	const state = liveCoordinator.getState();
 	return {
 		normalized: state,
@@ -148,6 +187,6 @@ export async function getLiveDiagnostics() {
 		mapping: liveCoordinator.getMapping(),
 		suggestions: state ? suggestMapping(state, binding) : null,
 		raw: redactDiagnostics(liveCoordinator.getRaw(), [config.accessKey]),
-		config: publicConfig(config)
+		config: publicProviderSettings(settings)
 	};
 }

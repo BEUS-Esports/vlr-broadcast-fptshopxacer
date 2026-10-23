@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+	check,
+	index,
+	integer,
+	primaryKey,
+	sqliteTable,
+	text,
+	uniqueIndex
+} from 'drizzle-orm/sqlite-core';
 import { createdAtColumn, updatedAtColumn } from './common';
 import { games } from './games';
 import { players } from './profiles';
@@ -37,6 +45,13 @@ export const gamePlayerStatistics = sqliteTable(
 		plants: integer('plants'),
 		defuses: integer('defuses'),
 		manuallyEditedAt: integer('manually_edited_at', { mode: 'timestamp_ms' }),
+		agentManuallyEditedAt: integer('agent_manually_edited_at', { mode: 'timestamp_ms' }),
+		statisticsManualOverride: integer('statistics_manual_override', { mode: 'boolean' })
+			.notNull()
+			.default(false),
+		agentManualOverride: integer('agent_manual_override', { mode: 'boolean' })
+			.notNull()
+			.default(false),
 		createdAt: createdAtColumn(),
 		updatedAt: updatedAtColumn()
 	},
@@ -53,14 +68,23 @@ export const gamePlayerStatistics = sqliteTable(
 	]
 );
 
-export const gameStatisticsMeta = sqliteTable('game_statistics_meta', {
-	gameId: text('game_id')
-		.primaryKey()
-		.references(() => games.id, { onDelete: 'cascade' }),
-	importSource: text('import_source'),
-	externalMatchId: text('external_match_id'),
-	importedAt: integer('imported_at', { mode: 'timestamp_ms' }),
-	lastManualEditAt: integer('last_manual_edit_at', { mode: 'timestamp_ms' }),
-	createdAt: createdAtColumn(),
-	updatedAt: updatedAtColumn()
-});
+export const gameStatisticsMeta = sqliteTable(
+	'game_statistics_meta',
+	{
+		gameId: text('game_id')
+			.primaryKey()
+			.references(() => games.id, { onDelete: 'cascade' }),
+		importSource: text('import_source'),
+		externalMatchId: text('external_match_id'),
+		importedAt: integer('imported_at', { mode: 'timestamp_ms' }),
+		lastManualEditAt: integer('last_manual_edit_at', { mode: 'timestamp_ms' }),
+		createdAt: createdAtColumn(),
+		updatedAt: updatedAtColumn()
+	},
+	(table) => [
+		uniqueIndex('game_statistics_meta_source_match_unique').on(
+			table.importSource,
+			table.externalMatchId
+		)
+	]
+);

@@ -17,6 +17,7 @@ export const actions: Actions = {
 			const provider = field('provider');
 			if (provider !== 'spectra' && provider !== 'gstack')
 				return fail(400, { error: 'Choose a provider.' });
+			const connect = field('connect') === 'on' ? provider : null;
 			syncLiveBinding(await buildBroadcastSnapshot());
 			await configureLiveProvider(
 				{
@@ -25,17 +26,28 @@ export const actions: Actions = {
 					groupCode: field('groupCode'),
 					accessKey: field('accessKey'),
 					clearKey: field('clearKey') === 'on',
-					gstackUrl: field('gstackUrl')
+					gstackUrl: field('gstackUrl'),
+					henrikdevBaseUrl: field('henrikdevBaseUrl'),
+					henrikdevApiKey: field('henrikdevApiKey'),
+					clearHenrikdevApiKey: field('clearHenrikdevApiKey') === 'on',
+					henrikdevAffinity: field('henrikdevAffinity'),
+					henrikdevPlatform: field('henrikdevPlatform'),
+					henrikdevCandidateLimit: field('henrikdevCandidateLimit'),
+					postGameRequestTimeoutMs: field('postGameRequestTimeoutMs'),
+					spectraPostGameBaseUrl: field('spectraPostGameBaseUrl'),
+					spectraPostGameGroupCode: field('spectraPostGameGroupCode'),
+					spectraPostGamePollIntervalMs: field('spectraPostGamePollIntervalMs'),
+					spectraPostGameMaxAttempts: field('spectraPostGameMaxAttempts')
 				},
 				Number(field('revision')),
-				provider
+				connect
 			);
 			return { saved: true };
 		} catch {
 			// Never pass this form to formError: it echoes submitted values, including the access key.
 			return fail(400, {
 				error:
-					'Could not save provider settings. Check the addresses and group code, then reload if another operator changed them.'
+					'Could not save provider settings. Check the addresses, region, limits and credentials, then reload if another operator changed them.'
 			});
 		}
 	}

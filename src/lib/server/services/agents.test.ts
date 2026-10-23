@@ -20,7 +20,7 @@ const assignments = () =>
 		}))
 	);
 
-it('saves all agent assignments and nulls without changing lineup identity or statistics', async () => {
+it('saves agents and nulls with separate import provenance and unchanged lineup identity and metrics', async () => {
 	await withManagementFixture(async ({ db }) => {
 		const { replaceGameLineups, saveGameAgents } = await import('./lineups');
 		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'One' });
@@ -56,8 +56,17 @@ it('saves all agent assignments and nulls without changing lineup identity or st
 		const meta = await db.select().from(s.gameStatisticsMeta);
 		await saveGameAgents({ gameId: 'g', expectedGameRevision: 3, players: assignments() });
 		expect(await db.select().from(s.gameLineups)).toEqual(before);
-		expect(await db.select().from(s.gamePlayerStatistics)).toEqual(stats);
+		const [corrected] = await db.select().from(s.gamePlayerStatistics);
+		expect(corrected).toMatchObject({
+			...stats[0],
+			agentManualOverride: true,
+			agentManuallyEditedAt: expect.any(Date),
+			updatedAt: expect.any(Date)
+		});
+		expect(corrected.agentManuallyEditedAt!.getTime()).toBeGreaterThan(importedAt.getTime());
 		expect(await db.select().from(s.gameStatisticsMeta)).toEqual(meta);
+		await saveGameAgents({ gameId: 'g', expectedGameRevision: 4, players: assignments() });
+		expect(await db.select().from(s.gamePlayerStatistics)).toEqual([corrected]);
 	});
 });
 

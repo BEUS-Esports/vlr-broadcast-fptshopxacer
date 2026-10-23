@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 import { createClient } from '@libsql/client';
 import { graphicIds, graphicLabels } from '../src/lib/broadcast/controls';
 import { mkdir } from 'node:fs/promises';

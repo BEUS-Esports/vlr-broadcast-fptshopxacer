@@ -12,3 +12,6 @@ bun.lockb
 /examples
 
 /docs/gstack-reference/
+
+# Raw provider captures retain their supplied formatting.
+/docs/*.jsonc

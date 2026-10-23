@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { createClient } from '@libsql/client';
 import { mkdir } from 'node:fs/promises';
 import { graphicIds, type GraphicId } from '../src/lib/broadcast/controls';

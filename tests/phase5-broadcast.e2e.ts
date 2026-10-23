@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 import type { BroadcastSnapshot } from '../src/lib/broadcast/types';
 
 test('native EventSource receives a complete snapshot, a committed management update, and reconnect resync', async ({
@@ -41,7 +42,7 @@ test('native EventSource receives a complete snapshot, a committed management up
 		reconnect.close();
 		return { initial, updated, resync };
 	});
-	expect(result.initial.version).toBe(2);
+	expect(result.initial.version).toBe(3);
 	expect(result.updated.dataRevision).toBeGreaterThan(result.initial.dataRevision);
 	expect(result.updated.controlRevision).toBe(result.initial.controlRevision);
 	expect(result.resync.dataRevision).toBeGreaterThanOrEqual(result.updated.dataRevision);

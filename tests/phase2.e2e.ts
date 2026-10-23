@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
 test('operator can save and reopen team, player, and resource profiles', async ({

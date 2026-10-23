@@ -2,6 +2,8 @@
 
 > For agentic workers: implement this plan task-by-task using the repository's existing SvelteKit page/action -> domain service -> Drizzle/libSQL architecture. Preserve unrelated working-tree changes and existing Phase 1-6.1 behavior. This phase adds provider retrieval and import around the canonical Phase 4 statistics model; it does not replace manual entry or introduce a general plugin framework.
 
+**Documentation for HenrikDev's API**: <https://docs.henrikdev.xyz/llms.txt>
+
 **Goal:** Add a safe post-game import workflow with HenrikDev as the primary provider and ValoSpectra as a side-by-side secondary provider. Both must feed one normalized review/import pipeline and the same canonical per-game statistics records used by manual entry.
 
 **Architecture:** Provider-specific code owns authentication, retrieval, polling and payload decoding only. It must normalize candidate/report data before returning it to shared identity validation, mapping, conflict preview and transactional import services. The operator explicitly selects and confirms a report. A provider response must never silently choose a local game, overwrite a manual correction, change the live game, switch the Live Data HUD, or select an MVP.
@@ -287,17 +289,17 @@ Exact directories may differ, but do not put post-game report fetching into the 
 HenrikDev server configuration should cover:
 
 - API base URL, default https://api.henrikdev.xyz;
-- API key from a server-only environment variable;
-- affinity/region, default event value AP unless deployment overrides it;
+- encrypted server-side API key;
+- Riot affinity/region (ap, br, eu, kr, latam, na), default event value AP unless deployment overrides it;
 - platform, default PC;
 - request timeout;
 - bounded candidate count.
 
-Spectra server configuration should reuse or extend the existing server-only Spectra settings without assuming the live outgoing service hosts statistics.
+Spectra server configuration should reuse or extend the server-owned Spectra settings without assuming the live outgoing service hosts statistics. Keep live region/host separate from hosted post-game base URL, and preserve an optional post-game group-code override that falls back to the live group code.
 
-Add .env.example entries with empty/safe defaults and no real credentials.
+Provider settings are edited from the existing Settings screen and persisted in the singleton database settings record. ValoSpectra Org/access credentials and HenrikDev API credentials are encrypted at rest with an encryption root kept outside SQLite. The former JSON/environment configuration is first-run bootstrap compatibility only.
 
-Validate malformed URLs/configuration at the boundary.
+Validate malformed URLs/configuration at the boundary and never serialize provider credentials back to the browser.
 
 ### HenrikDev request behavior
 

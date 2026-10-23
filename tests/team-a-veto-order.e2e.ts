@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 import { createMatch, prepareTournament, save } from './management-helpers';
 
 test('match setup explains veto order and swaps Team A before the first veto', async ({ page }) => {

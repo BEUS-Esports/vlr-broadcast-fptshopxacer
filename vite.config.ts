@@ -18,6 +18,8 @@ export default defineConfig({
 		})
 	],
 	test: {
+		// Keep browser and native database integration tests within the same machine's capacity.
+		maxWorkers: 2,
 		expect: { requireAssertions: true },
 		projects: [
 			{

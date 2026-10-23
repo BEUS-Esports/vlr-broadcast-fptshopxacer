@@ -100,18 +100,18 @@ Credentials, access keys, or private provider configuration must never be includ
 
 Current integration uses two server-side endpoints.
 
-| Purpose | Default service | Protocol |
-| --- | --- | --- |
-| Live match state | port 5200 | Socket.IO |
-| Organization/supporter lookup | port 5101 | HTTP |
+| Purpose                       | Default service | Protocol  |
+| ----------------------------- | --------------- | --------- |
+| Live match state              | port 5200       | Socket.IO |
+| Organization/supporter lookup | port 5101       | HTTP      |
 
 Recommended configuration:
 
-~~~text
+```text
 SPECTRA_SOCKET_URL=http://localhost:5200
 SPECTRA_EXTRAS_URL=http://localhost:5101
 SPECTRA_ACCESS_KEY=
-~~~
+```
 
 The exact host may be remote/configured; the access key is server-only.
 
@@ -121,14 +121,14 @@ The client connects with a Socket.IO-compatible library.
 
 On connect:
 
-~~~js
+```js
 socket.emit(
-  "logon",
-  JSON.stringify({
-    groupCode,
-  }),
+	'logon',
+	JSON.stringify({
+		groupCode
+	})
 );
-~~~
+```
 
 The server responds with `logon_success`.
 
@@ -164,39 +164,39 @@ A match where only some players expose auxiliary data is valid.
 
 The HUD must therefore render fields independently:
 
-~~~text
+```text
 provider connected             != every field available
 player mapped                  != Player Client available
 health null                    != player has 0 HP
 ability data null              != player has 0 charges
-~~~
+```
 
 ### 2.5 Supporter / attribution verification
 
 Supporter state is verified separately from live match transport:
 
-~~~text
+```text
 GET <SPECTRA_EXTRAS_URL>/getOrgForKey?key=<ACCESS_KEY>
-~~~
+```
 
 Expected successful shape:
 
-~~~ts
+```ts
 type SpectraOrganization = {
-  id: string;
-  name: string;
-  isSupporter: boolean;
+	id: string;
+	name: string;
+	isSupporter: boolean;
 };
-~~~
+```
 
 Interpretation:
 
-| Result | Application treatment |
-| --- | --- |
-| HTTP 200 + `isSupporter: true` | supporter confirmed |
-| HTTP 200 + `isSupporter: false` | attribution-required path |
-| HTTP 401 | invalid/unaccepted key; attribution-required path + operator warning |
-| endpoint unavailable / unsupported / unknown | supporter not confirmed; conservative attribution-required path |
+| Result                                       | Application treatment                                                |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| HTTP 200 + `isSupporter: true`               | supporter confirmed                                                  |
+| HTTP 200 + `isSupporter: false`              | attribution-required path                                            |
+| HTTP 401                                     | invalid/unaccepted key; attribution-required path + operator warning |
+| endpoint unavailable / unsupported / unknown | supporter not confirmed; conservative attribution-required path      |
 
 Do not depend on organization/supporter fields incidentally appearing in serialized `match_data`.
 
@@ -225,13 +225,13 @@ Recovery can make the provider `ready`, but never automatically returns the outp
 
 GStack exposes separate full-state HTTP and low-latency WebSocket paths.
 
-| Purpose | Endpoint |
-| --- | --- |
-| Full live state | `http://<host>:57780/livenow` |
-| Control-panel diagnostics | `http://<host>:57780/controlpanel` |
-| Map-ban diagnostics | `http://<host>:57780/mapbans` |
-| VHUD command stream over HTTP/file contexts | `ws://<host>:57770` |
-| VHUD command stream over HTTPS contexts | `wss://<host>:57773` |
+| Purpose                                     | Endpoint                           |
+| ------------------------------------------- | ---------------------------------- |
+| Full live state                             | `http://<host>:57780/livenow`      |
+| Control-panel diagnostics                   | `http://<host>:57780/controlpanel` |
+| Map-ban diagnostics                         | `http://<host>:57780/mapbans`      |
+| VHUD command stream over HTTP/file contexts | `ws://<host>:57770`                |
+| VHUD command stream over HTTPS contexts     | `wss://<host>:57773`               |
 
 The supplied GStack VHUD client reconnects the WebSocket automatically after close.
 
@@ -239,7 +239,7 @@ The supplied GStack VHUD client reconnects the WebSocket automatically after clo
 
 Use GStack as a **snapshot + delta** source.
 
-~~~text
+```text
 /livenow full state
         |
         v
@@ -247,7 +247,7 @@ GStack state accumulator <---- WS [ExecuteScript] / [ExecuteJSON] deltas
         |
         v
 normalized LiveGameState
-~~~
+```
 
 Recommended behavior:
 
@@ -267,15 +267,15 @@ The supplied VHUD client recognizes two message prefixes.
 
 Example:
 
-~~~text
+```text
 [ExecuteScript]: SetPlayerKDA(0,5,'3','0','1')
-~~~
+```
 
 or:
 
-~~~text
+```text
 [ExecuteScript]: SetPlayerWeapon(1,4,'Classic','auto 25px')
-~~~
+```
 
 The stock VHUD client executes the received string with the JavaScript `Function` constructor.
 
@@ -296,20 +296,20 @@ Do not use `eval`, `Function`, dynamic imports, or arbitrary property execution.
 
 The supplied client also recognizes:
 
-~~~text
+```text
 [ExecuteJSON]: { ... }
-~~~
+```
 
 and merges JSON sections into internal:
 
-~~~ts
+```ts
 {
   Team_Left: {},
   Team_Right: {},
   Scoreboard: {},
   Spike: {}
 }
-~~~
+```
 
 If this message family appears in the event build:
 
@@ -328,37 +328,37 @@ The supplied `Main.js` defines the command functions below.
 
 #### Player identity and equipment
 
-~~~text
+```text
 SetNamePlayer(team, player, name)
 SetPlayerAgent(team, player, agent)
 SetPlayerWeapon(team, player, weapon, cssAdjustment)
 SetPlayerShield(team, player, shieldCode)
-~~~
+```
 
 `cssAdjustment` is GStack VHUD rendering metadata and is not part of `LiveGameState`.
 
 #### Player live stats
 
-~~~text
+```text
 SetPlayerHP(team, player, hpPercent)
 SetPlayerKDA(team, player, kills, deaths, assists)
 SetPlayerCreds(team, player, credits)
-~~~
+```
 
 #### Ultimate
 
-~~~text
+```text
 SetUltiActive(team, player, active)
 SetUltiPoints(team, player, current, required)
-~~~
+```
 
 The VHUD presentation uses `SetUltiActive(..., 1)` to show the ultimate icon as active/ready and `0` to show the point-progress container.
 
 #### Abilities
 
-~~~text
+```text
 SetSkillsPoints(team, skillIndex, player, current, capacity)
-~~~
+```
 
 The VHUD renders up to the reported capacity and fills dots up to the current value.
 
@@ -366,19 +366,19 @@ Our normalized ability slots retain `{ current, capacity }`. Preserve both value
 
 Known `skillIndex` values:
 
-~~~text
+```text
 0 -> first displayed basic ability slot
 1 -> second displayed basic ability slot
 2 -> third displayed basic ability slot
-~~~
+```
 
 Map these to the normalized ability slots consistently with the GStack agent-resource ordering; do not infer Riot internal ability names solely from the index.
 
 #### Enhanced / Expansion Client data
 
-~~~text
+```text
 SetExtraData(team, player, extraHP, extraShield)
-~~~
+```
 
 The supplied function comments identify its final two arguments as HP and Shield. Its stock function body currently does not render them.
 
@@ -396,12 +396,12 @@ A healthy base GStack connection can therefore leave these fields blank.
 
 #### Score and spike
 
-~~~text
+```text
 SetRound(leftScore, rightScore)
 SlideSpike(state)
 SpikeTeam(team)
 SpikePlayer(player)
-~~~
+```
 
 `SetRound` updates the two live team scores.
 
@@ -409,10 +409,10 @@ SpikePlayer(player)
 
 `SpikePlayer` uses:
 
-~~~text
+```text
 0 -> no player marker
 1..5 -> player slot
-~~~
+```
 
 Keep `SlideSpike` in a provider-specific raw/derived state until its exact gameplay-state meaning is confirmed against a live capture; do not infer planted/dropped semantics only from animation naming.
 
@@ -420,7 +420,7 @@ Keep `SlideSpike` in a provider-specific raw/derived state until its exact gamep
 
 The VHUD also defines commands such as:
 
-~~~text
+```text
 SetNameTeams(...)
 SetRefreshLogoTeam1(...)
 SetRefreshLogoTeam2(...)
@@ -436,7 +436,7 @@ DefTimeOut(...)
 AttTimeOut(...)
 ShowTagTeams(...)
 ShowTimeOutPoints(...)
-~~~
+```
 
 These are useful for View Data and diagnostics but do not replace our canonical Team/Match/Game/Veto/control data.
 
@@ -444,12 +444,12 @@ These are useful for View Data and diagnostics but do not replace our canonical 
 
 The supplied VHUD maps:
 
-| Raw `Shield` | Meaning |
-| --- | --- |
-| `X` | no shield |
-| `25` | Light Shield |
-| `50` | Heavy Shield |
-| `R` | Regen Shield |
+| Raw `Shield` | Meaning      |
+| ------------ | ------------ |
+| `X`          | no shield    |
+| `25`         | Light Shield |
+| `50`         | Heavy Shield |
+| `R`          | Regen Shield |
 
 For Regen Shield, the stock HUD displays 25 active shield and uses the Regen Shield-specific artwork.
 
@@ -457,20 +457,20 @@ Normalize this into a semantic shield kind while preserving the raw value.
 
 Example:
 
-~~~ts
+```ts
 type LiveShieldState = {
-  raw: 'X' | '25' | '50' | 'R' | string | null;
-  kind: 'none' | 'light' | 'heavy' | 'regen' | 'unknown';
-  current: number | null;
-  extra: number | null;
+	raw: 'X' | '25' | '50' | 'R' | string | null;
+	kind: 'none' | 'light' | 'heavy' | 'regen' | 'unknown';
+	current: number | null;
+	extra: number | null;
 };
-~~~
+```
 
 ### 3.6 /livenow normalization
 
 Known top-level shape includes:
 
-~~~text
+```text
 TeamLeft
 TeamRight
 ScoreTeamLeft
@@ -480,11 +480,11 @@ SpikeCarrier
 RoundHistoryTeam1
 RoundHistoryTeam2
 PlayerPOV
-~~~
+```
 
 Each player currently supplies:
 
-~~~text
+```text
 Name
 Agent
 Weapon
@@ -499,7 +499,7 @@ Skill 2 Points
 Skill 3 Points
 XHP
 XShield
-~~~
+```
 
 Normalization rules:
 
@@ -519,25 +519,25 @@ Normalization rules:
 
 The supplied VHUD's dormant `RoundTeams` renderer and a real captured GStack payload are consistent with:
 
-| Code | Round end reason |
-| --- | --- |
-| `0` | no recorded result for this team/round |
-| `1` | defuse / deactivation |
-| `2` | elimination |
-| `3` | time |
-| `4` | spike detonation |
+| Code | Round end reason                       |
+| ---- | -------------------------------------- |
+| `0`  | no recorded result for this team/round |
+| `1`  | defuse / deactivation                  |
+| `2`  | elimination                            |
+| `3`  | time                                   |
+| `4`  | spike detonation                       |
 
 For each round, the non-zero entry determines the winning provider side and reason.
 
 Normalize to:
 
-~~~ts
+```ts
 type LiveRoundResult = {
-  round: number;
-  winnerProviderSide: 'left' | 'right';
-  reason: 'defuse' | 'elimination' | 'time' | 'detonation';
+	round: number;
+	winnerProviderSide: 'left' | 'right';
+	reason: 'defuse' | 'elimination' | 'time' | 'detonation';
 };
-~~~
+```
 
 Retain the original pipe strings in View Data.
 
@@ -547,9 +547,9 @@ If both sides are non-zero for the same round or a code is outside the confirmed
 
 A captured `/livenow` value may look like:
 
-~~~text
+```text
 00000;10000
-~~~
+```
 
 This appears to encode per-team player slots, but the exact delimiter/side/bit ordering should remain unnormalized until confirmed against controlled carrier changes.
 
@@ -593,24 +593,24 @@ Both adapters feed the same application contract.
 
 Illustrative shape:
 
-~~~ts
+```ts
 type LiveGameState = {
-  version: 1;
-  provider: 'spectra' | 'gstack';
-  generation: number;
-  selectedGameId: string | null;
+	version: 1;
+	provider: 'spectra' | 'gstack';
+	generation: number;
+	selectedGameId: string | null;
 
-  phase: LiveGamePhase;
-  roundNumber: number | null;
-  map: string | null;
+	phase: LiveGamePhase;
+	roundNumber: number | null;
+	map: string | null;
 
-  spike: LiveSpikeState;
-  teams: LiveTeamState[];
-  rounds: LiveRoundResult[];
+	spike: LiveSpikeState;
+	teams: LiveTeamState[];
+	rounds: LiveRoundResult[];
 
-  receivedAt: number;
+	receivedAt: number;
 };
-~~~
+```
 
 Provider-specific raw data belongs in server-side diagnostics, not in rendering components.
 
@@ -630,23 +630,23 @@ Because GStack WS messages are deltas, maintain an in-memory raw accumulator.
 
 Conceptually:
 
-~~~ts
+```ts
 type GStackAccumulator = {
-  left: GStackPlayerRaw[];
-  right: GStackPlayerRaw[];
-  scoreLeft: string | null;
-  scoreRight: string | null;
-  spike: {
-    stateRaw: string | null;
-    carrierRaw: string | null;
-    wsTeam: number | null;
-    wsPlayer: number | null;
-  };
-  roundHistoryLeftRaw: string | null;
-  roundHistoryRightRaw: string | null;
-  playerPovRaw: string | null;
+	left: GStackPlayerRaw[];
+	right: GStackPlayerRaw[];
+	scoreLeft: string | null;
+	scoreRight: string | null;
+	spike: {
+		stateRaw: string | null;
+		carrierRaw: string | null;
+		wsTeam: number | null;
+		wsPlayer: number | null;
+	};
+	roundHistoryLeftRaw: string | null;
+	roundHistoryRightRaw: string | null;
+	playerPovRaw: string | null;
 };
-~~~
+```
 
 A full `/livenow` snapshot replaces/reseeds the accumulator.
 
@@ -770,9 +770,9 @@ Confirmed enough for implementation:
 
 The upstream reference client uses:
 
-~~~js
+```js
 Function(xData)();
-~~~
+```
 
 That behavior is appropriate only inside the trusted vendor VHUD implementation that defines the called functions.
 
@@ -780,23 +780,23 @@ Our server must instead parse a restricted grammar and dispatch to a static allo
 
 Example conceptual parser result:
 
-~~~ts
+```ts
 {
   command: 'SetPlayerKDA',
   args: [0, 5, '3', '0', '1']
 }
-~~~
+```
 
 Then:
 
-~~~ts
+```ts
 switch (command) {
   case 'SetPlayerKDA':
     applyPlayerKda(...);
     break;
   // explicitly supported commands only
 }
-~~~
+```
 
 Any syntax outside the accepted literal-call grammar is rejected and exposed only as a diagnostic parse error.
 

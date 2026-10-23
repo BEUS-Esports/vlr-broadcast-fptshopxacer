@@ -71,6 +71,27 @@
       "when": 1791169200000,
       "tag": "0009_in_game_match_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791214969307,
+      "tag": "0010_post_game_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1791244800000,
+      "tag": "0011_provider_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791302400000,
+      "tag": "0012_spectra_post_game_group",
+      "breakpoints": true
     }
   ]
 }

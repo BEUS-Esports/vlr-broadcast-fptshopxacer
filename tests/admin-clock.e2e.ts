@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures';
 
 test('admin server clock survives navigation with one shared broadcast connection', async ({
 	page
@@ -11,7 +12,7 @@ test('admin server clock survives navigation with one shared broadcast connectio
 	});
 	await page.clock.setFixedTime(new Date(Date.now() + 7000));
 	await page.goto('/admin');
-	const clock = page.locator('time[aria-label="Server time"]');
+	const clock = page.locator('time[aria-label="Server Time"]');
 	await expect(clock).toBeVisible();
 	const first = Date.parse((await clock.getAttribute('datetime'))!);
 	expect(Math.abs(first - Date.now())).toBeLessThan(2000);

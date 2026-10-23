@@ -1,5 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { readFile, unlink } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 export type LiveProviderConfig = {
 	revision: number;
@@ -80,7 +80,7 @@ export function publicConfig(config: LiveProviderConfig) {
 }
 const configFile = () =>
 	resolve(process.env.LIVE_PROVIDER_CONFIG_FILE ?? 'data/live-provider.json');
-export async function loadProviderConfig(): Promise<LiveProviderConfig> {
+export async function loadLegacyProviderConfig(): Promise<LiveProviderConfig> {
 	try {
 		return normalizeConfig(JSON.parse(await readFile(configFile(), 'utf8')), false);
 	} catch (cause) {
@@ -90,14 +90,13 @@ export async function loadProviderConfig(): Promise<LiveProviderConfig> {
 		throw new Error('Could not read live-provider settings. Check the server configuration file.');
 	}
 }
-export async function saveProviderConfig(config: LiveProviderConfig) {
-	const file = configFile();
-	await mkdir(dirname(file), { recursive: true });
-	const temporary = `${file}.${crypto.randomUUID()}.tmp`;
-	await writeFile(temporary, JSON.stringify(config, null, 2), { mode: 0o600 });
-	await rename(temporary, file);
+export async function removeLegacyProviderConfig() {
+	try {
+		await unlink(configFile());
+	} catch (cause) {
+		if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause;
+	}
 }
-
 /** Bounded admin-only diagnostics. Never echo form values or upstream transport error objects. */
 export function redactDiagnostics(value: unknown, secrets: string[], depth = 0): unknown {
 	if (depth > 10) return '[truncated]';
