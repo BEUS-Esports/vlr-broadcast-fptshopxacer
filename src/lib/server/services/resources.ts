@@ -339,7 +339,12 @@ async function syncMaps(onProgress?: ProgressReporter) {
 					.values(row)
 					.onConflictDoUpdate({
 						target: maps.valorantApiUuid,
-						set: { ...row, revision: sql`${maps.revision} + 1` }
+						set: {
+							displayName: row.displayName,
+							displayIconPath: row.displayIconPath,
+							splashPath: row.splashPath,
+							revision: sql`${maps.revision} + 1`
+						}
 					});
 			}
 		});
@@ -441,7 +446,15 @@ async function syncAgents(onProgress?: ProgressReporter) {
 					.values(row)
 					.onConflictDoUpdate({
 						target: agents.valorantApiUuid,
-						set: { ...row, revision: sql`${agents.revision} + 1` }
+						set: {
+							displayName: row.displayName,
+							roleName: row.roleName,
+							abilities: row.abilities,
+							roleIconPath: row.roleIconPath,
+							displayIconPath: row.displayIconPath,
+							fullPortraitPath: row.fullPortraitPath,
+							revision: sql`${agents.revision} + 1`
+						}
 					});
 			}
 		});
@@ -525,7 +538,13 @@ async function syncWeapons(onProgress?: ProgressReporter) {
 					.values(row)
 					.onConflictDoUpdate({
 						target: weapons.valorantApiUuid,
-						set: { ...row, revision: sql`${weapons.revision} + 1` }
+						set: {
+							displayName: row.displayName,
+							category: row.category,
+							displayIconPath: row.displayIconPath,
+							killStreamIconPath: row.killStreamIconPath,
+							revision: sql`${weapons.revision} + 1`
+						}
 					});
 			}
 		});
