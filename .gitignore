@@ -27,6 +27,7 @@ test-results
 # SQLite
 *.db
 /data/assets/
+/data/logs/
 
 /examples/mlbb-hud-road-to-asiad-2026/
 
