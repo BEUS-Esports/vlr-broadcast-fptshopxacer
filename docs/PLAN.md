@@ -6,6 +6,8 @@ Deliver the application described in [TECH-SPEC.md](./TECH-SPEC.md) for the Nove
 
 **Implementation began on 2026-09-27.** Phases 1–4 are implemented; Phase 2 still needs a rehearsal from another LAN machine and a live server-side catalogue refresh in the target network. Phase 5/5.1 implementation, automated Node/browser verification, and real Valorant/OBS graphics acceptance are complete. Phase 6 provider/external-HUD implementation is complete pending separately recorded real provider sessions and external-HUD OBS acceptance. Phase 6.1 in-game match banners are planned on `feat/phase-6.1-match-banners`. Phase 7 import implementation has provider/domain and browser proof; custom-event HenrikDev acceptance and a real Spectra hosted report remain open. Phases 8–9 remain open. The design team supplies final layouts/assets; developers first build functional test templates.
 
+**Code review: complete (2026-10-24).** All findings from the repository audit are resolved and committed through `1b6fc75`: the five reproduced defects, dependency advisories, formatting/ESLint issues, artwork refresh, unused-upload cleanup, and test/scaffold cleanup. The final dependency audit reports zero advisories. The operator confirmed that all local tests pass, the database is backed up, migrations are applied, and broadcast outputs work on every page. Sustained-load, restore, and live-provider stall/reconnect rehearsals remain operational acceptance checks; they do not keep this code review open.
+
 The specification owns product behavior. This file owns build order, concrete work packages, dependencies, and acceptance checks. Read the specification before starting a phase, and update these documents if an approved requirement changes.
 
 ## Starting point
