@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { logger } from '../logging';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLiveCoordinator, type ProviderCallbacks } from './coordinator';
 import type { BroadcastPreparedSnapshot } from '#lib/broadcast/types.ts';
 import type { LiveGamePhase, LiveGameState, LiveProviderId } from '#lib/live/types.ts';
@@ -56,7 +57,25 @@ function setup(provider: LiveProviderId = 'gstack') {
 	coordinator.connect(provider);
 	return { coordinator, sessions, stops, publish };
 }
-afterEach(() => vi.useRealTimers());
+let records: Record<string, unknown>[];
+let detach: () => void;
+beforeEach(() => {
+	logger.settings.type = 'hidden';
+	records = [];
+	detach = logger.attachTransport({
+		format: 'json',
+		write: (_record, line) => {
+			records.push(JSON.parse(line));
+		}
+	});
+	vi.spyOn(console, 'info').mockImplementation(() => {});
+	vi.spyOn(console, 'warn').mockImplementation(() => {});
+});
+afterEach(() => {
+	detach();
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+});
 describe('server-owned live provider session', () => {
 	it('keeps Spectra organization attribution after disconnect and provider changes', () => {
 		const { coordinator, publish } = setup('spectra');
@@ -174,6 +193,18 @@ describe('server-owned live provider session', () => {
 			expect(sessions).toHaveLength(count + 1);
 			sessions.at(-1)!.error('Disconnected');
 		}
+		const entries = records.filter((entry) => entry.level === 'WARN');
+		expect(
+			entries
+				.filter((entry) => entry.event === 'live.retry.scheduled')
+				.map((entry) => entry.delayMs)
+		).toEqual([1000, 2000, 4000, 8000, 8000]);
+		expect(entries.at(-1)).toMatchObject({
+			provider: 'gstack',
+			mode: 'native',
+			health: 'fallback',
+			retryAttempt: 4
+		});
 		expect(coordinator.getStatus()).toMatchObject({ health: 'fallback', mode: 'native' });
 		vi.advanceTimersByTime(8000);
 		sessions.at(-1)!.data(observation(coordinator.getStatus().generation));

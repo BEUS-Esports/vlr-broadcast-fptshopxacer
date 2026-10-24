@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { syncResourceKind, type ResourceKind } from '#lib/server/services/resources.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
 import { broadcastPublisher } from '#lib/server/broadcast/publisher.ts';
+import { logEvent } from '#lib/server/logging.ts';
 
 const encoder = new TextEncoder();
 
@@ -23,6 +24,8 @@ export const POST: RequestHandler = async ({ url }) => {
 
 	const stream = new ReadableStream<Uint8Array>({
 		async start(controller) {
+			const startedAt = performance.now();
+			logEvent('info', 'resources.sync.started', { kind });
 			const send = (event: object) => {
 				controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
 			};
@@ -34,11 +37,13 @@ export const POST: RequestHandler = async ({ url }) => {
 				try {
 					await broadcastPublisher.publish();
 				} catch (cause) {
-					console.error(
-						'Catalogue saved, but broadcast publication failed; clients will resynchronize.',
-						cause
-					);
+					logEvent('error', 'broadcast.publish.failed', { kind }, cause);
 				}
+				logEvent('info', 'resources.sync.completed', {
+					kind,
+					count: result.count,
+					durationMs: Math.round(performance.now() - startedAt)
+				});
 				send({
 					type: 'done',
 					kind,
@@ -46,6 +51,12 @@ export const POST: RequestHandler = async ({ url }) => {
 					message: `Synced ${result.count} ${kind === 'weapon' ? 'weapons' : `${kind}s`}.`
 				});
 			} catch (cause) {
+				logEvent(
+					'error',
+					'resources.sync.failed',
+					{ kind, durationMs: Math.round(performance.now() - startedAt) },
+					cause
+				);
 				send({
 					type: 'error',
 					message:

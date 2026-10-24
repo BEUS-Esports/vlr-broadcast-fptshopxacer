@@ -6,6 +6,7 @@ import {
 	syncLiveBinding
 } from '#lib/server/live/runtime.ts';
 import { buildBroadcastSnapshot } from '#lib/server/broadcast/snapshot.ts';
+import { logEvent } from '#lib/server/logging.ts';
 
 const headers = { 'cache-control': 'no-store' };
 /** Admin diagnostics follow the application's existing trusted-LAN management boundary. */
@@ -19,6 +20,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			{ error: 'Use the local controller to change the live session.' },
 			{ status: 403, headers }
 		);
+	let action = 'invalid';
 	try {
 		const text = await request.text();
 		if (text.length > 16384)
@@ -26,9 +28,23 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		const input: unknown = JSON.parse(text);
 		if (!input || typeof input !== 'object' || Array.isArray(input))
 			throw new Error('Invalid provider action.');
+		const value = input as Record<string, unknown>;
+		if (
+			typeof value.action === 'string' &&
+			['connect', 'disconnect', 'native', 'external', 'mapping', 'group'].includes(value.action)
+		)
+			action = value.action;
 		syncLiveBinding(await buildBroadcastSnapshot());
-		return json(await operateLiveProvider(input as Record<string, unknown>), { headers });
+		const result = await operateLiveProvider(value);
+		logEvent('info', 'live.action.completed', { action });
+		return json(result, { headers });
 	} catch (cause) {
+		logEvent(
+			'warn',
+			'live.action.failed',
+			{ action },
+			cause instanceof SyntaxError ? cause : undefined
+		);
 		return json(
 			{ error: cause instanceof Error ? cause.message : 'Could not update the provider session.' },
 			{ status: 409, headers }

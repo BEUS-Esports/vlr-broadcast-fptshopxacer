@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { logger } from '../logging';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { spectraFixture, gstackFixture } from '#lib/live/fixtures.ts';
 import { defaultConfig } from './config';
 import { createLiveCoordinator } from './coordinator';
@@ -58,11 +59,122 @@ const options = (provider: 'spectra' | 'gstack', events = callbacks()) => ({
 async function settle() {
 	for (let i = 0; i < 20; i++) await Promise.resolve();
 }
+let records: Record<string, unknown>[];
+let detach: () => void;
+beforeEach(() => {
+	logger.settings.type = 'hidden';
+	records = [];
+	detach = logger.attachTransport({
+		format: 'json',
+		write: (_record, line) => {
+			records.push(JSON.parse(line));
+		}
+	});
+	vi.spyOn(console, 'info').mockImplementation(() => {});
+	vi.spyOn(console, 'warn').mockImplementation(() => {});
+});
 afterEach(() => {
+	detach();
 	vi.useRealTimers();
+	vi.restoreAllMocks();
 });
 
 describe('Spectra transport', () => {
+	it.each(['connect', 'logon', 'match-data'])(
+		'logs the exact %s timeout stage without changing the deadline',
+		(stage) => {
+			vi.useFakeTimers();
+			const socket = new FakeSocket();
+			const events = callbacks();
+			const stop = startProviderSession(options('spectra', events), { createSocket: () => socket });
+			try {
+				if (stage !== 'connect') socket.receive('connect');
+				if (stage === 'match-data') socket.receive('logon_success');
+				vi.advanceTimersByTime(4999);
+				expect(events.error).not.toHaveBeenCalled();
+				vi.advanceTimersByTime(1);
+				expect(events.error).toHaveBeenCalledTimes(1);
+				const entries = records.filter((entry) => entry.level === 'WARN');
+				expect(entries).toContainEqual(
+					expect.objectContaining({
+						event: 'live.session.failed',
+						provider: 'spectra',
+						stage,
+						endpoint: config.spectraSocketUrl,
+						reason: 'timeout',
+						generation: 2,
+						selectedGameId: 'game-1',
+						elapsedMs: 5000,
+						timeoutMs: 5000
+					})
+				);
+			} finally {
+				stop();
+			}
+		}
+	);
+	it('logs nested TLS errors without credentials, request objects or public error details', () => {
+		const socket = new FakeSocket(),
+			events = callbacks();
+		const stop = startProviderSession(options('spectra', events), { createSocket: () => socket });
+		const error = Object.assign(new Error('xhr poll error'), {
+			description: 0,
+			context: {
+				responseText: Object.assign(
+					new Error(`certificate rejected ${config.accessKey} ${config.groupCode}`),
+					{
+						code: 'CERT_HAS_EXPIRED'
+					}
+				),
+				response: 'raw-private-response',
+				request: { headers: { authorization: 'unrelated-secret' } }
+			}
+		});
+		try {
+			socket.receive('connect_error', error);
+			const entry = records.filter((entry) => entry.level === 'WARN').at(-1);
+			expect(entry).toMatchObject({
+				event: 'live.session.failed',
+				reason: 'connect_error',
+				stage: 'connect'
+			});
+			const output = JSON.stringify(entry);
+			expect(output).toContain('CERT_HAS_EXPIRED');
+			expect(output).toContain('xhr poll error');
+			for (const secret of [
+				config.accessKey,
+				config.groupCode,
+				'raw-private-response',
+				'unrelated-secret'
+			])
+				expect(output).not.toContain(secret);
+			expect(events.error).toHaveBeenCalledExactlyOnceWith(
+				'Could not connect to ValoSpectra. Check Settings and retry.'
+			);
+		} finally {
+			stop();
+		}
+	});
+	it('logs progress and the first usable packet once without logging match payloads or retired callbacks', () => {
+		const socket = new FakeSocket();
+		const stop = startProviderSession(options('spectra'), { createSocket: () => socket });
+		socket.receive('connect');
+		socket.receive('logon_success');
+		const packet = JSON.stringify(spectraFixture());
+		socket.receive('match_data', packet);
+		socket.receive('match_data', packet);
+		stop();
+		const entries = records.filter((entry) => entry.level === 'INFO');
+		expect(entries.map((entry) => entry.event)).toEqual([
+			'live.session.start',
+			'live.spectra.connected',
+			'live.spectra.logged-on',
+			'live.session.ready'
+		]);
+		expect(JSON.stringify(entries)).not.toContain('matchData');
+		socket.receive('connect_error', new Error('late'));
+		expect(records.filter((entry) => entry.level === 'WARN')).toHaveLength(0);
+	});
 	it('requires usable match data within five seconds of logon', () => {
 		vi.useFakeTimers();
 		const socket = new FakeSocket(),
@@ -505,6 +617,25 @@ describe('idle provider recovery', () => {
 });
 
 describe('Spectra supporter lookup', () => {
+	it('logs the separate extras endpoint and nested fetch failure without its query key', async () => {
+		await lookupSpectraSupporter(config, {
+			fetch: async () => {
+				throw new TypeError(`fetch failed ${encodeURIComponent(config.accessKey)}`, {
+					cause: Object.assign(new Error('connection refused'), { code: 'ECONNREFUSED' })
+				});
+			}
+		});
+		const entry = records.filter((entry) => entry.level === 'WARN').at(-1);
+		expect(entry).toMatchObject({
+			event: 'live.spectra.supporter.failed',
+			endpoint: config.spectraExtrasUrl
+		});
+		const output = JSON.stringify(entry);
+		expect(output).toContain('ECONNREFUSED');
+		expect(output).not.toContain(config.accessKey);
+		expect(output).not.toContain(encodeURIComponent(config.accessKey));
+		expect(output).not.toContain('?key=');
+	});
 	it.each([
 		[true, 'supporter'],
 		[false, 'required'],

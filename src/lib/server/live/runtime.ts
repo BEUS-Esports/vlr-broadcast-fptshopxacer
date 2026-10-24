@@ -1,6 +1,7 @@
+import { redactDiagnostics } from '../redaction';
 import type { BroadcastPreparedSnapshot } from '#lib/broadcast/types.ts';
 import type { LiveProviderId } from '#lib/live/types.ts';
-import { defaultConfig, normalizeConfig, redactDiagnostics } from './config';
+import { defaultConfig, normalizeConfig } from './config';
 import {
 	loadProviderSettings,
 	publicProviderSettings,

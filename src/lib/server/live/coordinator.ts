@@ -2,6 +2,7 @@ import type { BroadcastPreparedSnapshot } from '#lib/broadcast/types.ts';
 import type { LiveGameState, LiveProviderId, LiveSessionStatus } from '#lib/live/types.ts';
 import { isLiveGameState } from '#lib/live/decoder.ts';
 import { applyMapping, validateMapping, type LiveMapping } from './mapping';
+import { logEvent } from '../logging';
 
 export type ProviderCallbacks = {
 	data: (state: LiveGameState) => void;
@@ -38,6 +39,16 @@ export function createLiveCoordinator(dependencies: {
 	let attempt = 0;
 	let malformed = 0;
 	const publish = (urgent = true) => dependencies.publish(state, { ...status }, urgent);
+	const log = (level: 'info' | 'warn', event: string, fields: Record<string, number> = {}) =>
+		logEvent(level, event, {
+			provider: status.provider,
+			generation: status.generation,
+			selectedGameId: status.selectedGameId,
+			health: status.health,
+			mode: status.mode,
+			retryAttempt: status.retryAttempt,
+			...fields
+		});
 	function retire() {
 		++attempt;
 		clearTimeout(timer);
@@ -64,6 +75,7 @@ export function createLiveCoordinator(dependencies: {
 		status.health = fallback ? 'fallback' : 'retrying';
 		const delay = [1000, 2000, 4000, 8000][Math.min(status.retryAttempt, 3)];
 		status.nextRetryAt = Date.now() + delay;
+		log('warn', 'live.retry.scheduled', { delayMs: delay });
 		const generation = status.generation;
 		const token = attempt;
 		timer = setTimeout(() => {
@@ -107,7 +119,10 @@ export function createLiveCoordinator(dependencies: {
 						clearTimeout(timer);
 						// Event-driven feeds may be quiet; request a fresh snapshot before declaring failure.
 						timer = setTimeout(() => {
-							if (active()) begin();
+							if (active()) {
+								log('info', 'live.session.resync', { idleMs: 30_000 });
+								begin();
+							}
 						}, 30_000);
 						observation = next;
 						status.retryAttempt = 0;
@@ -155,6 +170,7 @@ export function createLiveCoordinator(dependencies: {
 		state = observation = null;
 		raw = null;
 		mapping = null;
+		log('info', 'live.session.reset');
 		publish();
 		if (provider) begin();
 	}
@@ -198,11 +214,13 @@ export function createLiveCoordinator(dependencies: {
 				throw new Error('Wait for a healthy provider before enabling live.');
 			status.mode = 'external';
 			status.health = 'live';
+			log('info', 'live.mode.changed');
 			publish();
 		},
 		useNative() {
 			status.mode = 'native';
 			if (status.health === 'live') status.health = 'ready';
+			log('info', 'live.mode.changed');
 			publish();
 		},
 		setAttribution(value: LiveSessionStatus['attribution'], generation: number) {

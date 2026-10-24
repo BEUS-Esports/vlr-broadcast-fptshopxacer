@@ -17,6 +17,7 @@ it('publishes preparation once and controls without a second revision, and leave
 		const run = async (route: string, method = 'POST', type = 'success') =>
 			handle({
 				event: {
+					locals: {},
 					route: { id: route },
 					request: new Request(`http://localhost${route}`, { method })
 				},
@@ -72,6 +73,7 @@ it('publishes a real committed MVP despite its following aggregate read failing'
 			const form = new FormData();
 			form.set('payload', JSON.stringify({ playerId, expectedRevision }));
 			const event = {
+				locals: {},
 				route: { id: '/admin/games/[gameId]' },
 				params: { gameId: 'g' },
 				request: new Request('http://localhost/admin/games/g?/mvp', { method: 'POST', body: form })
@@ -116,8 +118,16 @@ it('attempts publication on error responses and throws without replacing the ori
 		const publish = vi
 			.spyOn(broadcastPublisher, 'publish')
 			.mockRejectedValue(new Error('publication unavailable'));
-		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const { logger } = await import('../logging');
+		const records: Record<string, unknown>[] = [];
+		const detach = logger.attachTransport({
+			format: 'json',
+			write: (_record, line) => {
+				records.push(JSON.parse(line));
+			}
+		});
 		const event = {
+			locals: {},
 			route: { id: '/admin/games/[gameId]' },
 			request: new Request('http://localhost/admin/games/g', { method: 'POST' })
 		};
@@ -138,7 +148,7 @@ it('attempts publication on error responses and throws without replacing the ori
 				} as unknown as Parameters<typeof handle>[0])
 			).rejects.toBe(cause);
 			expect(publish).toHaveBeenCalledTimes(2);
-			expect(log).toHaveBeenCalledTimes(2);
+			expect(records.filter((entry) => entry.event === 'broadcast.publish.failed')).toHaveLength(2);
 			for (const [route, method] of [
 				['/admin/games/[gameId]', 'GET'],
 				['/unrelated', 'POST'],
@@ -146,6 +156,7 @@ it('attempts publication on error responses and throws without replacing the ori
 			]) {
 				await handle({
 					event: {
+						locals: {},
 						route: { id: route },
 						request: new Request(`http://localhost${route}`, { method })
 					},
@@ -155,7 +166,7 @@ it('attempts publication on error responses and throws without replacing the ori
 			expect(publish).toHaveBeenCalledTimes(2);
 		} finally {
 			publish.mockRestore();
-			log.mockRestore();
+			detach();
 		}
 	});
 });

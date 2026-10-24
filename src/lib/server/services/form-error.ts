@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { hasDatabaseError, SaveError } from './save-error';
+import { logEvent } from '../logging';
 
 export function formError(cause: unknown, form?: FormData, draft?: Record<string, unknown>) {
 	if (hasDatabaseError(cause, 'SQLITE_BUSY') || hasDatabaseError(cause, 'SQLITE_LOCKED')) {
@@ -8,8 +9,10 @@ export function formError(cause: unknown, form?: FormData, draft?: Record<string
 			'Another operator is saving related data. Reload and review before saving again.'
 		);
 	}
-	if (cause instanceof SaveError)
-		return fail(cause.code === 'stale' ? 409 : cause.code === 'blocked' ? 409 : 400, {
+	if (cause instanceof SaveError) {
+		const status = cause.code === 'stale' || cause.code === 'blocked' ? 409 : 400;
+		logEvent('warn', 'form.rejected', { code: cause.code, status });
+		return fail(status, {
 			error: cause.message,
 			code: cause.code,
 			...(cause.details && { details: cause.details }),
@@ -20,6 +23,7 @@ export function formError(cause: unknown, form?: FormData, draft?: Record<string
 				)
 			)
 		});
+	}
 	throw cause;
 }
 

@@ -6,6 +6,7 @@ import { field, formError } from '#lib/server/services/form-error.ts';
 import { refreshCatalogue, removeResource, saveResource } from '#lib/server/services/resources.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { logEvent } from '#lib/server/logging.ts';
 
 function validKind(kind: string): kind is 'map' | 'agent' | 'weapon' {
 	return kind === 'map' || kind === 'agent' || kind === 'weapon';
@@ -69,9 +70,12 @@ export const actions: Actions = {
 		redirect(303, `/admin/resources?tab=${tabFor(kind)}`);
 	},
 	refresh: async () => {
+		logEvent('info', 'resources.refresh.started');
 		try {
 			await refreshCatalogue();
+			logEvent('info', 'resources.refresh.completed');
 		} catch (cause) {
+			logEvent('error', 'resources.refresh.failed', {}, cause);
 			if (cause instanceof SaveError) return formError(cause);
 			return fail(502, {
 				error: 'Catalogue refresh failed. Saved resources were kept; try again later.'

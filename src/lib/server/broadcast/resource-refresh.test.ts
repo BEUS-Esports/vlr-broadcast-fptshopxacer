@@ -60,6 +60,7 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 			const { handle } = await import('../../../hooks.server');
 			const refresh = actions.refresh;
 			const event = {
+				locals: {},
 				route: { id: '/admin/resources' },
 				request: new Request('http://localhost/admin/resources?/refresh', { method: 'POST' })
 			};
@@ -88,16 +89,25 @@ it('publishes committed maps after a later catalogue failure and leaves a rolled
 			const publish = vi
 				.spyOn(broadcastPublisher, 'publish')
 				.mockRejectedValueOnce(new Error('publication unavailable'));
-			const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const { logger } = await import('../logging');
+			const records: Record<string, unknown>[] = [];
+			const detach = logger.attachTransport({
+				format: 'json',
+				write: (_record, line) => {
+					records.push(JSON.parse(line));
+				}
+			});
 			try {
 				expect(await (await run()).json()).toMatchObject({
 					status: 502,
 					data: { error: 'Catalogue refresh failed. Saved resources were kept; try again later.' }
 				});
-				expect(log).toHaveBeenCalledOnce();
+				expect(records.filter((entry) => entry.event === 'broadcast.publish.failed')).toHaveLength(
+					1
+				);
 			} finally {
 				publish.mockRestore();
-				log.mockRestore();
+				detach();
 			}
 		} finally {
 			stop();

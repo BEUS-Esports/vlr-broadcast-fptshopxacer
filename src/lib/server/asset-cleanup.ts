@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import * as s from '#lib/server/db/schema/index.ts';
 import { listAssetPaths, removeAsset } from './assets';
+import { logEvent } from './logging';
 
 const retentionMs = 14 * 24 * 60 * 60 * 1000;
 const scanIntervalMs = 60 * 60 * 1000;
@@ -54,10 +55,15 @@ export function startAssetCleanup() {
 	let stopped = false;
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	async function run() {
+		const startedAt = performance.now();
+		logEvent('debug', 'assets.cleanup.started');
 		try {
 			await collectUnusedAssets();
+			logEvent('info', 'assets.cleanup.completed', {
+				durationMs: Math.round(performance.now() - startedAt)
+			});
 		} catch (cause) {
-			console.error('Asset cleanup failed; will retry in one hour.', cause);
+			logEvent('error', 'assets.cleanup.failed', { retryMs: scanIntervalMs }, cause);
 		} finally {
 			if (!stopped) {
 				timer = setTimeout(run, scanIntervalMs);

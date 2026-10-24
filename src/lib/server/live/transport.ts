@@ -5,8 +5,10 @@ import type { LiveProviderConfig } from './config';
 import type { ProviderCallbacks } from './coordinator';
 import { createGStackAccumulator, normalizeGStack, parseGStackMessage } from './providers/gstack';
 import { normalizeSpectra } from './providers/spectra';
+import { logEvent } from '../logging';
 
 type SocketLike = {
+	io?: { engine?: { transport?: { name: string } } };
 	on: (event: string, listener: (...args: unknown[]) => void) => unknown;
 	off: (event: string, listener: (...args: unknown[]) => void) => unknown;
 	emit: (event: string, data: string) => unknown;
@@ -44,6 +46,32 @@ export function startProviderSession(
 		...overrides
 	};
 	const { provider, config, callbacks } = options;
+	const startedAt = dependencies.now();
+	let stage = 'connect';
+	let endpoint = provider === 'spectra' ? config.spectraSocketUrl : config.gstackUrl;
+	const secrets = [config.accessKey, config.groupCode];
+	const log = (
+		level: 'info' | 'warn',
+		event: string,
+		fields: Record<string, string | number | boolean | null | undefined> = {},
+		cause?: unknown
+	) =>
+		logEvent(
+			level,
+			event,
+			{
+				provider,
+				endpoint,
+				generation: options.generation,
+				selectedGameId: options.selectedGameId,
+				stage,
+				elapsedMs: dependencies.now() - startedAt,
+				timeoutMs,
+				...fields
+			},
+			cause,
+			secrets
+		);
 	const controller = new AbortController();
 	let stopped = false;
 	let timer: ReturnType<typeof setTimeout> | undefined;
@@ -68,17 +96,20 @@ export function startProviderSession(
 			/* An already closing upstream session needs no second cleanup. */
 		}
 	}
-	function fail(message: string) {
+	function fail(message: string, reason = 'transport', cause?: unknown) {
 		if (stopped) return;
+		log('warn', 'live.session.failed', { reason }, cause);
 		stop();
 		callbacks.error(message);
 	}
-	function arm(message: string) {
+	function arm(message: string, nextStage = 'connect') {
+		stage = nextStage;
 		clearTimeout(timer);
-		timer = setTimeout(() => fail(message), timeoutMs);
+		timer = setTimeout(() => fail(message, 'timeout'), timeoutMs);
 	}
 	try {
 		if (provider === 'spectra') {
+			log('info', 'live.session.start', { transports: 'polling,websocket' });
 			const socket = dependencies.createSocket(config.spectraSocketUrl, {
 				reconnection: false,
 				forceNew: true,
@@ -100,13 +131,15 @@ export function startProviderSession(
 			on('connect', () => {
 				if (connected) return;
 				connected = true;
-				arm('ValoSpectra logon timed out. Check the group code and retry.');
+				log('info', 'live.spectra.connected', { transport: socket.io?.engine?.transport?.name });
+				arm('ValoSpectra logon timed out. Check the group code and retry.', 'logon');
 				socket.emit('logon', JSON.stringify({ groupCode: config.groupCode }));
 			});
 			on('logon_success', () => {
 				if (!connected || loggedOn) return;
 				loggedOn = true;
-				arm('ValoSpectra match data timed out. Check the group code and retry.');
+				log('info', 'live.spectra.logged-on');
+				arm('ValoSpectra match data timed out. Check the group code and retry.', 'match-data');
 				callbacks.connected();
 			});
 			on('match_data', (input) => {
@@ -120,24 +153,38 @@ export function startProviderSession(
 					issues: result.issues.slice(0, 30)
 				});
 				if (!result.state) {
+					log('warn', 'live.spectra.invalid-data');
 					callbacks.parseError('Malformed ValoSpectra match data. Inspect View Data.');
 					return;
+				}
+				if (stage !== 'streaming') {
+					stage = 'streaming';
+					log('info', 'live.session.ready', { transport: socket.io?.engine?.transport?.name });
 				}
 				clearTimeout(timer);
 				timer = undefined;
 				callbacks.data(result.state);
 			});
-			on('connect_error', () =>
-				fail('Could not connect to ValoSpectra. Check Settings and retry.')
+			on('connect_error', (cause) =>
+				fail('Could not connect to ValoSpectra. Check Settings and retry.', 'connect_error', cause)
 			);
-			on('disconnect', () => fail('ValoSpectra disconnected. Retrying the provider session.'));
-			on('error', () => fail('ValoSpectra transport failed. Check Settings and retry.'));
+			on('disconnect', (reason, description) =>
+				fail('ValoSpectra disconnected. Retrying the provider session.', 'disconnect', {
+					message: reason,
+					description
+				})
+			);
+			on('error', (cause) =>
+				fail('ValoSpectra transport failed. Check Settings and retry.', 'error', cause)
+			);
 			arm('ValoSpectra connection timed out. Check Settings and retry.');
 			socket.connect();
 		} else {
 			const address = new URL(config.gstackUrl);
 			address.protocol = address.protocol === 'https:' ? 'wss:' : 'ws:';
 			address.port = address.protocol === 'wss:' ? '57773' : '57770';
+			endpoint = address.href;
+			log('info', 'live.session.start', { transport: 'websocket' });
 			const socket = dependencies.createWebSocket(address.href);
 			close = () => socket.close();
 			const accumulator = createGStackAccumulator();
@@ -177,6 +224,10 @@ export function startProviderSession(
 					return;
 				}
 				malformed = 0;
+				if (stage !== 'streaming') {
+					stage = 'streaming';
+					log('info', 'live.session.ready');
+				}
 				callbacks.data(result.state);
 			}
 			function apply(message: string, emit = true) {
@@ -211,7 +262,8 @@ export function startProviderSession(
 			on('open', () => {
 				if (opening) return;
 				opening = true;
-				arm('GStack synchronization timed out. Check Settings and retry.');
+				log('info', 'live.gstack.connected');
+				arm('GStack synchronization timed out. Check Settings and retry.', 'snapshot');
 				void (async () => {
 					try {
 						const response = await dependencies.fetch(new URL('/livenow', config.gstackUrl).href, {
@@ -220,7 +272,10 @@ export function startProviderSession(
 							redirect: 'error'
 						});
 						if (stopped) return;
-						if (!response.ok) throw new Error('Snapshot HTTP failure');
+						if (!response.ok) {
+							await response.body?.cancel();
+							throw Object.assign(new Error('Snapshot HTTP failure'), { status: response.status });
+						}
 						const text = await boundedText(response, controller.signal, maxHttpBytes);
 						if (stopped) return;
 						snapshot = text.slice(0, 65_536);
@@ -240,9 +295,13 @@ export function startProviderSession(
 						lastResyncAt = dependencies.now();
 						callbacks.connected();
 						publish();
-					} catch {
+					} catch (cause) {
 						diagnostics(['Could not parse or synchronize the latest GStack snapshot.']);
-						fail('Could not synchronize GStack live data. Check Settings and retry.');
+						fail(
+							'Could not synchronize GStack live data. Check Settings and retry.',
+							'snapshot',
+							cause instanceof SyntaxError ? new Error('Invalid snapshot JSON') : cause
+						);
 					}
 				})();
 			});
@@ -265,12 +324,22 @@ export function startProviderSession(
 						fail('GStack startup data exceeded the buffer limit. Retrying synchronization.');
 				} else apply(message);
 			});
-			on('close', () => fail('GStack disconnected. Retrying the provider session.'));
-			on('error', () => fail('GStack WebSocket failed. Check Settings and retry.'));
+			on('close', (event) =>
+				fail('GStack disconnected. Retrying the provider session.', 'close', {
+					code: (event as CloseEvent).code
+				})
+			);
+			on('error', (event) =>
+				fail(
+					'GStack WebSocket failed. Check Settings and retry.',
+					'error',
+					(event as ErrorEvent).error
+				)
+			);
 			arm('GStack connection timed out. Check Settings and retry.');
 		}
-	} catch {
-		fail('Could not open the provider session. Check Settings and retry.');
+	} catch (cause) {
+		fail('Could not open the provider session. Check Settings and retry.', 'startup', cause);
 	}
 	return stop;
 }
@@ -279,8 +348,26 @@ export async function lookupSpectraSupporter(
 	config: LiveProviderConfig,
 	overrides: Partial<ProviderTransportDependencies> = {}
 ): Promise<LiveSessionStatus['attribution']> {
+	const now = overrides.now ?? Date.now;
+	const startedAt = now();
+	const log = (level: 'info' | 'warn', event: string, status?: number, cause?: unknown) =>
+		logEvent(
+			level,
+			event,
+			{
+				provider: 'spectra',
+				endpoint: config.spectraExtrasUrl,
+				elapsedMs: now() - startedAt,
+				timeoutMs,
+				status,
+				timedOut: controller.signal.aborted
+			},
+			cause,
+			[config.accessKey, config.groupCode]
+		);
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), timeoutMs);
+	log('info', 'live.spectra.supporter.start');
 	try {
 		const address = new URL('/getOrgForKey', config.spectraExtrasUrl);
 		address.searchParams.set('key', config.accessKey);
@@ -289,6 +376,7 @@ export async function lookupSpectraSupporter(
 			cache: 'no-store',
 			redirect: 'error'
 		});
+		log(response.ok ? 'info' : 'warn', 'live.spectra.supporter.response', response.status);
 		if (response.status === 401) {
 			await response.body?.cancel();
 			return 'invalid-key';
@@ -305,8 +393,15 @@ export async function lookupSpectraSupporter(
 			if (supporter === true) return 'supporter';
 			if (supporter === false) return 'required';
 		}
+		log('warn', 'live.spectra.supporter.invalid-response', response.status);
 		return 'unknown';
-	} catch {
+	} catch (cause) {
+		log(
+			'warn',
+			'live.spectra.supporter.failed',
+			undefined,
+			cause instanceof SyntaxError ? new Error('Invalid supporter JSON') : cause
+		);
 		return 'unknown';
 	} finally {
 		clearTimeout(timer);

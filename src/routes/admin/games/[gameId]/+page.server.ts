@@ -29,6 +29,7 @@ import {
 	loadPostGameContext
 } from '#lib/server/post-game/review.ts';
 import type { PostGameMappings, PostGameResolutions } from '#lib/post-game/review.ts';
+import { logEvent } from '#lib/server/logging.ts';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const [management, config] = await Promise.all([
@@ -61,8 +62,17 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 const postGameAction: Actions[string] = async ({ request, params, fetch }) => {
+	const startedAt = performance.now();
+	let operation = 'invalid';
+	let failed = false;
 	try {
 		const draft = readPayload(await request.formData());
+		if (
+			typeof draft.operation === 'string' &&
+			['revise', 'import', 'discard', 'discover', 'henrik', 'spectra'].includes(draft.operation)
+		)
+			operation = draft.operation;
+		logEvent('info', 'post-game.started', { operation, gameId: params.gameId });
 		const gameId = params.gameId;
 		if (draft.operation === 'revise')
 			return {
@@ -129,12 +139,32 @@ const postGameAction: Actions[string] = async ({ request, params, fetch }) => {
 			})
 		};
 	} catch (cause) {
+		failed = true;
+		const expected = cause instanceof PostGameProviderError || cause instanceof SaveError;
+		logEvent(
+			expected ? 'warn' : 'error',
+			'post-game.failed',
+			{
+				operation,
+				gameId: params.gameId,
+				durationMs: Math.round(performance.now() - startedAt),
+				code: expected ? cause.code : undefined
+			},
+			expected ? undefined : cause
+		);
 		if (cause instanceof PostGameProviderError)
 			return fail(400, { error: cause.message, code: cause.code });
 		if (cause instanceof SaveError) return formError(cause);
 		return fail(500, {
 			error: 'Could not load or import this report. Manual entry remains available.'
 		});
+	} finally {
+		if (!failed)
+			logEvent('info', 'post-game.completed', {
+				operation,
+				gameId: params.gameId,
+				durationMs: Math.round(performance.now() - startedAt)
+			});
 	}
 };
 function revisions(gameId: string, draft: Record<string, unknown>) {

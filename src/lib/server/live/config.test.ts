@@ -1,5 +1,6 @@
+import { redactDiagnostics } from '../redaction';
 import { expect, it } from 'vitest';
-import { normalizeConfig, publicConfig, redactDiagnostics } from './config';
+import { normalizeConfig, publicConfig } from './config';
 it('validates server-only endpoints and never returns submitted credentials', () => {
 	const config = normalizeConfig({
 		spectraRegion: 'custom',

@@ -4,12 +4,26 @@ import * as s from '#lib/server/db/schema/index.ts';
 import { completedMatch, recentMatches } from './providers/fixtures';
 import { normalizePostGameConfig } from './config';
 
-afterEach(() => vi.doUnmock('#lib/server/post-game/config.ts'));
+let records: Record<string, unknown>[];
+let detach: (() => void) | undefined;
+afterEach(() => {
+	detach?.();
+	vi.doUnmock('#lib/server/post-game/config.ts');
+});
 
 const config = normalizePostGameConfig({ HENRIKDEV_API_KEY: 'fake-action-key' });
 
 async function route() {
 	vi.doMock('#lib/server/post-game/config.ts', () => ({ loadPostGameConfig: async () => config }));
+	const { logger } = await import('../logging');
+	logger.settings.type = 'hidden';
+	records = [];
+	detach = logger.attachTransport({
+		format: 'json',
+		write: (_record, line) => {
+			records.push(JSON.parse(line));
+		}
+	});
 	return import('../../../routes/admin/games/[gameId]/+page.server');
 }
 
@@ -55,6 +69,10 @@ it('uses the saved lineup anchor, encoded provider request and safe public load 
 			{ id: 'a1', displayName: 'Player a1', riotId: 'Saved Player#EVENT' }
 		]);
 		expect(JSON.stringify(loaded)).not.toContain('fake-action-key');
+		expect(records).toContainEqual(
+			expect.objectContaining({ event: 'post-game.completed', operation: 'discover', gameId: 'g' })
+		);
+		expect(JSON.stringify(records)).not.toMatch(/fake-action-key|Saved Player|Untrusted/);
 		vi.doUnmock('#lib/server/post-game/config.ts');
 	});
 });
@@ -118,6 +136,11 @@ it('refetches exact detail server-side and returns safe rate-limit/transport fai
 				});
 			else expect(result).toHaveProperty('status', 400);
 		}
+		expect(
+			records.filter((record) => record.event === 'post-game.failed').map((record) => record.code)
+		).toEqual(['rate-limit', 'unavailable']);
+		expect(records.filter((record) => record.event === 'post-game.completed')).toHaveLength(1);
+		expect(JSON.stringify(records)).not.toMatch(/private-key|fake-action-key|untrusted/);
 		vi.doUnmock('#lib/server/post-game/config.ts');
 	});
 });
