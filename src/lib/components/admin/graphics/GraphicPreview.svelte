@@ -4,10 +4,8 @@
 	import { graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 	import type { BroadcastClock } from '#lib/broadcast/client.ts';
-	import { onMount } from 'svelte';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
-	import type { LiveResources } from '#lib/live/selectors.ts';
-	import { fetchLiveResources } from '#lib/live/resources.ts';
+	import { liveResources } from '#lib/live/resources.svelte.ts';
 	let {
 		graphic,
 		snapshot,
@@ -28,10 +26,6 @@
 		`Large Preview · ${variant === 'live-data' ? 'Live Data HUD' : graphicLabels[graphic]}`
 	);
 	const renderMode = $derived(variant === 'live-data' ? 'preview-live' : 'preview');
-	let resources = $state.raw<LiveResources | null>(null);
-	onMount(() => {
-		void fetchLiveResources().then((value) => (resources = value));
-	});
 	let width = $state(0);
 	let largeWidth = $state(0);
 	let modal = $state<HTMLDialogElement>();
@@ -39,7 +33,14 @@
 
 {#snippet canvasContent(canvasWidth: number)}
 	<div class="composition" style:transform={`scale(${canvasWidth / 1920})`}>
-		<GraphicRenderer {graphic} {snapshot} {telemetry} {resources} {clock} mode={renderMode} />
+		<GraphicRenderer
+			{graphic}
+			{snapshot}
+			{telemetry}
+			resources={liveResources.current}
+			{clock}
+			mode={renderMode}
+		/>
 	</div>
 {/snippet}
 
