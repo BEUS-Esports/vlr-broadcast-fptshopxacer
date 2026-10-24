@@ -80,6 +80,55 @@ Provider settings are persisted in the database by migration **0011**. ValoSpect
 
 Run `pnpm exec playwright test tests/phase6-live.e2e.ts` for the local fixture journey. See [Phase 6 implementation and verification](./docs/2026-10-03-phase-6-live-providers-external-hud.md). Real Spectra and GStack sessions and external HUD/OBS composition still require separate acceptance; neither provider is declared broadcast-ready. The GStack reference folder is ignored and its code/assets are not bundled into the application.
 
+### Server logs
+
+The Node server uses **TSLog** for readable terminal logs: timestamps, levels, the `VLR` label, event names and structured details. Info/debug go to stdout; warnings/errors go to stderr. Colors follow terminal support (`NO_COLOR=1` disables them). Vite and package-manager output retain their own formatting.
+
+Enable the optional structured copy in `.env`, then restart the server:
+
+```dotenv
+LOG_LEVEL=info
+LOG_DIR=./data/logs
+```
+
+`LOG_DIR` creates `app.jsonl` and rotates it at 10 MB, retaining seven archives plus the current file. Leave it unset for terminal output only. Paths are relative to the server working directory; use one directory per server process. `data/logs` is ignored by Git. Each JSON line carries `time`, uppercase `level`, `event`, and operation fields. Request-related events share a generated `requestId` across asynchronous work.
+
+`LOG_LEVEL` accepts `debug`, `info` (default), `warn`, or `error` and filters both outputs. Invalid values fall back to info. Successful GET/HEAD/OPTIONS requests, including polling, require debug. Mutations, form rejections, HTTP errors, live-provider lifecycle, post-game operations, resource sync, asset cleanup and startup/shutdown have explicit events. `http.completed` records the route pattern, method, named action, status and duration; for streaming responses it measures opening the response, not the stream lifetime. Enhanced forms and resource streams also log operation failures because their HTTP status can remain 200.
+
+Both outputs use the same redacted records. Credentials, group codes, request headers/bodies, raw match payloads and SQL values are excluded; provider network/TLS errors retain bounded diagnostic fields. For new server operations, use the shared API and pass only safe metadata:
+
+```ts
+import { logEvent } from '#lib/server/logging.ts';
+
+logEvent('info', 'example.completed', { gameId, durationMs });
+// Pass known credentials as the final argument when a transport error may echo them.
+logEvent('warn', 'example.failed', { provider }, cause, [accessKey, groupCode]);
+```
+
+File writes are asynchronous and flush on normal Node-adapter shutdown. A file failure emits `logging.file.failed` and disables that file sink until restart while terminal logging continues. A pending file queue above 1 MiB drops new file records with a `logging.file.backpressure` warning. Sudden termination or disk failure can lose buffered records; these logs are for troubleshooting, not a durable audit trail.
+
+### Spectra timeout diagnostics
+
+Live-provider events include the endpoint, provider, session generation, selected game, connection stage, elapsed milliseconds, and safe nested network/TLS errors. Retry logs include the delay, retry count, health, and HUD mode. Only the first usable packet per attempt is logged. Existing timeout, retry, and TLS verification settings are unchanged.
+
+For Spectra, inspect `live.session.failed` and its `stage`:
+
+| Stage        | What completed                               | What to investigate                                                                                           |
+| ------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `connect`    | Socket.IO has not connected                  | DNS, port 5200, TLS certificate, proxy, or Socket.IO handshake; inspect the nested error code/message         |
+| `logon`      | Socket.IO connected and the app sent `logon` | Group code and Spectra login acknowledgment                                                                   |
+| `match-data` | Spectra acknowledged login                   | Spectra producer/group and incoming usable match data; `live.spectra.invalid-data` indicates rejected packets |
+
+Each startup stage has a five-second deadline; `elapsedMs` is measured from the start of the whole attempt. `live.session.ready` marks the first usable data. `live.retry.scheduled` explains retries and native fallback; `live.session.resync` marks a fresh snapshot attempt after 30 seconds without valid data. `live.spectra.supporter.*` events concern the separate port 5101 lookup and attribution, not the live match-data connection.
+
+The app's **Node server** connects to Spectra. The controller page can use HTTP while Node connects to an HTTPS provider. EU and NA select `https://<region>.valospectra.com:5200/`; Socket.IO starts with HTTPS polling and can upgrade to WSS. A custom host's scheme must match its exposed endpoint. An HTTPS website on port 443 alone does not prove that the service on port 5200 supports TLS. See [Socket.IO connection troubleshooting](https://socket.io/docs/v4/troubleshooting-connection-issues/).
+
+Rebuild with the configured `ORIGIN` before starting production as documented above. Enable `LOG_DIR` for structured troubleshooting, or capture the readable terminal output in PowerShell:
+
+```powershell
+node --env-file=.env build 2>&1 | Tee-Object -FilePath "$env:TEMP\vlr-live-provider.log"
+```
+
 ## Post-game imports
 
 Apply reviewed migrations **0010**, **0011**, and **0012** before using provider imports. Configure HenrikDev and Spectra from **Settings** (`/admin/settings`): HenrikDev supports Riot affinities `ap`, `br`, `eu`, `kr`, `latam`, and `na`, plus PC/console, base URL, candidate count, request timeout, and an encrypted API key. Legacy Phase 7 environment values are bootstrap-only for an empty settings table. Only query participants whose data use is authorized under HenrikDev's current consent/use requirements. Never put provider credentials in public variables, fixtures, OBS URLs, or client-visible application data.
