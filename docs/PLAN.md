@@ -248,7 +248,20 @@ Test candidate selection, identity mismatch, duplicate mappings, duplicate repor
 
 Progress, 2026-10-06: both source controls feed the same server-held review and transactional canonical import. The deterministic browser journeys cover candidate choice, explicit mapping, import, persisted manual conflicts, repeated keep-local protection, Spectra pending/cancel, errors and late responses. Migration **0010** adds report uniqueness and statistics/agent ownership; migration **0011** moves Phase 6/7 provider configuration into one revision-locked Settings record and encrypts ValoSpectra/HenrikDev credentials at rest. Legacy live JSON and Phase 7 env values are first-run bootstrap inputs only. Real AP/PC HenrikDev discovery and exact detail succeeded for the supplied competitive Lotus match. Custom/event queue operation and a successful real Spectra hosted report remain release acceptance dependencies. The persistent local/event database has not been migrated, and the 0011 follow-up still needs local check/build/test reruns. See [Phase 7 verification](./2026-10-05-phase-7-verification.md) for the separate automated, real-provider, and follow-up verification status.
 
-## Phase 8 — Integrate design-team layouts and assets
+## Phase 8 - Initial Tech-Check
+
+### Description
+
+Ahead of the actual Tournament Layout and Assets integration, there will be a Tech Check day to:
+
+- Test all functionality of each graphics
+- Test and verify Data Provider access and data acquisition
+- Test Control UI's usability.
+- Verify against a full mock show and an actual Standard Custom Game, with Overtime (Win by 2) enabled.
+- Verify network security.
+- Rehearse against issues and recovery.
+
+## Phase 9 — Integrate design-team layouts and assets
 
 ### Work
 
@@ -267,7 +280,7 @@ Progress, 2026-10-06: both source controls feed the same server-held review and 
 
 Use deterministic saved data for browser screenshots and compare against supplied layouts. Run an actual OBS check for alpha, scaling, clipping, animation, and native-HUD compatibility. Final artwork delivery is an external dependency; test-template completion is not final visual acceptance.
 
-## Phase 9 — Prepare deployment, recovery, and the November rehearsal
+## Phase 10 — Prepare deployment, recovery, and the November rehearsal
 
 ### Work
 
