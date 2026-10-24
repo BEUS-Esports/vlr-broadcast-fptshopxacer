@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
 	import AgentSelectEditor from '#lib/components/admin/management/AgentSelectEditor.svelte';
 	import LineupEditor from '#lib/components/admin/management/LineupEditor.svelte';
@@ -44,9 +45,13 @@
 	<div class="admin-page">
 		<header class="space-y-2">
 			<nav aria-label="Breadcrumb" class="flex flex-wrap gap-2 text-sm text-primary-600-400">
-				<a class="underline" href={`/admin/tournaments/${data.tournament.id}`}
+				<a
+					class="underline"
+					href={resolve('/admin/tournaments/[tournamentId]', { tournamentId: data.tournament.id })}
 					>{data.tournament.name}</a
-				><span>/</span><a class="underline" href={`/admin/matches/${data.match.id}?tab=games`}
+				><span>/</span><a
+					class="underline"
+					href={resolve('/admin/matches/[matchId]?tab=games', { matchId: data.match.id })}
 					>{data.match.label}</a
 				>
 			</nav>
@@ -62,8 +67,11 @@
 			</p>
 			{#if exceptional}<p class="text-warning-600-400">
 					Match outcome: {data.match.resultType}.
-					<a class="underline" href={`/admin/matches/${data.match.id}`}>Clear the match outcome</a> before
-					editing games.
+					<a
+						class="underline"
+						href={resolve('/admin/matches/[matchId]', { matchId: data.match.id })}
+						>Clear the match outcome</a
+					> before editing games.
 				</p>{/if}
 			{#if data.tournament.archivedAt}<p>
 					Unarchive the tournament before editing preparation.

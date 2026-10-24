@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import ManagementWorkspace from '#lib/components/admin/management/ManagementWorkspace.svelte';
@@ -33,8 +34,9 @@
 		<header>
 			<a
 				class="text-sm text-primary-600-400 underline"
-				href={`/admin/tournaments/${data.match.tournamentId}?tab=matches`}
-				>← {data.tournament.name} matches</a
+				href={resolve('/admin/tournaments/[tournamentId]?tab=matches', {
+					tournamentId: data.match.tournamentId
+				})}>← {data.tournament.name} matches</a
 			>
 			<h1 class="mt-2 h1">{data.match.label}</h1>
 			<p class="mt-1 text-sm text-surface-600-400">
@@ -260,7 +262,7 @@
 					{#each data.games as game (game.id)}
 						<a
 							class="mt-3 flex items-center justify-between rounded-container border border-surface-200-800 p-3 hover:bg-surface-100-900"
-							href={`/admin/games/${game.id}`}
+							href={resolve('/admin/games/[gameId]', { gameId: game.id })}
 							><span>Game {game.number} · {game.name}</span><span
 								class="text-sm text-surface-600-400"
 								>{game.resultType ??

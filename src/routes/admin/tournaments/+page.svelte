@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Plus } from '@lucide/svelte';
 	import CatalogTable from '#lib/components/admin/CatalogTable.svelte';
@@ -35,7 +36,9 @@
 		columns={['Name', 'Slug', 'Status', 'Actions']}
 	>
 		{#snippet actions()}
-			<a class="btn preset-filled-primary-500" href="/admin/tournaments?new=1#tournament-editor"
+			<a
+				class="btn preset-filled-primary-500"
+				href={resolve('/admin/tournaments?new=1#tournament-editor')}
 				><Plus size={16} aria-hidden="true" /> Add tournament</a
 			>
 			<label class="flex items-center gap-2 text-sm"
@@ -47,7 +50,8 @@
 				<section id="tournament-editor" class="admin-editor" aria-label="New tournament">
 					<div class="flex items-center justify-between gap-3">
 						<h2 class="h3">New tournament</h2>
-						<a class="btn preset-tonal-surface btn-sm" href="/admin/tournaments">Close</a>
+						<a class="btn preset-tonal-surface btn-sm" href={resolve('/admin/tournaments')}>Close</a
+						>
 					</div>
 					<ManagementForm
 						action="?/create"
@@ -102,7 +106,9 @@
 				></td
 			>
 			<td
-				><a class="btn preset-tonal-primary btn-sm" href="/admin/tournaments/{tournament.id}"
+				><a
+					class="btn preset-tonal-primary btn-sm"
+					href={resolve('/admin/tournaments/[tournamentId]', { tournamentId: tournament.id })}
 					>Open workspace</a
 				></td
 			>

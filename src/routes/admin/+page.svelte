@@ -1,22 +1,23 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { ArrowRight, Users, UserRound, Map } from '@lucide/svelte';
 	const areas = [
 		{
 			title: 'Teams',
 			detail: 'Team identities, tags, and broadcast logos.',
-			href: '/admin/teams',
+			href: resolve('/admin/teams'),
 			icon: Users
 		},
 		{
 			title: 'Players',
 			detail: 'Player names, Riot IDs, and portraits.',
-			href: '/admin/players',
+			href: resolve('/admin/players'),
 			icon: UserRound
 		},
 		{
 			title: 'Game resources',
 			detail: 'Maps, playable agents, and game artwork.',
-			href: '/admin/resources',
+			href: resolve('/admin/resources'),
 			icon: Map
 		}
 	];

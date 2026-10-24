@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Progress, Tabs } from '@skeletonlabs/skeleton-svelte';
@@ -195,7 +196,7 @@
 					{#snippet actions()}
 						<a
 							class="btn preset-filled-primary-500"
-							href="/admin/resources?tab=maps&new=map#map-editor"
+							href={resolve('/admin/resources?tab=maps&new=map#map-editor')}
 						>
 							<Plus size={16} aria-hidden="true" /> Add map
 						</a>
@@ -215,7 +216,10 @@
 							<section id="map-editor" class="admin-editor" aria-label="Map editor">
 								<div class="flex items-center justify-between gap-3">
 									<h3 class="h3">{selectedMap || mapValues?.id ? 'Edit map' : 'Add map'}</h3>
-									<a class="btn preset-tonal-surface btn-sm" href="/admin/resources?tab=maps">
+									<a
+										class="btn preset-tonal-surface btn-sm"
+										href={resolve('/admin/resources?tab=maps')}
+									>
 										<X size={16} aria-hidden="true" /> Close
 									</a>
 								</div>
@@ -331,7 +335,7 @@
 						<td class="align-middle">
 							<a
 								class="btn preset-tonal-primary btn-sm"
-								href="/admin/resources?tab=maps&map={item.id}#map-editor"
+								href={resolve(`/admin/resources?tab=maps&map=${item.id}#map-editor`)}
 								aria-label="Edit {item.displayName}"
 							>
 								<Pencil size={14} aria-hidden="true" /> Edit
@@ -353,7 +357,7 @@
 					{#snippet actions()}
 						<a
 							class="btn preset-filled-primary-500"
-							href="/admin/resources?tab=agents&new=agent#agent-editor"
+							href={resolve('/admin/resources?tab=agents&new=agent#agent-editor')}
 						>
 							<Plus size={16} aria-hidden="true" /> Add agent
 						</a>
@@ -375,7 +379,10 @@
 									<h3 class="h3">
 										{selectedAgent || agentValues?.id ? 'Edit agent' : 'Add agent'}
 									</h3>
-									<a class="btn preset-tonal-surface btn-sm" href="/admin/resources?tab=agents">
+									<a
+										class="btn preset-tonal-surface btn-sm"
+										href={resolve('/admin/resources?tab=agents')}
+									>
 										<X size={16} aria-hidden="true" /> Close
 									</a>
 								</div>
@@ -520,7 +527,7 @@
 						<td class="align-middle">
 							<a
 								class="btn preset-tonal-primary btn-sm"
-								href="/admin/resources?tab=agents&agent={item.id}#agent-editor"
+								href={resolve(`/admin/resources?tab=agents&agent=${item.id}#agent-editor`)}
 								aria-label="Edit {item.displayName}"
 							>
 								<Pencil size={14} aria-hidden="true" /> Edit
@@ -542,7 +549,7 @@
 					{#snippet actions()}
 						<a
 							class="btn preset-filled-primary-500"
-							href="/admin/resources?tab=weapons&new=weapon#weapon-editor"
+							href={resolve('/admin/resources?tab=weapons&new=weapon#weapon-editor')}
 						>
 							<Plus size={16} aria-hidden="true" /> Add weapon
 						</a>
@@ -564,7 +571,10 @@
 									<h3 class="h3">
 										{selectedWeapon || weaponValues?.id ? 'Edit weapon' : 'Add weapon'}
 									</h3>
-									<a class="btn preset-tonal-surface btn-sm" href="/admin/resources?tab=weapons">
+									<a
+										class="btn preset-tonal-surface btn-sm"
+										href={resolve('/admin/resources?tab=weapons')}
+									>
 										<X size={16} aria-hidden="true" /> Close
 									</a>
 								</div>
@@ -696,7 +706,7 @@
 						<td class="align-middle">
 							<a
 								class="btn preset-tonal-primary btn-sm"
-								href="/admin/resources?tab=weapons&weapon={item.id}#weapon-editor"
+								href={resolve(`/admin/resources?tab=weapons&weapon=${item.id}#weapon-editor`)}
 								aria-label="Edit {item.displayName}"
 							>
 								<Pencil size={14} aria-hidden="true" /> Edit

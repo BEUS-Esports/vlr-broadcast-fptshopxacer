@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import ManagementForm from '../management/ManagementForm.svelte';
 	import { broadcastScopes, graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
@@ -112,7 +113,10 @@
 			{/snippet}
 		</ManagementForm>
 	{/if}
-	<a href={`/gfx/live/${graphic}`} target="_blank" rel="noreferrer" class="text-sm underline"
-		>Open {graphicLabels[graphic]} output</a
+	<a
+		href={resolve('/gfx/live/[graphic]', { graphic })}
+		target="_blank"
+		rel="noreferrer"
+		class="text-sm underline">Open {graphicLabels[graphic]} output</a
 	>
 </section>
