@@ -136,11 +136,15 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await emptyPreview.screenshot({ path: testInfo.outputPath('empty-live-hud-template.png') });
 		await emptyPreview.getByRole('button', { name: 'Close Preview', exact: true }).click();
 
+		await page.goto('/admin/graphics');
+		await page.getByText('ValoSpectra Group Code', { exact: true }).click();
+		await page.getByLabel('Group code', { exact: true }).fill('phase6-group');
+		await page.getByRole('button', { name: 'Save group code', exact: true }).click();
+		await expect(page.getByRole('status').filter({ hasText: 'Saved.' })).toBeVisible();
 		await page.goto('/admin/settings');
 		await page.getByRole('combobox', { name: 'Region', exact: true }).selectOption('custom');
 		await page.getByLabel('Custom live host', { exact: true }).fill('http://127.0.0.1');
 		await page.getByLabel('Access key', { exact: true }).fill(secret);
-		await page.getByLabel('Group code', { exact: true }).fill('phase6-group');
 		await page
 			.getByRole('combobox', { name: 'Connect after saving', exact: true })
 			.selectOption('gstack');
@@ -184,6 +188,9 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await expect(livePreview.locator('[data-live-hud]')).toBeVisible();
 		await expect(livePreview.locator('[data-live-hud]')).toContainText('Observed Alpha');
 		await expect(livePreview.locator('[data-live-hud]')).toContainText('Observed Bravo');
+		await expect(
+			livePreview.getByRole('complementary', { name: 'Provider attribution' })
+		).toHaveCount(0);
 		await expect(livePreview.locator('[data-health]')).toHaveText('100 HP');
 		await expect(livePreview.locator('[data-player-id="Alpha-1"]')).toHaveCount(0);
 		await livePreview.getByRole('button', { name: 'Large Preview', exact: true }).click();

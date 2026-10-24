@@ -64,6 +64,7 @@
 		{snapshot}
 		{teamPresentation}
 		blankMissing
+		showSponsor={status?.provider !== 'spectra' || status.attribution === 'supporter'}
 		mapName={identity === 'provider' ? (live?.map ?? null) : null}
 	/>
 	<div class="round-context">

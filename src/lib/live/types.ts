@@ -91,6 +91,8 @@ export type LiveSessionStatus = {
 	lastReceivedAt: number | null;
 	lastError: string | null;
 	attribution: 'supporter' | 'required' | 'unknown' | 'invalid-key';
+	/** Organization entitlement also applies to saved reports when live is disconnected. */
+	spectraAttribution?: LiveSessionStatus['attribution'];
 };
 export type LiveGameEnvelope = {
 	version: 1;

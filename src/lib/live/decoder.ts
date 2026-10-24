@@ -154,7 +154,13 @@ export function isLiveSessionStatus(value: unknown): value is LiveSessionStatus 
 		nextRetryAt: nullable(integer),
 		lastReceivedAt: nullable(integer),
 		lastError: nullable(string),
-		attribution: (v) => ['supporter', 'required', 'unknown', 'invalid-key'].includes(v as string)
+		attribution: (v) => ['supporter', 'required', 'unknown', 'invalid-key'].includes(v as string),
+		...(value && typeof value === 'object' && Object.hasOwn(value, 'spectraAttribution')
+			? {
+					spectraAttribution: (v: unknown) =>
+						['supporter', 'required', 'unknown', 'invalid-key'].includes(v as string)
+				}
+			: {})
 	});
 }
 

@@ -35,6 +35,7 @@ it('projects axes, saved actors, ordered preparation and every statistics/MVP sc
 		await db
 			.insert(s.gamePlayerStatistics)
 			.values({ gameId: 'finished', playerId: 'b1', entryId: 'entry-b', kills: 0 });
+		await db.insert(s.gameStatisticsMeta).values({ gameId: 'finished', importSource: 'spectra' });
 		await db.insert(s.matchVetoActions).values({
 			id: 'v',
 			matchId: 'match',
@@ -81,6 +82,9 @@ it('projects axes, saved actors, ordered preparation and every statistics/MVP sc
 		});
 		expect(snapshot.scopes.game.statistics.players[0].kills.value).toBeNull();
 		expect(snapshot.scopes.match.statistics.players[0].kills.value).toBe(0);
+		expect(snapshot.scopes.game.usesSpectra).toBe(false);
+		expect(snapshot.scopes.match.usesSpectra).toBe(true);
+		expect(snapshot.scopes.tournament.usesSpectra).toBe(true);
 		expect(snapshot.scopes.match.candidates.map((row) => row.playerId)).toEqual(['a1', 'a2', 'b1']);
 		expect(snapshot.scopes.match.mvpPlayerId).toBe('a1');
 		expect(snapshot.scopes.tournament.candidates).toHaveLength(3);

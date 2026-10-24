@@ -48,7 +48,7 @@ describe('post-game provider configuration', () => {
 			timeoutMs: 12000
 		});
 		expect(config.spectra).toMatchObject({
-			groupCode: 'post-game-group',
+			groupCode: 'runtime-group',
 			pollIntervalMs: 10000,
 			maxAttempts: 2
 		});

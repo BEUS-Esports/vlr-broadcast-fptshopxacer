@@ -22,6 +22,7 @@ it('validates server-only endpoints and never returns submitted credentials', ()
 		normalizeConfig({ ...config, spectraRegion: 'custom', spectraHost: 'file:///etc/passwd' })
 	).toThrow();
 	expect(() => normalizeConfig({ ...config, groupCode: '' })).toThrow();
+	expect(() => normalizeConfig({ ...config, groupCode: 'bad\u0001code' }, false)).toThrow();
 });
 it('redacts nested key fields, embedded key values, malformed JSON and executable-looking raw messages', () => {
 	expect(

@@ -56,6 +56,15 @@
 			? withObservedAgents(rendered, telemetry, resources)
 			: rendered
 	);
+	const reportScope = $derived(
+		graphic === 'post-game'
+			? 'game'
+			: graphic === 'mvp'
+				? rendered?.controls.mvpScope
+				: graphic === 'player-stats'
+					? rendered?.controls.playerStats.scope
+					: null
+	);
 </script>
 
 <div
@@ -78,6 +87,14 @@
 				/>
 			{:else if mode !== 'preview-live'}
 				<Template snapshot={agentSnapshot ?? rendered} {graphic} />
+				{#if reportScope && rendered.scopes[reportScope].usesSpectra}
+					<ProviderAttribution
+						status={{
+							provider: 'spectra',
+							attribution: telemetry?.status.spectraAttribution ?? 'unknown'
+						}}
+					/>
+				{/if}
 				{#if graphic === 'agent-select' && agentSnapshot !== rendered && telemetry}<ProviderAttribution
 						status={telemetry.status}
 					/>{/if}

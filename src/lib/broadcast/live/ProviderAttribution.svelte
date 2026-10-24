@@ -1,31 +1,37 @@
 <script lang="ts">
 	import type { LiveSessionStatus } from '#lib/live/types.ts';
-	let { status }: { status: LiveSessionStatus } = $props();
-	const text = $derived(
-		status.provider === 'spectra'
-			? status.attribution === 'supporter'
-				? null
-				: 'Powered by ValoSpectra'
-			: status.provider === 'gstack'
-				? 'Powered by GStack'
-				: null
-	);
+	let { status }: { status: Pick<LiveSessionStatus, 'provider' | 'attribution'> } = $props();
 </script>
 
-{#if text}<aside aria-label="Provider attribution" class="attribution">{text}</aside>{/if}
+{#if status.provider === 'spectra' && status.attribution !== 'supporter'}
+	<aside aria-label="Provider attribution" class="attribution">
+		<img src="/providers/valospectra/icon.webp" alt="ValoSpectra" width="20" height="20" />
+		<span>Powered by Spectra</span>
+	</aside>
+{/if}
 
 <style>
 	.attribution {
 		position: absolute;
-		bottom: 8px;
-		left: 30px;
-		padding: 4px 10px;
-		background: #10151df2;
+		top: 0;
+		right: 30px;
+		width: 218px;
+		height: 27px;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		border-radius: 0 0 8px 8px;
+		background: #10151d;
 		color: #f7f4eb;
-		border-left: 2px solid #63e6d7;
+		white-space: nowrap;
+		text-transform: uppercase;
 		font:
-			700 11px/1.2 'Segoe UI',
+			700 14px/1.2 'Segoe UI',
 			sans-serif;
-		letter-spacing: 0.02em;
+	}
+	img {
+		object-fit: contain;
 	}
 </style>

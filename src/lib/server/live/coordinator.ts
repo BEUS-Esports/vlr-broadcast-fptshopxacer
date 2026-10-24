@@ -25,7 +25,8 @@ export function createLiveCoordinator(dependencies: {
 		nextRetryAt: null,
 		lastReceivedAt: null,
 		lastError: null,
-		attribution: 'unknown'
+		attribution: 'unknown',
+		spectraAttribution: 'unknown'
 	};
 	let binding: BroadcastPreparedSnapshot | null = null;
 	let state: LiveGameState | null = null;
@@ -207,6 +208,11 @@ export function createLiveCoordinator(dependencies: {
 		setAttribution(value: LiveSessionStatus['attribution'], generation: number) {
 			if (generation !== status.generation) return;
 			status.attribution = value;
+			publish();
+		},
+		setSpectraAttribution(value: LiveSessionStatus['attribution']) {
+			status.spectraAttribution = value;
+			if (status.provider === 'spectra') status.attribution = value;
 			publish();
 		},
 		dispose() {

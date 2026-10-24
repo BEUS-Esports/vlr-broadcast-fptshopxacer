@@ -67,6 +67,45 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 	};
 }
 
+it('credits saved Spectra reports independently of the live provider and respects captured scope', async () => {
+	const prepared = preparedFixture();
+	prepared.scopes.game.usesSpectra = true;
+	const snapshot: BroadcastSnapshot = {
+		...prepared,
+		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+	};
+	const view = render(GraphicRenderer, { snapshot, graphic: 'post-game', mode: 'preview' });
+	const badge = () => view.container.querySelector('[aria-label="Provider attribution"]');
+	expect(badge()).not.toBeNull();
+	const telemetry: LiveGameEnvelope = {
+		version: 1,
+		stream: { epoch: 'test', sequence: 1 },
+		state: null,
+		status: liveSessionFixture({ provider: null, spectraAttribution: 'supporter' })
+	};
+	await view.rerender({ snapshot, graphic: 'post-game', mode: 'preview', telemetry });
+	expect(badge()).toBeNull();
+	telemetry.status = liveSessionFixture({ provider: 'gstack', spectraAttribution: 'required' });
+	await view.rerender({ snapshot, graphic: 'post-game', mode: 'preview', telemetry });
+	expect(badge()).not.toBeNull();
+	for (const graphic of ['player-stats', 'mvp'] as const) {
+		await view.rerender({ snapshot, graphic, mode: 'preview', telemetry });
+		expect(badge()).not.toBeNull();
+	}
+	const shown = {
+		...snapshot,
+		scopes: { ...snapshot.scopes, game: { ...snapshot.scopes.game, usesSpectra: false } },
+		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'post-game': true } },
+		publications: { ...snapshot.publications, 'post-game': prepared }
+	};
+	await view.rerender({ snapshot: shown, graphic: 'post-game', mode: 'program', telemetry });
+	expect(badge()).not.toBeNull();
+	await view.rerender({ snapshot, graphic: 'post-game', mode: 'program', telemetry });
+	await expect.poll(badge).toBeNull();
+	await view.rerender({ snapshot, graphic: 'player-lineup', mode: 'preview', telemetry });
+	expect(badge()).toBeNull();
+});
+
 it('refreshes weapon artwork in an open preview without a snapshot change', async () => {
 	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 	const icon = (color: string) =>
@@ -279,6 +318,8 @@ it('renders a provider template without game preparation or healthy status', () 
 	expect(preview.container.querySelectorAll('[data-health]')).toHaveLength(1);
 	expect(preview.container.querySelector('[data-health]')?.textContent).toMatch(/^75\s+HP$/);
 	expect(preview.container.querySelectorAll('[data-player-id=""]')).toHaveLength(10);
+	expect(preview.container.querySelector('[data-sponsor-safe-area]')).toBeNull();
+	expect(preview.container.querySelector('img[alt="ValoSpectra"]')).not.toBeNull();
 	expect(
 		preview.container.querySelector('.team-rail[data-position="left"]')?.getAttribute('data-side')
 	).toBe('attack');

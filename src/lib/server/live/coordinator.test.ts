@@ -58,6 +58,24 @@ function setup(provider: LiveProviderId = 'gstack') {
 }
 afterEach(() => vi.useRealTimers());
 describe('server-owned live provider session', () => {
+	it('keeps Spectra organization attribution after disconnect and provider changes', () => {
+		const { coordinator, publish } = setup('spectra');
+		coordinator.setSpectraAttribution('supporter');
+		expect(coordinator.getStatus()).toMatchObject({
+			attribution: 'supporter',
+			spectraAttribution: 'supporter'
+		});
+		coordinator.disconnect();
+		expect(coordinator.getStatus()).toMatchObject({
+			provider: null,
+			spectraAttribution: 'supporter'
+		});
+		coordinator.connect('gstack');
+		expect(coordinator.getStatus().spectraAttribution).toBe('supporter');
+		coordinator.setSpectraAttribution('required');
+		expect(publish.mock.calls.at(-1)?.[1].spectraAttribution).toBe('required');
+		coordinator.dispose();
+	});
 	it.each(['spectra', 'gstack'] as const)(
 		'resynchronizes quiet %s sessions without treating unchanged statistics or phases as failure',
 		(provider) => {

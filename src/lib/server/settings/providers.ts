@@ -28,7 +28,6 @@ export type ProviderSettingsValue = {
 	henrikdevCandidateLimit: number;
 	postGameRequestTimeoutMs: number;
 	spectraPostGameBaseUrl: string;
-	spectraPostGameGroupCode: string;
 	spectraPostGamePollIntervalMs: number;
 	spectraPostGameMaxAttempts: number;
 };
@@ -47,7 +46,6 @@ export const defaultProviderSettings: ProviderSettingsValue = {
 	henrikdevCandidateLimit: 5,
 	postGameRequestTimeoutMs: 15000,
 	spectraPostGameBaseUrl: 'https://stats.valospectra.com',
-	spectraPostGameGroupCode: '',
 	spectraPostGamePollIntervalMs: 15000,
 	spectraPostGameMaxAttempts: 3
 };
@@ -81,13 +79,6 @@ function boundedInteger(value: unknown, fallback: number, min: number, max: numb
 	if (!Number.isSafeInteger(result) || (result as number) < min || (result as number) > max)
 		throw new Error(`${name} must be between ${min} and ${max}.`);
 	return result as number;
-}
-
-function optionalGroupCode(value: unknown) {
-	const result = typeof value === 'string' ? value.trim() : '';
-	if (result.length > 128 || [...result].some((char) => char.charCodeAt(0) < 32))
-		throw new Error('Enter a valid Spectra post-game group code.');
-	return result;
 }
 
 export function normalizeProviderSettings(
@@ -141,7 +132,6 @@ export function normalizeProviderSettings(
 			'Post-game request timeout'
 		),
 		spectraPostGameBaseUrl: host(value.spectraPostGameBaseUrl, 'Spectra post-game'),
-		spectraPostGameGroupCode: optionalGroupCode(value.spectraPostGameGroupCode),
 		spectraPostGamePollIntervalMs: boundedInteger(
 			value.spectraPostGamePollIntervalMs,
 			15000,
@@ -255,8 +245,8 @@ async function bootstrapSettings() {
 			postGameRequestTimeoutMs:
 				text('POST_GAME_REQUEST_TIMEOUT_MS') || defaults.postGameRequestTimeoutMs,
 			spectraPostGameBaseUrl: text('SPECTRA_POST_GAME_BASE_URL') || defaults.spectraPostGameBaseUrl,
-			spectraPostGameGroupCode:
-				text('SPECTRA_POST_GAME_GROUP_CODE')?.trim() || defaults.spectraPostGameGroupCode,
+			spectraGroupCode:
+				defaults.spectraGroupCode || text('SPECTRA_POST_GAME_GROUP_CODE')?.trim() || '',
 			spectraPostGamePollIntervalMs:
 				text('SPECTRA_POST_GAME_POLL_INTERVAL_MS') || defaults.spectraPostGamePollIntervalMs,
 			spectraPostGameMaxAttempts:
@@ -280,7 +270,8 @@ async function rowToSettings(
 		spectraRegion: row.spectraRegion,
 		spectraHost: row.spectraHost,
 		spectraAccessKey: await decryptSecret(row.spectraAccessKeyEncrypted, 'spectra-access-key'),
-		spectraGroupCode: row.spectraGroupCode,
+		// Preserve installations that only configured the former post-game default.
+		spectraGroupCode: row.spectraGroupCode || row.spectraPostGameGroupCode,
 		gstackUrl: row.gstackUrl,
 		henrikdevBaseUrl: row.henrikdevBaseUrl,
 		henrikdevApiKey: await decryptSecret(row.henrikdevApiKeyEncrypted, 'henrikdev-api-key'),
@@ -289,7 +280,6 @@ async function rowToSettings(
 		henrikdevCandidateLimit: row.henrikdevCandidateLimit,
 		postGameRequestTimeoutMs: row.postGameRequestTimeoutMs,
 		spectraPostGameBaseUrl: row.spectraPostGameBaseUrl,
-		spectraPostGameGroupCode: row.spectraPostGameGroupCode,
 		spectraPostGamePollIntervalMs: row.spectraPostGamePollIntervalMs,
 		spectraPostGameMaxAttempts: row.spectraPostGameMaxAttempts
 	});
@@ -313,7 +303,7 @@ async function insertSettings(value: ProviderSettingsValue) {
 			henrikdevCandidateLimit: value.henrikdevCandidateLimit,
 			postGameRequestTimeoutMs: value.postGameRequestTimeoutMs,
 			spectraPostGameBaseUrl: value.spectraPostGameBaseUrl,
-			spectraPostGameGroupCode: value.spectraPostGameGroupCode,
+			spectraPostGameGroupCode: value.spectraGroupCode,
 			spectraPostGamePollIntervalMs: value.spectraPostGamePollIntervalMs,
 			spectraPostGameMaxAttempts: value.spectraPostGameMaxAttempts
 		})
@@ -405,7 +395,7 @@ export async function saveProviderSettings(
 				henrikdevCandidateLimit: next.henrikdevCandidateLimit,
 				postGameRequestTimeoutMs: next.postGameRequestTimeoutMs,
 				spectraPostGameBaseUrl: next.spectraPostGameBaseUrl,
-				spectraPostGameGroupCode: next.spectraPostGameGroupCode,
+				spectraPostGameGroupCode: next.spectraGroupCode,
 				spectraPostGamePollIntervalMs: next.spectraPostGamePollIntervalMs,
 				spectraPostGameMaxAttempts: next.spectraPostGameMaxAttempts
 			})

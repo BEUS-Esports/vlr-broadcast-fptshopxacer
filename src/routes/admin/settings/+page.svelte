@@ -86,16 +86,6 @@
 							: 'Leave blank for a custom server'}
 					/>
 				</label>
-				<label class="label">
-					<span>Group code</span>
-					<input
-						class="input"
-						name="groupCode"
-						value={data.config.spectraGroupCode}
-						maxlength="128"
-						autocomplete="off"
-					/>
-				</label>
 			</div>
 			<label class="flex items-center gap-2">
 				<input class="checkbox" type="checkbox" name="clearKey" />
@@ -113,17 +103,6 @@
 							type="url"
 							value={data.config.spectraPostGameBaseUrl}
 							required
-						/>
-					</label>
-					<label class="label md:col-span-3">
-						<span>Default post-game group code</span>
-						<input
-							class="input"
-							name="spectraPostGameGroupCode"
-							value={data.config.spectraPostGameGroupCode}
-							maxlength="128"
-							placeholder="Blank uses the live group code"
-							autocomplete="off"
 						/>
 					</label>
 					<label class="label">
@@ -155,6 +134,11 @@
 			<p class="text-sm text-surface-600-400">
 				Live match data uses port 5200 and supporter lookup uses port 5101. Hosted post-game reports
 				use the statistics service host separately.
+			</p>
+			<p class="text-sm">
+				Set the shared Group Code in <a class="underline" href={resolve('/admin/graphics')}
+					>Global Graphics Settings</a
+				>.
 			</p>
 		</section>
 

@@ -9,7 +9,6 @@
 	type Diagnostics = Awaited<ReturnType<typeof getLiveDiagnostics>>;
 	let diagnostics = $state.raw<Diagnostics | null>(null);
 	let source = $state('none');
-	let groupCode = $state('');
 	let error = $state('');
 	let pending = $state(false);
 	let dialog = $state<HTMLDialogElement>();
@@ -41,7 +40,6 @@
 		diagnostics = await response.json();
 		if (diagnostics && editedGeneration !== diagnostics.connection.generation) {
 			editedGeneration = diagnostics.connection.generation;
-			groupCode = diagnostics.config.groupCode;
 			source = diagnostics.connection.provider ?? 'none';
 			mappingEdited = !!diagnostics.mapping;
 			teamPicks = Object.fromEntries(
@@ -152,21 +150,11 @@
 		>
 	</div>
 	{#if source === 'spectra'}
-		<div class="flex flex-wrap items-end gap-3">
-			<label class="label"
-				><span>Spectra group code</span><input
-					class="input"
-					bind:value={groupCode}
-					maxlength="128"
-				/></label
-			><button
-				type="button"
-				class="btn preset-tonal-primary"
-				disabled={pending || !diagnostics}
-				onclick={() => act('group', { groupCode, configRevision: diagnostics?.config.revision })}
-				>Set group code</button
-			>
-		</div>
+		<p class="text-sm">
+			The shared Group Code is configured in <a class="underline" href={resolve('/admin/graphics')}
+				>Global Graphics Settings</a
+			>.
+		</p>
 	{/if}
 	<div class="flex flex-wrap gap-3">
 		<button

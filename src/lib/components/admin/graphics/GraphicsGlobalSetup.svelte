@@ -28,6 +28,22 @@
 
 <section aria-label="Global Setup" class="admin-editor space-y-4">
 	<h2 class="h2">Global Setup</h2>
+	<details class="space-y-3">
+		<summary class="cursor-pointer font-semibold">ValoSpectra Group Code</summary>
+		<p class="text-sm">
+			Shared by In-Game and Post-Match graphics. Saving reconnects an active ValoSpectra session;
+			review its mapping before going live.
+		</p>
+		<ManagementForm action="/admin/graphics?/spectra" initial={data.spectra}>
+			{#snippet children(draft)}
+				<label class="label">
+					<span>Group code</span>
+					<input class="input" bind:value={draft.groupCode} maxlength="128" autocomplete="off" />
+				</label>
+				<button class="btn preset-tonal-primary">Save group code</button>
+			{/snippet}
+		</ManagementForm>
+	</details>
 	<p aria-label="Broadcast connection" role="status">
 		Connection: {connection} · Control revision {live.controlRevision} · Data revision {live.dataRevision}
 	</p>

@@ -22,11 +22,7 @@ let supporter: { revision: number; result: ReturnType<typeof lookupSpectraSuppor
 export const liveCoordinator = createLiveCoordinator({
 	publish: (state, status, urgent) => livePublisher.publish(state, status, urgent),
 	start(provider, callbacks, generation) {
-		if (provider === 'spectra') {
-			if (supporter?.revision !== config.revision)
-				supporter = { revision: config.revision, result: lookupSpectraSupporter(config) };
-			void supporter.result.then((value) => liveCoordinator.setAttribution(value, generation));
-		} else liveCoordinator.setAttribution('required', generation);
+		if (provider === 'spectra') refreshSpectraAttribution();
 		return startProviderSession({
 			provider,
 			config,
@@ -36,6 +32,19 @@ export const liveCoordinator = createLiveCoordinator({
 		});
 	}
 });
+function refreshSpectraAttribution() {
+	if (supporter?.revision !== config.revision) {
+		liveCoordinator.setSpectraAttribution('unknown');
+		supporter = {
+			revision: config.revision,
+			result: config.accessKey ? lookupSpectraSupporter(config) : Promise.resolve('required')
+		};
+	}
+	const pending = supporter;
+	void pending.result.then((value) => {
+		if (supporter === pending) liveCoordinator.setSpectraAttribution(value);
+	});
+}
 export function syncLiveBinding(snapshot: BroadcastPreparedSnapshot) {
 	binding = snapshot;
 	liveCoordinator.bind(snapshot);
@@ -57,6 +66,7 @@ export function initializeLiveSettings() {
 	return (initialized ??= loadProviderSettings().then((saved) => {
 		settings = saved;
 		config = liveConfig(saved);
+		refreshSpectraAttribution();
 	}));
 }
 function serialize<T>(operation: () => Promise<T>) {
@@ -87,40 +97,33 @@ export function configureLiveProvider(
 			throw new Error('Set a Spectra group code before connecting.');
 		const next = await saveProviderSettings(
 			{
+				...settings,
 				...value,
-				spectraRegion: value.spectraRegion as ProviderSettingsValue['spectraRegion'],
-				spectraHost: value.spectraHost as string,
-				spectraGroupCode: value.groupCode as string,
+				spectraGroupCode: (value.groupCode ?? settings.spectraGroupCode) as string,
 				spectraAccessKey: value.accessKey as string,
 				clearSpectraAccessKey: value.clearKey === true,
-				gstackUrl: value.gstackUrl as string,
-				henrikdevBaseUrl: value.henrikdevBaseUrl as string,
 				henrikdevApiKey: value.henrikdevApiKey as string,
-				clearHenrikdevApiKey: value.clearHenrikdevApiKey === true,
-				henrikdevAffinity: value.henrikdevAffinity as ProviderSettingsValue['henrikdevAffinity'],
-				henrikdevPlatform: value.henrikdevPlatform as ProviderSettingsValue['henrikdevPlatform'],
-				henrikdevCandidateLimit: value.henrikdevCandidateLimit as number,
-				postGameRequestTimeoutMs: value.postGameRequestTimeoutMs as number,
-				spectraPostGameBaseUrl: value.spectraPostGameBaseUrl as string,
-				spectraPostGameGroupCode: value.spectraPostGameGroupCode as string,
-				spectraPostGamePollIntervalMs: value.spectraPostGamePollIntervalMs as number,
-				spectraPostGameMaxAttempts: value.spectraPostGameMaxAttempts as number
+				clearHenrikdevApiKey: value.clearHenrikdevApiKey === true
 			},
 			expectedRevision
 		);
-		const liveChanged =
+		const spectraChanged =
 			previous.spectraRegion !== next.spectraRegion ||
 			previous.spectraHost !== next.spectraHost ||
 			previous.spectraAccessKey !== next.spectraAccessKey ||
-			previous.spectraGroupCode !== next.spectraGroupCode ||
-			previous.gstackUrl !== next.gstackUrl;
+			previous.spectraGroupCode !== next.spectraGroupCode;
+		const liveChanged =
+			activeProvider === 'spectra'
+				? spectraChanged
+				: activeProvider === 'gstack' && previous.gstackUrl !== next.gstackUrl;
 		settings = next;
 		config = liveConfig(next);
-		if (liveChanged) supporter = null;
+		if (spectraChanged) supporter = null;
+		refreshSpectraAttribution();
 		if (connect || liveChanged) {
 			liveCoordinator.disconnect();
 			const target = connect ?? activeProvider;
-			if (target) liveCoordinator.connect(target);
+			if (target && (target !== 'spectra' || config.groupCode)) liveCoordinator.connect(target);
 		}
 		return getLiveSettings();
 	});
@@ -135,7 +138,9 @@ export function operateLiveProvider(input: Record<string, unknown>) {
 				if (input.provider !== 'spectra' && input.provider !== 'gstack')
 					throw new Error('Choose ValoSpectra or GStack.');
 				if (input.provider === 'spectra' && !config.groupCode)
-					throw new Error('Set a Spectra group code in Settings before connecting.');
+					throw new Error(
+						'Set a Spectra group code in Global Graphics Settings before connecting.'
+					);
 				liveCoordinator.connect(input.provider);
 				break;
 			case 'disconnect':
@@ -167,6 +172,7 @@ export function operateLiveProvider(input: Record<string, unknown>) {
 					);
 					settings = next;
 					config = liveConfig(next);
+					refreshSpectraAttribution();
 					if (liveCoordinator.getStatus().provider === 'spectra')
 						liveCoordinator.connect('spectra');
 				}

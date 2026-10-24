@@ -12,6 +12,16 @@ function envelope() {
 }
 
 describe('live envelope decoder', () => {
+	it('accepts legacy status and validates optional Spectra entitlement', () => {
+		for (const spectraAttribution of ['supporter', 'required', 'unknown', 'invalid-key']) {
+			const value = envelope();
+			Object.assign(value.status, { spectraAttribution });
+			expect(decodeLiveGameEnvelope(JSON.stringify(value))).not.toBeNull();
+		}
+		const value = envelope();
+		Object.assign(value.status, { spectraAttribution: true });
+		expect(decodeLiveGameEnvelope(JSON.stringify(value))).toBeNull();
+	});
 	it('accepts the complete nullable contract and zero values', () => {
 		const value = envelope();
 		expect(decodeLiveGameEnvelope(JSON.stringify(value))).toEqual(value);

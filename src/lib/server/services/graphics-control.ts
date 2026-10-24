@@ -5,9 +5,10 @@ import { buildBroadcastSnapshot } from '#lib/server/broadcast/snapshot.ts';
 import { updateBroadcastState, type BroadcastUpdate } from '#lib/server/services/broadcast.ts';
 import { formError, readPayload } from '#lib/server/services/form-error.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
-import type { Actions } from '@sveltejs/kit';
+import { fail, type Actions } from '@sveltejs/kit';
 import { loadGameManagement } from './game-management';
 import { isInGameControlAction } from '#lib/broadcast/in-game-controls.ts';
+import { configureLiveProvider, getLiveSettings } from '#lib/server/live/runtime.ts';
 
 export async function loadGraphicsControl() {
 	const [snapshot, tournamentOptions, matchOptions, gameOptions] = await Promise.all([
@@ -28,10 +29,33 @@ export async function loadGraphicsControl() {
 	const management = snapshot.selection
 		? { ...(await loadGameManagement(snapshot.selection.gameId)), scopes: snapshot.scopes }
 		: null;
-	return { snapshot, tournamentOptions, matchOptions, gameOptions, management };
+	const { config } = await getLiveSettings();
+	return {
+		snapshot,
+		tournamentOptions,
+		matchOptions,
+		gameOptions,
+		management,
+		spectra: { revision: config.revision, groupCode: config.groupCode }
+	};
 }
 
 export const actions: Actions = {
+	spectra: async ({ request }) => {
+		const form = await request.formData();
+		try {
+			const draft = readPayload(form);
+			if (typeof draft.groupCode !== 'string')
+				throw new SaveError('invalid', 'Enter a Spectra group code.');
+			await configureLiveProvider({ groupCode: draft.groupCode }, draft.revision as number, null);
+			return { saved: true };
+		} catch {
+			return fail(400, {
+				error:
+					'Could not save the Group Code. Use at most 128 characters without control characters, then reload if another operator changed settings.'
+			});
+		}
+	},
 	select: async ({ request }) => {
 		const form = await request.formData();
 		let draft: Record<string, unknown> = {};

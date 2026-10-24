@@ -90,8 +90,9 @@ test('Henrik choice, mapping/diff, import, manual conflict and persistent scoped
 });
 
 test('Spectra bounded pending/cancel and shared import persist without stale late responses', async ({
-	page
-}) => {
+	page,
+	browser
+}, testInfo) => {
 	test.setTimeout(60_000);
 	page.on('dialog', (dialog) => dialog.accept());
 	await page.goto('/admin/games/pg-spectra?tab=statistics');
@@ -117,5 +118,26 @@ test('Spectra bounded pending/cancel and shared import persist without stale lat
 	await page.reload();
 	await expect(page.getByText(/Imported from spectra/)).toBeVisible();
 	await expect(page.getByRole('textbox', { name: 'Player 0 Kills', exact: true })).toHaveValue('1');
+	await page.goto('/admin/graphics');
+	await page.getByRole('combobox', { name: 'Tournament', exact: true }).selectOption('pg-event');
+	await page.getByRole('combobox', { name: 'Match', exact: true }).selectOption('pg-match');
+	await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('pg-spectra');
+	await save(page, 'Take game live');
+	await page.goto('/admin/graphics/post-game');
+	await save(page, 'Show Post-Game');
+	const output = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+	try {
+		await output.goto('/gfx/live/post-game');
+		const badge = output.getByRole('complementary', { name: 'Provider attribution' });
+		await expect(badge).toHaveText('Powered by Spectra');
+		await expect(badge.getByRole('img', { name: 'ValoSpectra' })).toBeVisible();
+		await expect
+			.poll(() => badge.locator('img').evaluate((image: HTMLImageElement) => image.naturalWidth))
+			.toBeGreaterThan(0);
+		expect(await badge.boundingBox()).toEqual({ x: 1672, y: 0, width: 218, height: 27 });
+		await output.screenshot({ path: testInfo.outputPath('spectra-post-match-watermark.png') });
+	} finally {
+		await output.close();
+	}
 	await scenario('ready');
 });

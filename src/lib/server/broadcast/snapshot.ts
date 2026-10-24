@@ -128,6 +128,19 @@ export async function buildBroadcastPreparedSnapshot(
 		)
 		.orderBy(asc(s.gameLineups.entryId), asc(s.gameLineups.slot), asc(s.gameLineups.gameId));
 	const statisticsGames = await loadStatisticsGames(gameRows, tx);
+	const spectraReports = await tx
+		.select({ gameId: s.gameStatisticsMeta.gameId })
+		.from(s.gameStatisticsMeta)
+		.where(
+			and(
+				eq(s.gameStatisticsMeta.importSource, 'spectra'),
+				inArray(
+					s.gameStatisticsMeta.gameId,
+					gameRows.map((row) => row.id)
+				)
+			)
+		);
+	const spectraGameIds = new Set(spectraReports.map((row) => row.gameId));
 	for (const scope of broadcastScopes) {
 		const scopedGames = gameRows.filter(
 			(row) =>
@@ -146,6 +159,9 @@ export async function buildBroadcastPreparedSnapshot(
 			if (!candidate.entryIds.includes(row.entryId)) candidate.entryIds.push(row.entryId);
 		}
 		snapshot.scopes[scope] = {
+			usesSpectra: scopedGames.some(
+				(row) => spectraGameIds.has(row.id) && (scope === 'game' || row.resultType === 'normal')
+			),
 			statistics: aggregateStatistics(
 				scope,
 				statisticsGames.filter((row) => ids.has(row.id))

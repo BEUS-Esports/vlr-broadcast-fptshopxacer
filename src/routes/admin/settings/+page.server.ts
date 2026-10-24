@@ -23,7 +23,6 @@ export const actions: Actions = {
 				{
 					spectraRegion: field('spectraRegion'),
 					spectraHost: field('spectraHost'),
-					groupCode: field('groupCode'),
 					accessKey: field('accessKey'),
 					clearKey: field('clearKey') === 'on',
 					gstackUrl: field('gstackUrl'),
@@ -35,7 +34,6 @@ export const actions: Actions = {
 					henrikdevCandidateLimit: field('henrikdevCandidateLimit'),
 					postGameRequestTimeoutMs: field('postGameRequestTimeoutMs'),
 					spectraPostGameBaseUrl: field('spectraPostGameBaseUrl'),
-					spectraPostGameGroupCode: field('spectraPostGameGroupCode'),
 					spectraPostGamePollIntervalMs: field('spectraPostGamePollIntervalMs'),
 					spectraPostGameMaxAttempts: field('spectraPostGameMaxAttempts')
 				},

@@ -507,6 +507,17 @@ describe('idle provider recovery', () => {
 describe('Spectra supporter lookup', () => {
 	it.each([
 		[true, 'supporter'],
+		[false, 'required'],
+		['true', 'unknown']
+	] as const)('honors orgIsSupporter=%s without coercion', async (orgIsSupporter, result) => {
+		expect(
+			await lookupSpectraSupporter(config, {
+				fetch: async () => Response.json({ orgIsSupporter, isSupporter: true })
+			})
+		).toBe(result);
+	});
+	it.each([
+		[true, 'supporter'],
 		[false, 'required']
 	] as const)(
 		'maps HTTP200 boolean %s and encodes server-only access keys',

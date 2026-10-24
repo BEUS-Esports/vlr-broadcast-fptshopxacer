@@ -56,7 +56,11 @@ export function normalizeConfig(input: unknown, requireSpectra = true): LiveProv
 	const extras = new URL(host);
 	extras.port = '5101';
 	const groupCode = typeof value.groupCode === 'string' ? value.groupCode.trim() : '';
-	if ((requireSpectra && !groupCode) || groupCode.length > 128)
+	if (
+		(requireSpectra && !groupCode) ||
+		groupCode.length > 128 ||
+		[...groupCode].some((char) => char.charCodeAt(0) < 32)
+	)
 		throw new Error('Enter a Spectra group code (up to 128 characters).');
 	if (typeof value.accessKey !== 'string' || value.accessKey.length > 2048)
 		throw new Error('Enter a valid access key or leave it blank for a custom server.');

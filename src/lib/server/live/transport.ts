@@ -299,8 +299,9 @@ export async function lookupSpectraSupporter(
 		}
 		const text = await boundedText(response, controller.signal, maxHttpBytes);
 		const value: unknown = JSON.parse(text);
-		if (value && typeof value === 'object' && Object.hasOwn(value, 'isSupporter')) {
-			const supporter = (value as Record<string, unknown>).isSupporter;
+		if (value && typeof value === 'object') {
+			const org = value as Record<string, unknown>;
+			const supporter = Object.hasOwn(org, 'orgIsSupporter') ? org.orgIsSupporter : org.isSupporter;
 			if (supporter === true) return 'supporter';
 			if (supporter === false) return 'required';
 		}

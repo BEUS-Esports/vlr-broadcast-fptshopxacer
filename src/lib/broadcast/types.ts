@@ -46,6 +46,7 @@ export type BroadcastResult = {
 	winnerEntryId: string | null;
 };
 export type BroadcastScopeView = {
+	usesSpectra?: boolean;
 	statistics: StatisticsView;
 	candidates: Array<BroadcastPlayer & { entryIds: string[] }>;
 	mvpPlayerId: string | null;
@@ -204,11 +205,15 @@ const statistics = object({
 		})
 	)
 });
-const scope = object({
-	statistics,
-	candidates: array(object({ ...player, entryIds: array(string) })),
-	mvpPlayerId: text
-});
+const scope: Check = (value) =>
+	object({
+		...(value && typeof value === 'object' && Object.hasOwn(value, 'usesSpectra')
+			? { usesSpectra: boolean }
+			: {}),
+		statistics,
+		candidates: array(object({ ...player, entryIds: array(string) })),
+		mvpPlayerId: text
+	})(value);
 const result = {
 	resultType: nullable(oneOf('normal', 'forfeit', 'walkover', 'cancelled')),
 	winnerEntryId: text

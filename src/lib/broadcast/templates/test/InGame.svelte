@@ -7,10 +7,12 @@
 		snapshot,
 		teamPresentation = null,
 		blankMissing = false,
+		showSponsor = true,
 		mapName = null
 	}: {
 		snapshot: BroadcastSnapshot;
 		blankMissing?: boolean;
+		showSponsor?: boolean;
 		mapName?: string | null;
 		teamPresentation?: Record<
 			'left' | 'right',
@@ -51,7 +53,7 @@
 					{#if position === 'right' && !presented && (!blankMissing || wins !== null)}
 						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
 							{#each winSlots as index (index)}
-								<span class:won={index < (wins ?? 0)}></span>
+								<span class={{ won: index < (wins ?? 0) }}></span>
 							{/each}
 						</div>
 					{/if}
@@ -68,7 +70,7 @@
 					{#if position === 'left' && !presented && (!blankMissing || wins !== null)}
 						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
 							{#each winSlots as index (index)}
-								<span class:won={index < (wins ?? 0)}></span>
+								<span class={{ won: index < (wins ?? 0) }}></span>
 							{/each}
 						</div>
 					{/if}
@@ -76,9 +78,13 @@
 			{/each}
 
 			<div class="center-mark" aria-hidden="true"></div>
-			<div class="sponsor-slot" data-sponsor-safe-area aria-label="Reserved sponsor logo loop">
-				{#if !blankMissing}<span>SPONSOR LOOP</span>{/if}
-			</div>
+			{#if showSponsor}<div
+					class="sponsor-slot"
+					data-sponsor-safe-area
+					aria-label="Reserved sponsor logo loop"
+				>
+					{#if !blankMissing}<span>SPONSOR LOOP</span>{/if}
+				</div>{/if}
 		</div>
 
 		<div class="match-bug">

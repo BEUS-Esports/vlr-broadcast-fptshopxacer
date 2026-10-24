@@ -13,6 +13,27 @@ afterEach(() => {
 	delete process.env.LIVE_PROVIDER_CONFIG_FILE;
 });
 
+it('uses one saved group for live and post-game, preserves it on settings saves and clears both together', async () => {
+	await withManagementFixture(async (fixture) => {
+		process.env.LIVE_PROVIDER_CONFIG_FILE = join(fixture.directory, 'legacy-live-provider.json');
+		const { loadProviderSettings, saveProviderSettings } = await import('./providers');
+		await loadProviderSettings();
+		await fixture.db
+			.update(s.providerSettings)
+			.set({ spectraGroupCode: '', spectraPostGameGroupCode: 'LEGACY' });
+		const legacy = await loadProviderSettings();
+		expect(legacy.spectraGroupCode).toBe('LEGACY');
+		const saved = await saveProviderSettings({ spectraGroupCode: 'SHARED' }, legacy.revision);
+		const { loadPostGameConfig } = await import('../post-game/config');
+		expect((await loadPostGameConfig()).spectra?.groupCode).toBe('SHARED');
+		const kept = await saveProviderSettings({ henrikdevAffinity: 'kr' }, saved.revision);
+		expect(kept.spectraGroupCode).toBe('SHARED');
+		await saveProviderSettings({ spectraGroupCode: '' }, kept.revision);
+		expect((await loadProviderSettings()).spectraGroupCode).toBe('');
+		expect((await loadPostGameConfig()).spectra?.groupCode).toBe('');
+	});
+});
+
 it.each([
 	['invalid provider address', JSON.stringify({ ...legacyConfig, gstackUrl: 'invalid' })],
 	['malformed JSON', '{"accessKey":"legacy-spectra-key"']
