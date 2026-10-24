@@ -80,7 +80,7 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) 160px minmax(0, 1fr);
 		align-items: center;
-		background: linear-gradient(90deg, #170c3af4, #24135cf4 50%, #170c3af4);
+		background: linear-gradient(90deg, #0f1f2bf4, #15303df4 50%, #0f1f2bf4);
 		border-block: 1px solid var(--gfx-line);
 		clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px);
 	}
@@ -194,7 +194,7 @@
 		margin-top: 8px;
 		height: calc(100% - 83px);
 		min-height: 90px;
-		background: #0b062088;
+		background: #08121988;
 		overflow: hidden;
 	}
 	.map :global(.identity) {
@@ -265,5 +265,134 @@
 		left: 11px;
 		right: 11px;
 		bottom: 9px;
+	}
+
+	/* ===== VCT Pacific ===== */
+	.matchup {
+		background: #10222e;
+		clip-path: none;
+		border: 0;
+	}
+	.team :global(.identity strong) {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 34px;
+	}
+	.versus strong {
+		color: #3ad7dc;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 40px;
+	}
+	.versus {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+	}
+	li {
+		background: #10222e;
+		border: 0;
+		clip-path: none;
+	}
+	.step-head {
+		background: #3ad7dc;
+		color: #06222a;
+	}
+	.step-head strong,
+	.sequence,
+	.game {
+		color: #06222a;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+	.map :global(.identity strong) {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 30px;
+		text-shadow: 0 2px 8px #000a;
+	}
+	.decision strong {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 20px;
+	}
+	.decision small {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+
+	/* ===== VCT Pacific: animation xuất hiện (quét trái→phải lần lượt, chớp lime) ===== */
+	@keyframes vctWipe {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+	@keyframes vctFlash {
+		0% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	@keyframes vctDrop {
+		from {
+			transform: translateY(-24px);
+			opacity: 0;
+		}
+		to {
+			transform: none;
+			opacity: 1;
+		}
+	}
+	.matchup {
+		position: relative;
+		animation: vctWipe 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		animation-delay: 0.3s;
+	}
+	.matchup:nth-child(1) {
+		animation-delay: 0.3s;
+	}
+	li {
+		position: relative;
+		animation: vctWipe 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		animation-delay: 0.5s;
+	}
+	li:nth-child(1) {
+		animation-delay: 0.5s;
+	}
+	li:nth-child(2) {
+		animation-delay: 0.58s;
+	}
+	li:nth-child(3) {
+		animation-delay: 0.66s;
+	}
+	li:nth-child(4) {
+		animation-delay: 0.74s;
+	}
+	li:nth-child(5) {
+		animation-delay: 0.82s;
+	}
+	li:nth-child(6) {
+		animation-delay: 0.9s;
+	}
+	li:nth-child(7) {
+		animation-delay: 0.98s;
+	}
+	li::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: #b7ff3c;
+		z-index: 9;
+		pointer-events: none;
+		animation: vctFlash 0.32s ease-out both;
+		animation-delay: inherit;
 	}
 </style>

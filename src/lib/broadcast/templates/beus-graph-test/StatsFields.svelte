@@ -47,7 +47,7 @@
 		border-top: 1px solid var(--gfx-line);
 	}
 	.fields [data-coverage='partial'] {
-		border-top-color: #ffc94a;
+		border-top-color: #3ad7dc;
 	}
 	strong {
 		color: var(--gfx-ink);
@@ -74,11 +74,26 @@
 		position: absolute;
 		right: 7px;
 		top: 7px;
-		color: #ffc94a;
+		color: #3ad7dc;
 		font:
 			700 7px/1 Bahnschrift,
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.08em;
+	}
+
+	/* ===== VCT Pacific ===== */
+	.fields [data-field] {
+		background: #16303f;
+		border: 0;
+	}
+	strong {
+		color: #fff;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+	span {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
 	}
 </style>

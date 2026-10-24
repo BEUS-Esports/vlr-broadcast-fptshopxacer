@@ -70,7 +70,7 @@
 		gap: 138px;
 		align-items: center;
 		padding-inline: 26px;
-		background: linear-gradient(90deg, #170c3af5, #24135cf5 50%, #170c3af5);
+		background: linear-gradient(90deg, #0f1f2bf5, #15303df5 50%, #0f1f2bf5);
 		border-block: 1px solid var(--gfx-line);
 		clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px);
 	}
@@ -244,5 +244,160 @@
 	}
 	article :global(.fields small) {
 		display: none;
+	}
+
+	/* ===== VCT Pacific ===== */
+	.scoreboard {
+		background: #10222e;
+		clip-path: none;
+		border: 0;
+	}
+	.score-team :global(.identity strong) {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 40px;
+	}
+	.score {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+	}
+	.result strong {
+		color: #3ad7dc;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+	}
+	.result span {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+	article {
+		background: #10222e;
+		border: 0;
+		clip-path: none;
+	}
+	article[data-mvp='true'] {
+		background: #3ad7dc;
+	}
+	article[data-mvp='true'] .player :global(.identity strong),
+	article[data-mvp='true'] :global(.fields strong) {
+		color: #06222a;
+	}
+	article[data-mvp='true'] :global(.fields span) {
+		color: #0b1822;
+	}
+	.player :global(.identity strong) {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 24px;
+	}
+	.player > span {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+	.mvp {
+		background: #06222a;
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+	article :global(.fields [data-field]) {
+		background: #16303f;
+		border: 0;
+	}
+	article :global(.fields strong) {
+		color: #fff;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+	article :global(.fields span) {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+	}
+	article[data-mvp='true'] :global(.fields [data-field]) {
+		background: #06222a;
+	}
+	article[data-mvp='true'] :global(.fields strong) {
+		color: #fff;
+	}
+	article[data-mvp='true'] :global(.fields span) {
+		color: #3ad7dc;
+	}
+	article[data-mvp='true'] {
+		background: #b7ff3c;
+	}
+	.mvp {
+		background: #06222a;
+		color: #b7ff3c;
+	}
+
+	/* ===== VCT Pacific: animation xuất hiện (quét trái→phải lần lượt, chớp lime) ===== */
+	@keyframes vctWipe {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+	@keyframes vctFlash {
+		0% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	@keyframes vctDrop {
+		from {
+			transform: translateY(-24px);
+			opacity: 0;
+		}
+		to {
+			transform: none;
+			opacity: 1;
+		}
+	}
+	.scoreboard {
+		position: relative;
+		animation: vctWipe 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		animation-delay: 0.3s;
+	}
+	.scoreboard:nth-child(1) {
+		animation-delay: 0.3s;
+	}
+	article {
+		position: relative;
+		animation: vctWipe 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		animation-delay: 0.5s;
+	}
+	article:nth-child(1) {
+		animation-delay: 0.5s;
+	}
+	article:nth-child(2) {
+		animation-delay: 0.56s;
+	}
+	article:nth-child(3) {
+		animation-delay: 0.62s;
+	}
+	article:nth-child(4) {
+		animation-delay: 0.68s;
+	}
+	article:nth-child(5) {
+		animation-delay: 0.74s;
+	}
+	article::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: #b7ff3c;
+		z-index: 9;
+		pointer-events: none;
+		animation: vctFlash 0.32s ease-out both;
+		animation-delay: inherit;
 	}
 </style>

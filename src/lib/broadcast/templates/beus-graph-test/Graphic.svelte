@@ -66,6 +66,14 @@
 	{#if dev}<span>DATA SOURCE</span>{/if}
 </footer>
 
+<svelte:head>
+	<!-- VCT Pacific: Barlow Condensed (tiêu đề) + Barlow (số, nhãn) -->
+	<link
+		rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@500;600;700&display=swap"
+	/>
+</svelte:head>
+
 <style>
 	section {
 		position: absolute;
@@ -75,15 +83,15 @@
 		font:
 			20px/1.25 'Segoe UI',
 			sans-serif;
-		--gfx-bg: #0b0620;
-		--gfx-panel: #170c3aed;
-		--gfx-panel-solid: #170c3a;
-		--gfx-panel-raised: #24135c;
-		--gfx-line: #5b3ae0;
-		--gfx-muted: #c9bcff;
+		--gfx-bg: #081219;
+		--gfx-panel: #0f1f2bed;
+		--gfx-panel-solid: #0f1f2b;
+		--gfx-panel-raised: #15303d;
+		--gfx-line: #2a8c96;
+		--gfx-muted: #9fd8dc;
 		--gfx-ink: #f7f4eb;
-		--gfx-accent: #ffc94a;
-		--gfx-accent-soft: #ffc94a28;
+		--gfx-accent: #3ad7dc;
+		--gfx-accent-soft: #3ad7dc28;
 		--gfx-attack: #248bff;
 		--gfx-defense: #ff4655;
 		--gfx-cut: 22px;
@@ -113,7 +121,7 @@
 			linear-gradient(90deg, var(--gfx-accent) 0 156px, transparent 156px) top left / 100% 4px
 				no-repeat,
 			/* VCT: khối tím sáng → chàm đậm */
-			linear-gradient(100deg, #5b2cf0f5 0%, #3a18b8f2 38%, #1f114ef0 72%, #10082be8 100%);
+			linear-gradient(100deg, #1d6f78f5 0%, #16505af2 38%, #12283af0 72%, #0a161fe8 100%);
 		clip-path: polygon(
 			0 0,
 			calc(100% - var(--gfx-cut)) 0,
@@ -131,7 +139,7 @@
 		right: 30px;
 		bottom: 0;
 		height: 1px;
-		background: linear-gradient(90deg, var(--gfx-accent), #ffc94a00 54%);
+		background: linear-gradient(90deg, var(--gfx-accent), #3ad7dc00 54%);
 	}
 	.title-lockup {
 		min-width: 0;
@@ -151,7 +159,7 @@
 	}
 	.pregame h1 {
 		margin-top: 7px;
-		text-shadow: 0 3px 0 #10082b80;
+		text-shadow: 0 3px 0 #0a161f80;
 		font:
 			800 50px/0.95 Bahnschrift,
 			'Arial Narrow',
@@ -200,7 +208,7 @@
 		inset: 160px 260px auto;
 		padding: 52px;
 		text-align: center;
-		background: linear-gradient(135deg, #170c3af2, #24135ce8);
+		background: linear-gradient(135deg, #0f1f2bf2, #15303de8);
 		border-block: 1px solid var(--gfx-line);
 		clip-path: polygon(
 			20px 0,
@@ -233,14 +241,14 @@
 		box-sizing: border-box;
 		padding-right: 14px;
 		text-align: right;
-		color: #c9bcff;
+		color: #9fd8dc;
 		font:
 			700 11px/28px Bahnschrift,
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.16em;
-		background: linear-gradient(90deg, transparent, #170c3ab8);
-		border-right: 2px solid #ffc94a;
+		background: linear-gradient(90deg, transparent, #0f1f2bb8);
+		border-right: 2px solid #3ad7dc;
 	}
 	footer.in-game {
 		top: 1014px;
@@ -251,8 +259,8 @@
 	footer.in-game span {
 		display: inline-block;
 		padding: 0 10px;
-		background: linear-gradient(90deg, transparent, #170c3ab8);
-		border-right: 2px solid #ffc94a;
+		background: linear-gradient(90deg, transparent, #0f1f2bb8);
+		border-right: 2px solid #3ad7dc;
 	}
 	.pregame :global(.identity) {
 		min-width: 0;
@@ -270,5 +278,203 @@
 	.pregame :global(p),
 	.pregame :global(h2) {
 		overflow-wrap: anywhere;
+	}
+
+	/* ===== VCT Pacific: panel xanh than #10222e, thanh cyan #3ad7dc, nhấn lime #b7ff3c, tiêu đề Barlow Condensed ===== */
+	section {
+		--gfx-bg: #07090f;
+		--gfx-panel: #10222e;
+		--gfx-panel-solid: #10222e;
+		--gfx-panel-raised: #16303f;
+		--gfx-line: #2a8c96;
+		--gfx-muted: #3ad7dc;
+		--gfx-accent: #3ad7dc;
+		--gfx-accent-soft: #3ad7dc26;
+		--vct-ink: #06222a;
+		--vct-violet: #10222e;
+		--vct-violet-deep: #0b1822;
+		--vct-gold: #3ad7dc;
+		--vct-pink: #b7ff3c;
+		--vct-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		--vct-mono: Barlow, 'Segoe UI', sans-serif;
+		font-family: var(--vct-display);
+	}
+	section.pregame {
+		background: radial-gradient(ellipse 70% 60% at 50% 55%, #0f3a4466, transparent 70%);
+	}
+	.package-header {
+		height: 150px;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 4px;
+		padding: 0;
+		background: none;
+		clip-path: none;
+		border: 0;
+	}
+	.package-header::after {
+		display: none;
+	}
+	.title-lockup {
+		text-align: center;
+	}
+	.event-name {
+		margin: 0 auto;
+		color: var(--vct-gold);
+		font: 700 13px/1 var(--vct-mono);
+		letter-spacing: 0.14em;
+	}
+	.pregame h1 {
+		margin-top: 2px;
+		color: #fff;
+		text-shadow: none;
+		font: 800 92px/0.95 var(--vct-display);
+		letter-spacing: 0.01em;
+	}
+	.event-context {
+		text-align: center;
+		min-width: 0;
+		display: flex;
+		gap: 22px;
+		justify-content: center;
+		align-items: baseline;
+	}
+	.event-context strong,
+	.event-context p {
+		margin: 0;
+		color: var(--vct-gold);
+		font: 700 13px/1 var(--vct-mono);
+		letter-spacing: 0.14em;
+	}
+	.content-frame {
+		height: 770px;
+	}
+	.empty-state {
+		background: var(--vct-violet);
+		clip-path: none;
+		border: 0;
+	}
+	.empty-state strong {
+		color: #fff;
+		font: 800 52px/1 var(--vct-display);
+	}
+	.empty-state p {
+		color: var(--vct-gold);
+		font: 700 14px/1 var(--vct-mono);
+		letter-spacing: 0.14em;
+	}
+	footer {
+		color: var(--vct-gold, #3ad7dc);
+		font:
+			700 11px/28px Barlow,
+			'Segoe UI',
+			sans-serif;
+		letter-spacing: 0.14em;
+		background: none;
+		border-right: 0;
+	}
+	footer.in-game span {
+		background: none;
+		border-right: 0;
+	}
+	/* góc khung chữ L màu lime (VCT Pacific) */
+	.content-frame::before,
+	.content-frame::after {
+		content: '';
+		position: absolute;
+		width: 64px;
+		height: 64px;
+		border: 0 solid #b7ff3c;
+		z-index: 5;
+		pointer-events: none;
+	}
+	.content-frame::before {
+		left: 0;
+		top: 8px;
+		border-width: 4px 0 0 4px;
+	}
+	.content-frame::after {
+		right: 0;
+		bottom: 8px;
+		border-width: 0 4px 4px 0;
+	}
+	.pregame h1 {
+		text-transform: uppercase;
+	}
+	@keyframes vctTitle {
+		from {
+			opacity: 0;
+			filter: blur(8px);
+			transform: translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			filter: none;
+			transform: none;
+		}
+	}
+	@keyframes vctBar {
+		from {
+			transform: scaleX(0);
+		}
+		to {
+			transform: scaleX(1);
+		}
+	}
+	@keyframes vctCorner {
+		from {
+			opacity: 0;
+			transform: scale(0.4);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+	.title-lockup {
+		animation: vctTitle 0.3s ease-out both;
+	}
+	.event-context {
+		animation: vctTitle 0.3s 0.12s ease-out both;
+	}
+	.package-header::after {
+		display: block;
+		left: 50%;
+		right: auto;
+		width: 360px;
+		margin-left: -180px;
+		bottom: 6px;
+		height: 6px;
+		background: #3ad7dc;
+		transform-origin: center;
+		animation: vctBar 0.35s 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+	.content-frame::before {
+		transform-origin: top left;
+		animation: vctCorner 0.3s 0.3s ease-out both;
+	}
+	.content-frame::after {
+		transform-origin: bottom right;
+		animation: vctCorner 0.3s 0.3s ease-out both;
+	}
+	/* gạch đứt lime dọc hai mép như bộ Pacific */
+	section.pregame::before,
+	section.pregame::after {
+		content: '';
+		position: absolute;
+		top: 330px;
+		width: 4px;
+		height: 260px;
+		background: repeating-linear-gradient(180deg, #b7ff3c 0 10px, transparent 10px 20px);
+		opacity: 0.85;
+		z-index: 4;
+		animation: vctTitle 0.4s 0.4s ease-out both;
+	}
+	section.pregame::before {
+		left: 0;
+	}
+	section.pregame::after {
+		right: 0;
 	}
 </style>

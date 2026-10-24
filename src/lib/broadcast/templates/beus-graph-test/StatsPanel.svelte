@@ -77,14 +77,14 @@
 		position: relative;
 		min-width: 0;
 		overflow: hidden;
-		background: linear-gradient(180deg, #2a1870, #10082b);
+		background: linear-gradient(180deg, #183748, #0a161f);
 	}
 	.portrait::after {
 		content: '';
 		position: absolute;
 		inset: 0;
 		pointer-events: none;
-		background: linear-gradient(180deg, transparent 58%, #0b0620e0);
+		background: linear-gradient(180deg, transparent 58%, #081219e0);
 	}
 	.portrait :global(.identity) {
 		height: 100%;
@@ -176,7 +176,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		padding: 7px 9px;
-		background: #0b062099;
+		background: #08121999;
 		border-left: 2px solid var(--gfx-accent);
 	}
 	.status {
@@ -190,5 +190,84 @@
 	}
 	article :global(.fields) {
 		margin-top: auto;
+	}
+
+	/* ===== VCT Pacific ===== */
+	article {
+		background: #10222e;
+		border: 0;
+		clip-path: none;
+		box-shadow: none;
+	}
+	.portrait {
+		background: #0b1822;
+	}
+	.portrait::after {
+		background: linear-gradient(180deg, transparent 50%, #fff 50%);
+		opacity: 0;
+	}
+	.portrait :global(.identity strong) {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 40px;
+	}
+	.teams :global(.identity strong) {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 22px;
+	}
+	.agent {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+		border-color: #3ad7dc;
+	}
+
+	/* ===== VCT Pacific: animation xuất hiện (quét trái→phải lần lượt, chớp lime) ===== */
+	@keyframes vctWipe {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+	@keyframes vctFlash {
+		0% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	@keyframes vctDrop {
+		from {
+			transform: translateY(-24px);
+			opacity: 0;
+		}
+		to {
+			transform: none;
+			opacity: 1;
+		}
+	}
+	article {
+		position: relative;
+		animation: vctWipe 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		animation-delay: 0.45s;
+	}
+	article:nth-child(1) {
+		animation-delay: 0.45s;
+	}
+	article::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: #b7ff3c;
+		z-index: 9;
+		pointer-events: none;
+		animation: vctFlash 0.32s ease-out both;
+		animation-delay: inherit;
 	}
 </style>

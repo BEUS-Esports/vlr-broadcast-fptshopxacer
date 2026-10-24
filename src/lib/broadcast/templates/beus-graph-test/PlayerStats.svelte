@@ -87,4 +87,55 @@
 			0 12px
 		);
 	}
+
+	/* ===== VCT Pacific ===== */
+	.stats-heading p {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+	}
+	.stats-heading strong {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 34px;
+	}
+	.versus {
+		background: #3ad7dc;
+		color: #06222a;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+	}
+
+	/* ===== VCT Pacific: animation xuất hiện (quét trái→phải lần lượt, chớp lime) ===== */
+	@keyframes vctWipe {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+	@keyframes vctFlash {
+		0% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	@keyframes vctDrop {
+		from {
+			transform: translateY(-24px);
+			opacity: 0;
+		}
+		to {
+			transform: none;
+			opacity: 1;
+		}
+	}
+	.versus {
+		animation: vctDrop 0.4s 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
 </style>

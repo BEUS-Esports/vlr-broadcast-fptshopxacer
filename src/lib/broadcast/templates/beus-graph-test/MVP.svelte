@@ -36,7 +36,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding-inline: 42px;
-		background: linear-gradient(90deg, #170c3af2, #24135ced 66%, var(--gfx-accent-soft));
+		background: linear-gradient(90deg, #0f1f2bf2, #15303ded 66%, var(--gfx-accent-soft));
 		border-block: 1px solid var(--gfx-line);
 		clip-path: polygon(
 			16px 0,
@@ -101,5 +101,88 @@
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.12em;
+	}
+
+	/* ===== VCT Pacific ===== */
+	.mvp-heading {
+		background: #3ad7dc;
+		clip-path: none;
+		border: 0;
+	}
+	.mvp-heading p,
+	.mvp-heading strong,
+	.mvp-heading > span {
+		color: #06222a;
+	}
+	.mvp-heading strong {
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 40px;
+	}
+	.mvp-heading p {
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+	}
+	.mvp-heading > span {
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+	}
+	.mvp-heading {
+		background: #b7ff3c;
+	}
+
+	/* ===== VCT Pacific: animation xuất hiện (quét trái→phải lần lượt, chớp lime) ===== */
+	@keyframes vctWipe {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+	@keyframes vctFlash {
+		0% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	@keyframes vctDrop {
+		from {
+			transform: translateY(-24px);
+			opacity: 0;
+		}
+		to {
+			transform: none;
+			opacity: 1;
+		}
+	}
+	.mvp-heading {
+		position: relative;
+		animation: vctWipe 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		animation-delay: 0.3s;
+	}
+	.mvp-heading:nth-child(1) {
+		animation-delay: 0.3s;
+	}
+	.panel {
+		position: relative;
+		animation: vctWipe 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+		animation-delay: 0.5s;
+	}
+	.panel:nth-child(1) {
+		animation-delay: 0.5s;
+	}
+	.panel::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: #b7ff3c;
+		z-index: 9;
+		pointer-events: none;
+		animation: vctFlash 0.32s ease-out both;
+		animation-delay: inherit;
 	}
 </style>

@@ -113,12 +113,12 @@
 		font:
 			15px/1.2 'Segoe UI',
 			sans-serif;
-		--gfx-bg: #0b0620;
-		--gfx-panel: #170c3af2;
-		--gfx-line: #5b3ae0;
-		--gfx-muted: #c9bcff;
+		--gfx-bg: #081219;
+		--gfx-panel: #0f1f2bf2;
+		--gfx-line: #2a8c96;
+		--gfx-muted: #9fd8dc;
 		--gfx-ink: #f7f4eb;
-		--gfx-accent: #ffc94a;
+		--gfx-accent: #3ad7dc;
 		--gfx-attack: #248bff;
 		--gfx-defense: #ff4655;
 	}
@@ -140,7 +140,7 @@
 		gap: 14px;
 		padding: 0 22px;
 		background: linear-gradient(180deg, #141b26f7, #090d14f4);
-		border-top: 2px solid #7152f0;
+		border-top: 2px solid #3ad7dc;
 		border-bottom: 3px solid var(--gfx-line);
 	}
 
@@ -211,8 +211,8 @@
 		box-sizing: border-box;
 		display: block;
 		transform: rotate(45deg);
-		background: #10082b;
-		border: 1px solid #a596ee;
+		background: #0a161f;
+		border: 1px solid #7fb6ba;
 	}
 
 	.win-dots span.won {
@@ -244,8 +244,8 @@
 		place-items: center;
 		overflow: hidden;
 		color: var(--gfx-muted);
-		background: linear-gradient(135deg, #170c3ad9, #24135cbf);
-		border: 1px solid #7152f0;
+		background: linear-gradient(135deg, #0f1f2bd9, #15303dbf);
+		border: 1px solid #3ad7dc;
 		clip-path: polygon(
 			12px 0,
 			100% 0,
@@ -274,7 +274,7 @@
 		padding: 18px 24px 17px;
 		overflow: hidden;
 		background:
-			linear-gradient(135deg, #ffc94a19, transparent 44%),
+			linear-gradient(135deg, #3ad7dc19, transparent 44%),
 			linear-gradient(180deg, #141b26f2, #090d14f2);
 		border-left: 4px solid var(--gfx-accent);
 		border-bottom: 1px solid var(--gfx-line);
@@ -334,5 +334,85 @@
 			sans-serif;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
+	}
+
+	/* ===== VCT Pacific ===== */
+	.team-rail {
+		background: #10222e;
+		clip-path: none;
+	}
+	.team-rail :global(.identity strong) {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+		font-size: 24px;
+	}
+	.win-dots span.won {
+		background: #3ad7dc;
+		border-color: #3ad7dc;
+	}
+	.match-bug {
+		background: #10222e;
+		clip-path: none;
+		border: 0;
+	}
+	.match-bug strong {
+		color: #fff;
+		font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+		font-weight: 800;
+	}
+	.match-bug p,
+	.match-bug span {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+		font-weight: 700;
+	}
+	.sponsor-slot {
+		background: #10222e;
+		clip-path: none;
+		border: 0;
+	}
+	.sponsor-slot span {
+		color: #3ad7dc;
+		font-family: Barlow, 'Segoe UI', sans-serif;
+	}
+
+	/* ===== VCT Pacific: animation xuất hiện (quét trái→phải lần lượt, chớp lime) ===== */
+	@keyframes vctWipe {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+	@keyframes vctFlash {
+		0% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	@keyframes vctDrop {
+		from {
+			transform: translateY(-24px);
+			opacity: 0;
+		}
+		to {
+			transform: none;
+			opacity: 1;
+		}
+	}
+	.team-rail,
+	.match-bug,
+	.sponsor-slot {
+		animation: vctDrop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+	.team-rail[data-position='right'] {
+		animation-delay: 0.08s;
+	}
+	.match-bug {
+		animation-delay: 0.2s;
 	}
 </style>
