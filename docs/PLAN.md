@@ -261,6 +261,12 @@ Ahead of the actual Tournament Layout and Assets integration, there will be a Te
 - Verify network security.
 - Rehearse against issues and recovery.
 
+Note: This Task list is intentionally broad, due in part as during Tech Check, issues or features arise from that task must be squashed before the Director's approval and Phase 9.
+
+### Done when
+
+All Tech Check tasks are finished, no unexpected issues arise.
+
 ## Phase 9 — Integrate design-team layouts and assets
 
 ### Work
