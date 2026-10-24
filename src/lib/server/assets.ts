@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SaveError } from './services/save-error';
 
@@ -90,4 +90,15 @@ export async function readAsset(name: string) {
 export async function removeAsset(path: string | null) {
 	const name = path?.startsWith('/assets/') ? path.slice('/assets/'.length) : '';
 	if (filenamePattern.test(name)) await rm(join(directory, name), { force: true });
+}
+
+export async function listAssetPaths() {
+	try {
+		return (await readdir(directory, { withFileTypes: true }))
+			.filter((entry) => entry.isFile() && filenamePattern.test(entry.name))
+			.map((entry) => `/assets/${entry.name}`);
+	} catch (cause) {
+		if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return [];
+		throw cause;
+	}
 }

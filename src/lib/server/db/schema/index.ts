@@ -8,3 +8,4 @@ export * from './statistics';
 export * from './broadcast';
 
 export * from './settings';
+export * from './assets';
