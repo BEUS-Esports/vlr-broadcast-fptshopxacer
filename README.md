@@ -14,7 +14,7 @@ Built with SvelteKit 3 and Svelte 5, with admin UI from Skeleton UI.
 
 Copy `.env.example` to `.env`, install dependencies with `pnpm install`, then run `pnpm db:migrate` and `pnpm dev`. The default `file:local.db` database is persistent and ignored by Git. Use migrations for schema changes; keep `db:push` away from event data.
 
-Run `pnpm db:seed` after migration to add three fictional teams and 18 players for local preparation. Re-running it preserves existing records and edits. The player profiles are not assigned to tournament rosters; those are managed separately.
+Run `pnpm db:seed` after migration to add three fictional teams and 18 players for local preparation. Re-running it preserves existing records and edits. The player profiles are not assigned to tournament rosters; those are managed separately. `pnpm test:seed` verifies this against a temporary database and runs first in `pnpm test`.
 
 `/admin/tournaments` manages event details, team entries, player availability, map pools, matches, individual games, lineups, and match-wide vetoes. Reusable profiles and resources live at `/admin/teams`, `/admin/players`, and `/admin/resources`. `ASSET_DIR` stores uploaded logos/portraits and imported game art outside the build; back it up together with the database. Asset URLs are relative to the app origin, so the same images load from another PC through the server's LAN address. Set `BODY_SIZE_LIMIT=32M` for three team logos of up to 10 MB each when using the Node adapter.
 
