@@ -208,6 +208,17 @@ describe('strict v4 normalization', () => {
 	});
 });
 describe('explicit Henrik requests', () => {
+	it('accepts ten detailed candidates exceeding the separate live-provider byte limit', async () => {
+		const report = { ...completedMatch.data, extra: 'x'.repeat(128 * 1024) };
+		const config = configs().henrikdev!;
+		config.candidateLimit = 10;
+		const client = createHenrikDevClient(config, async () =>
+			json({ status: 200, data: Array(10).fill(report) })
+		);
+		const candidates = await client.discoverRecentMatches({ riotId: 'Player#TEST' });
+		expect(candidates).toHaveLength(10);
+		expect(candidates[0].participants).toHaveLength(10);
+	});
 	it('encodes Riot IDs and uses documented auth, region, platform, and candidate bound', async () => {
 		const fetcher = vi.fn<typeof fetch>(async () => json(recentMatches));
 		const client = createHenrikDevClient(configs().henrikdev!, fetcher);

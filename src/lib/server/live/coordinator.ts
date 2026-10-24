@@ -103,6 +103,11 @@ export function createLiveCoordinator(dependencies: {
 							return;
 						}
 						malformed = 0;
+						clearTimeout(timer);
+						// Event-driven feeds may be quiet; request a fresh snapshot before declaring failure.
+						timer = setTimeout(() => {
+							if (active()) begin();
+						}, 30_000);
 						observation = next;
 						status.retryAttempt = 0;
 						status.lastReceivedAt = next.receivedAt;

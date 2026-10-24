@@ -15,3 +15,4 @@ bun.lockb
 
 # Raw provider captures retain their supplied formatting.
 /docs/*.jsonc
+/docs/*.example.json

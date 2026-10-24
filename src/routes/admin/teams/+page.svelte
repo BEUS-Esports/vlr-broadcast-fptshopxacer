@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Plus, Pencil, X } from '@lucide/svelte';
 	import CatalogTable from '#lib/components/admin/CatalogTable.svelte';
@@ -28,7 +29,7 @@
 		columns={['Team name', 'Tag', 'Normal logo', 'White logo', 'Black logo', 'Actions']}
 	>
 		{#snippet actions()}
-			<a class="btn preset-filled-primary-500" href="/admin/teams?new=1#team-editor"
+			<a class="btn preset-filled-primary-500" href={resolve('/admin/teams?new=1#team-editor')}
 				><Plus size={16} aria-hidden="true" /> Add team</a
 			>
 			<span class="badge preset-tonal-surface">Import coming soon</span>
@@ -38,7 +39,7 @@
 				<section id="team-editor" class="admin-editor" aria-label="Team editor">
 					<div class="flex items-center justify-between gap-3">
 						<h2 class="h3">{selected || form?.values?.id ? 'Edit team' : 'Add team'}</h2>
-						<a class="btn preset-tonal-surface btn-sm" href="/admin/teams"
+						<a class="btn preset-tonal-surface btn-sm" href={resolve('/admin/teams')}
 							><X size={16} aria-hidden="true" /> Close</a
 						>
 					</div>
@@ -154,7 +155,7 @@
 			<td
 				><a
 					class="btn preset-tonal-primary btn-sm"
-					href="/admin/teams?edit={team.id}#team-editor"
+					href={resolve(`/admin/teams?edit=${team.id}#team-editor`)}
 					aria-label="Edit {team.name}"><Pencil size={14} aria-hidden="true" /> Edit</a
 				></td
 			>

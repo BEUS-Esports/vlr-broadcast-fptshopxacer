@@ -1,14 +1,24 @@
-import { expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
+import { join } from 'node:path';
 import * as s from '#lib/server/db/schema/index.ts';
 import { withManagementFixture } from '#lib/server/testing/management-fixture.ts';
 
+afterEach(() => vi.unstubAllEnvs());
+
 it('publishes committed maps after a later catalogue failure and leaves a rolled-back refresh unchanged', async () => {
-	await withManagementFixture(async ({ db, client }) => {
+	await withManagementFixture(async ({ db, client, directory }) => {
+		vi.stubEnv('ASSET_DIR', join(directory, 'assets'));
+		const { saveUpload } = await import('../assets');
+		const displayIconPath = await saveUpload(
+			new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0])], 'map.png', {
+				type: 'image/png'
+			})
+		);
 		const uuid = '11111111-1111-4111-8111-111111111111';
 		await db
 			.update(s.maps)
-			.set({ valorantApiUuid: uuid, displayIconPath: '/assets/cached.png' })
+			.set({ valorantApiUuid: uuid, displayIconPath })
 			.where(eq(s.maps.id, 'map-1'));
 		await db
 			.insert(s.games)

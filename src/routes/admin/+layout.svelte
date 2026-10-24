@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import './layout.css';
 	import beusLogo from '#lib/assets/logos/0_bg.png';
 	import { page } from '$app/state';
@@ -54,7 +55,7 @@
 		<AppBar.Toolbar class="grid-cols-[1fr_auto]">
 			<AppBar.Lead class="flex items-center gap-4">
 				<img src={beusLogo} alt="FPT Shop x Acer" class="h-8 w-8" />
-				<a href="/admin" class="flex flex-col">
+				<a href={resolve('/admin')} class="flex flex-col">
 					<span class="font-bold tracking-wide no-underline">FPT Shop x Acer</span>
 					<span class="text-sm">Broadcast Controller - Valorant</span>
 				</a>
@@ -99,7 +100,7 @@
 						Main
 					</Navigation.Label>
 					<Navigation.TriggerAnchor
-						href="/admin"
+						href={resolve('/admin')}
 						aria-current={dashboardActive ? 'page' : undefined}
 						class="flex w-auto items-center gap-2 rounded-base px-3 py-2 text-sm font-medium transition-colors md:w-full {dashboardActive
 							? 'preset-filled-primary-500'
@@ -108,7 +109,7 @@
 						<LayoutDashboard size={18} aria-hidden="true" /> Dashboard
 					</Navigation.TriggerAnchor>
 					<Navigation.TriggerAnchor
-						href="/admin/settings"
+						href={resolve('/admin/settings')}
 						aria-current={page.url.pathname === '/admin/settings' ? 'page' : undefined}
 						class="flex items-center gap-2 rounded-base px-3 py-2 text-sm font-medium {page.url
 							.pathname === '/admin/settings'
@@ -117,7 +118,7 @@
 						><Settings2 size={18} aria-hidden="true" /> Settings</Navigation.TriggerAnchor
 					>
 				</Navigation.Group>
-				{#each [{ label: 'Preparation', items: [{ href: '/admin/teams', label: 'Teams', active: teamsActive, icon: Users }, { href: '/admin/players', label: 'Players', active: playersActive, icon: UserRound }, { href: '/admin/resources', label: 'Game Resources', active: resourcesActive, icon: Map }, { href: '/admin/tournaments', label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] }, { label: 'GFX Control', items: [{ href: '/admin/graphics', label: 'Global Settings', active: page.url.pathname === '/admin/graphics', icon: Settings2 }, ...graphicIds.map( (id) => ({ href: `/admin/graphics/${id}`, label: graphicLabels[id], active: page.url.pathname === `/admin/graphics/${id}`, icon: Monitor }) )] }] as group (group.label)}
+				{#each [{ label: 'Preparation', items: [{ href: resolve('/admin/teams'), label: 'Teams', active: teamsActive, icon: Users }, { href: resolve('/admin/players'), label: 'Players', active: playersActive, icon: UserRound }, { href: resolve('/admin/resources'), label: 'Game Resources', active: resourcesActive, icon: Map }, { href: resolve('/admin/tournaments'), label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] }, { label: 'GFX Control', items: [{ href: resolve('/admin/graphics'), label: 'Global Settings', active: page.url.pathname === '/admin/graphics', icon: Settings2 }, ...graphicIds.map( (id) => ({ href: resolve( '/admin/graphics/[graphic]', { graphic: id } ), label: graphicLabels[id], active: page.url.pathname === `/admin/graphics/${id}`, icon: Monitor }) )] }] as group (group.label)}
 					<Navigation.Group class="contents md:flex md:w-full md:flex-col md:gap-1">
 						<Navigation.Label
 							class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"

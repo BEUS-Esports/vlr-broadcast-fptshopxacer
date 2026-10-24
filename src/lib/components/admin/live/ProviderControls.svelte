@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
@@ -113,7 +114,7 @@
 <section class="admin-editor space-y-4" aria-label="Live provider">
 	<header class="flex flex-wrap items-center justify-between gap-3">
 		<h2 class="h3">Live provider</h2>
-		<a class="text-sm underline" href="/admin/settings">Provider Settings</a>
+		<a class="text-sm underline" href={resolve('/admin/settings')}>Provider Settings</a>
 	</header>
 	<p role="status">
 		{status?.provider ?? 'None'} · {status?.health ?? 'Loading'} · {status?.mode === 'external'

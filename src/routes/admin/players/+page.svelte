@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Plus, Pencil, X } from '@lucide/svelte';
 	import CatalogTable from '#lib/components/admin/CatalogTable.svelte';
@@ -30,7 +31,7 @@
 		columns={['Player', 'Full name', 'Riot ID', 'Actions']}
 	>
 		{#snippet actions()}
-			<a class="btn preset-filled-primary-500" href="/admin/players?new=1#player-editor"
+			<a class="btn preset-filled-primary-500" href={resolve('/admin/players?new=1#player-editor')}
 				><Plus size={16} aria-hidden="true" /> Add player</a
 			>
 		{/snippet}
@@ -39,7 +40,7 @@
 				<section id="player-editor" class="admin-editor" aria-label="Player editor">
 					<div class="flex items-center justify-between gap-3">
 						<h2 class="h3">{selected || form?.values?.id ? 'Edit player' : 'Add player'}</h2>
-						<a class="btn preset-tonal-surface btn-sm" href="/admin/players"
+						<a class="btn preset-tonal-surface btn-sm" href={resolve('/admin/players')}
 							><X size={16} aria-hidden="true" /> Close</a
 						>
 					</div>
@@ -143,7 +144,7 @@
 			<td
 				><a
 					class="btn preset-tonal-primary btn-sm"
-					href="/admin/players?edit={player.id}#player-editor"
+					href={resolve(`/admin/players?edit=${player.id}#player-editor`)}
 					aria-label="Edit {player.displayName}"><Pencil size={14} aria-hidden="true" /> Edit</a
 				></td
 			>

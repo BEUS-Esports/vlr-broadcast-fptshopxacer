@@ -3,3 +3,6 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@sveltejs/adapter-node@6.0.0'
   - '@sveltejs/kit@3.0.0'
+# shortcut: override the legacy loader's esbuild; remove when Drizzle Kit drops that loader.
+overrides:
+  '@esbuild-kit/core-utils@3.3.2>esbuild': 0.25.12

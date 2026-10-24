@@ -1,6 +1,8 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
+import { tick } from 'svelte';
 import { render } from 'vitest-browser-svelte';
 import GraphicRenderer from './GraphicRenderer.svelte';
+import GraphicPreview from '#lib/components/admin/graphics/GraphicPreview.svelte';
 import { defaultPlayerStats, defaultVisibility, graphicIds } from './controls';
 import type { BroadcastPreparedSnapshot, BroadcastPublications, BroadcastSnapshot } from './types';
 import { liveGameFixture, liveSessionFixture } from '#lib/live/fixtures.ts';
@@ -64,6 +66,50 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 		readiness: { selected: true, map: false, lineups: false, agents: false, result: false }
 	};
 }
+
+it('refreshes weapon artwork in an open preview without a snapshot change', async () => {
+	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+	const icon = (color: string) =>
+		`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><path fill="${color}" d="M0 0h1v1H0z"/></svg>`)}`;
+	let displayIconPath = icon('red');
+	const fetcher = vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+		Response.json({
+			agents: [],
+			weapons: [{ key: 'classic', displayName: 'Classic', displayIconPath }]
+		})
+	);
+	const snapshot: BroadcastSnapshot = {
+		...preparedFixture(),
+		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+	};
+	const view = render(GraphicPreview, {
+		graphic: 'in-game',
+		snapshot,
+		connection: 'connected',
+		variant: 'live-data',
+		telemetry: {
+			version: 1,
+			stream: { epoch: 'test', sequence: 1 },
+			state: liveGameFixture(),
+			status: liveSessionFixture()
+		}
+	});
+	const weaponIcon = () => view.container.querySelector('img[alt="Classic"]')?.getAttribute('src');
+	try {
+		await vi.advanceTimersByTimeAsync(0);
+		await tick();
+		await expect.poll(weaponIcon).toBe(displayIconPath);
+		displayIconPath = icon('blue');
+		await vi.advanceTimersByTimeAsync(30_000);
+		await tick();
+		expect(fetcher).toHaveBeenCalledTimes(2);
+		await expect.poll(weaponIcon).toBe(displayIconPath);
+	} finally {
+		await view.unmount();
+		fetcher.mockRestore();
+		vi.useRealTimers();
+	}
+});
 
 it('renders latest preview when hidden and shared captured program data when shown', async () => {
 	const prepared = preparedFixture();

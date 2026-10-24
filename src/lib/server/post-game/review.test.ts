@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as s from '#lib/server/db/schema/index.ts';
 import type { NormalizedPostGameReport } from '#lib/post-game/types.ts';
@@ -824,7 +824,7 @@ it('upgrades legacy imported rows with persistent stat and conservative agent ow
 			},
 			{ gameId: 'g', playerId: 'a2', entryId: 'entry-a', kills: 10 }
 		]);
-		// Recreate the 0009 schema before replaying 0010–0012.
+		// Roll back only the schema owned by the three migrations under test.
 		await fixture.client.execute('DROP INDEX game_statistics_meta_source_match_unique');
 		await fixture.client.execute('DROP TABLE provider_settings');
 		for (const column of [
@@ -833,10 +833,14 @@ it('upgrades legacy imported rows with persistent stat and conservative agent ow
 			'agent_manual_override'
 		])
 			await fixture.client.execute(`ALTER TABLE game_player_statistics DROP COLUMN ${column}`);
-		await fixture.client.execute(
-			'DELETE FROM __drizzle_migrations WHERE created_at IN (SELECT created_at FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 3)'
-		);
-		await migrate(fixture.db, { migrationsFolder: join(process.cwd(), 'drizzle') });
+		for (const migration of [
+			'0010_post_game_import.sql',
+			'0011_provider_settings.sql',
+			'0012_spectra_post_game_group.sql'
+		])
+			await fixture.client.executeMultiple(
+				await readFile(join(process.cwd(), 'drizzle', migration), 'utf8')
+			);
 		const rows = await fixture.db.select().from(s.gamePlayerStatistics);
 		expect(rows.find((row) => row.playerId === 'a1')).toMatchObject({
 			kills: 7,

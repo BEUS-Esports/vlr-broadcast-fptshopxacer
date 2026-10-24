@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import ManagementWorkspace from '#lib/components/admin/management/ManagementWorkspace.svelte';
@@ -21,7 +22,9 @@
 {#key data.tournament.id}
 	<div class="admin-page">
 		<header>
-			<a class="text-sm text-primary-600-400 underline" href="/admin/tournaments">← Tournaments</a>
+			<a class="text-sm text-primary-600-400 underline" href={resolve('/admin/tournaments')}
+				>← Tournaments</a
+			>
 			<div class="mt-2 flex flex-wrap items-center gap-3">
 				<h1 class="h1">{data.tournament.name}</h1>
 				<span
@@ -215,7 +218,7 @@
 					{#each data.matches as match (match.id)}
 						<a
 							class="mt-3 flex items-center justify-between rounded-container border border-surface-200-800 p-3 hover:bg-surface-100-900"
-							href={`/admin/matches/${match.id}`}
+							href={resolve('/admin/matches/[matchId]', { matchId: match.id })}
 							><span
 								>{match.label} · {data.entries.find((entry) => entry.id === match.teamAEntryId)
 									?.name} vs {data.entries.find((entry) => entry.id === match.teamBEntryId)

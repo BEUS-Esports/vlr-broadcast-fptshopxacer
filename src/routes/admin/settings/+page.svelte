@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
@@ -265,8 +266,11 @@
 	</form>
 
 	<p>
-		<a class="underline" href="/admin/graphics/in-game">Open In-Game control</a> · Current source: {data
-			.status.provider ?? 'None'} · {data.status.health} · {data.status.mode === 'native'
+		<a class="underline" href={resolve('/admin/graphics/[graphic]', { graphic: 'in-game' })}
+			>Open In-Game control</a
+		>
+		· Current source: {data.status.provider ?? 'None'} · {data.status.health} · {data.status
+			.mode === 'native'
 			? 'Native HUD'
 			: 'External HUD'}
 	</p>

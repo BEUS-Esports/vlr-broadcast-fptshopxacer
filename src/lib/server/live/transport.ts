@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import type { LiveProviderId, LiveSessionStatus } from '#lib/live/types.ts';
+import { boundedText } from '#lib/server/http.ts';
 import type { LiveProviderConfig } from './config';
 import type { ProviderCallbacks } from './coordinator';
 import { createGStackAccumulator, normalizeGStack, parseGStackMessage } from './providers/gstack';
@@ -29,40 +30,6 @@ type SessionOptions = {
 };
 const timeoutMs = 5000;
 const maxHttpBytes = 1_048_576;
-
-async function boundedText(response: Response, signal: AbortSignal): Promise<string> {
-	const length = response.headers.get('content-length');
-	if (length && Number(length) > maxHttpBytes) {
-		await response.body?.cancel();
-		throw new Error('Response size limit');
-	}
-	if (!response.body) return '';
-	const reader = response.body.getReader();
-	const chunks: Uint8Array[] = [];
-	let size = 0;
-	try {
-		while (true) {
-			if (signal.aborted) throw new Error('Canceled');
-			const { done, value } = await reader.read();
-			if (done) break;
-			size += value.byteLength;
-			if (size > maxHttpBytes) throw new Error('Response size limit');
-			chunks.push(value);
-		}
-		const bytes = new Uint8Array(size);
-		let offset = 0;
-		for (const chunk of chunks) {
-			bytes.set(chunk, offset);
-			offset += chunk.byteLength;
-		}
-		return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-	} catch (cause) {
-		await reader.cancel().catch(() => {});
-		throw cause;
-	} finally {
-		reader.releaseLock();
-	}
-}
 
 /** One cancellable attempt; the coordinator exclusively owns retries and generations. */
 export function startProviderSession(
@@ -139,8 +106,7 @@ export function startProviderSession(
 			on('logon_success', () => {
 				if (!connected || loggedOn) return;
 				loggedOn = true;
-				clearTimeout(timer);
-				timer = undefined;
+				arm('ValoSpectra match data timed out. Check the group code and retry.');
 				callbacks.connected();
 			});
 			on('match_data', (input) => {
@@ -157,6 +123,8 @@ export function startProviderSession(
 					callbacks.parseError('Malformed ValoSpectra match data. Inspect View Data.');
 					return;
 				}
+				clearTimeout(timer);
+				timer = undefined;
 				callbacks.data(result.state);
 			});
 			on('connect_error', () =>
@@ -253,7 +221,7 @@ export function startProviderSession(
 						});
 						if (stopped) return;
 						if (!response.ok) throw new Error('Snapshot HTTP failure');
-						const text = await boundedText(response, controller.signal);
+						const text = await boundedText(response, controller.signal, maxHttpBytes);
 						if (stopped) return;
 						snapshot = text.slice(0, 65_536);
 						const parsed: unknown = JSON.parse(text);
@@ -329,7 +297,7 @@ export async function lookupSpectraSupporter(
 			await response.body?.cancel();
 			return 'unknown';
 		}
-		const text = await boundedText(response, controller.signal);
+		const text = await boundedText(response, controller.signal, maxHttpBytes);
 		const value: unknown = JSON.parse(text);
 		if (value && typeof value === 'object' && Object.hasOwn(value, 'isSupporter')) {
 			const supporter = (value as Record<string, unknown>).isSupporter;

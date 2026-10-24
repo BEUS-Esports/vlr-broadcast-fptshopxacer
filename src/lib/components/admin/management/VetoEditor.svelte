@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import ManagementForm from './ManagementForm.svelte';
 	import type { VetoActionInput, VetoConflictPreview } from '#lib/server/services/vetoes.ts';
 	let {
@@ -302,7 +303,9 @@
 					<h3 class="font-semibold">Affected games</h3>
 					{#each preview(feedback, draft.actions) as conflict (conflict.gameId)}
 						<div>
-							<a class="underline" href={`/admin/games/${conflict.gameId}`}
+							<a
+								class="underline"
+								href={resolve('/admin/games/[gameId]', { gameId: conflict.gameId })}
 								>{conflict.name} (Game {conflict.number})</a
 							>
 							<p>{conflict.reason}</p>

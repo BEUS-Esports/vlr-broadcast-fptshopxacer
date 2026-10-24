@@ -225,20 +225,15 @@ async function decryptSecret(value: string | null, purpose: string) {
 }
 
 async function bootstrapSettings() {
-	const defaults = { ...defaultProviderSettings };
-	try {
-		const legacy = await loadLegacyProviderConfig();
-		Object.assign(defaults, {
-			revision: 1,
-			spectraRegion: legacy.spectraRegion,
-			spectraHost: legacy.spectraHost,
-			spectraAccessKey: legacy.accessKey,
-			spectraGroupCode: legacy.groupCode,
-			gstackUrl: legacy.gstackUrl
-		});
-	} catch {
-		/* Invalid legacy live settings do not prevent the Settings page from recovering. */
-	}
+	const legacy = await loadLegacyProviderConfig();
+	const defaults = {
+		...defaultProviderSettings,
+		spectraRegion: legacy.spectraRegion,
+		spectraHost: legacy.spectraHost,
+		spectraAccessKey: legacy.accessKey,
+		spectraGroupCode: legacy.groupCode,
+		gstackUrl: legacy.gstackUrl
+	};
 	const legacyDefaults = { ...defaults };
 	try {
 		const env = Object.fromEntries(Object.entries(await import('$app/env/private')));
@@ -340,8 +335,9 @@ export async function loadProviderSettings(): Promise<ProviderSettingsValue> {
 		[row] = await db.select().from(providerSettings).where(eq(providerSettings.id, 1));
 	}
 	if (!row) throw new Error('Could not initialize provider settings.');
+	const settings = await rowToSettings(row);
 	await cleanupLegacyConfig();
-	return rowToSettings(row);
+	return settings;
 }
 
 export function publicProviderSettings(value: ProviderSettingsValue) {
