@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pacific · Playoffs</title>
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			.t {
+				left: 0;
+				right: 0;
+				top: 110px;
+				text-align: center;
+			}
+			.m {
+				position: absolute;
+				width: 250px;
+			}
+			.m small {
+				display: block;
+				font-weight: 800;
+				font-size: 15px;
+				color: var(--lime);
+				margin-bottom: 4px;
+				white-space: nowrap;
+			}
+			.sl {
+				height: 40px;
+				margin-bottom: 4px;
+				display: flex;
+				align-items: center;
+				padding: 0 14px;
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 24px;
+				background: var(--cyan);
+				color: var(--ink);
+			}
+			.sl.lo {
+				background: #d4e3e6;
+			}
+			svg {
+				position: absolute;
+				inset: 0;
+			}
+			svg path {
+				fill: none;
+				stroke: #e9f7f8;
+				stroke-width: 3;
+				stroke-dasharray: 900;
+				animation: draw 0.7s ease-out both;
+			}
+			@keyframes draw {
+				from {
+					stroke-dashoffset: 900;
+				}
+				to {
+					stroke-dashoffset: 0;
+				}
+			}
+			.champ {
+				left: 1520px;
+				top: 330px;
+				width: 200px;
+				height: 520px;
+				background: #7d5cf0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: space-around;
+				padding: 30px 0;
+			}
+			.champ i {
+				width: 110px;
+				height: 110px;
+				border: 12px solid #fff;
+				border-radius: 50%;
+				border-right-color: transparent;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage" id="s"></div>
+		<script src="data.js"></script>
+		<script src="assets/real/real.js"></script>
+		<script src="frame.js"></script>
+		<script>
+			// [x,y,label,a,b,lower]  — 2 hàng mỗi trận cao 84px
+			const M = [
+				[200, 310, 'M1 · WINNER ADVANCES TO UPPER BRACKET', 'SEED #4', 'SEED #5'],
+				[200, 560, 'M2 · WINNER ADVANCES TO UPPER BRACKET', 'SEED #3', 'SEED #6'],
+				[520, 250, 'M3', 'SEED #1', 'WINNER M1'],
+				[520, 500, 'M4', 'SEED #2', 'WINNER M2'],
+				[840, 375, 'M5', 'WINNER M3', 'WINNER M4'],
+				[520, 760, 'M6', 'LOSER M3', 'LOSER M4', 1],
+				[840, 760, 'M7', 'LOSER M5', 'WINNER M6', 1],
+				[1170, 520, 'M8 · GRAND FINAL', 'WINNER M5', 'WINNER M7']
+			];
+			const mid = (m) => [m[0] + 250, m[1] + 22 + 42];
+			const link = (a, b, slot) => {
+				const [x1, y1] = mid(M[a]);
+				const x2 = M[b][0],
+					y2 = M[b][1] + 22 + (slot ? 62 : 20);
+				const xm = (x1 + x2) / 2;
+				return `M${x1} ${y1} H${xm} V${y2} H${x2}`;
+			};
+			const L = [
+				[0, 2, 1],
+				[1, 3, 1],
+				[2, 4, 0],
+				[3, 4, 1],
+				[5, 6, 1],
+				[4, 7, 0],
+				[6, 7, 1]
+			];
+			s.innerHTML =
+				frame() +
+				`<div class="abs t center a-blur" style="${d(0.1)}"><div class="kick">BRACKET</div><div class="h1">MID-SEASON PLAYOFFS</div></div>
+<svg width="1920" height="1080">${L.map((l, i) => `<path style="${d(1 + i * 0.06)}" d="${link(...l)}"/>`).join('')}<path style="${d(1.4)}" d="M1420 606 H1520"/></svg>
+${M.map((m, i) => `<div class="m abs a-wipeR flash" style="left:${m[0]}px;top:${m[1]}px;${d(0.3 + i * 0.08)}"><small>${m[2]}</small><div class="sl ${m[5] ? 'lo' : ''}">${m[3]}</div><div class="sl ${m[5] ? 'lo' : ''}">${m[4]}</div></div>`).join('')}
+<div class="abs champ a-wipeU flash" style="${d(1.2)}">${logo('GEN', 120)}${logo('T1', 120)}${logo('PRX', 120)}<i class="brk tl" style="border:0;border-top:5px solid var(--lime);border-left:5px solid var(--lime);border-radius:0;width:40px;height:40px;position:absolute;left:-16px;top:-16px"></i></div>`;
+		</script>
+		<script src="assets/vendor/gsap.min.js"></script>
+		<script src="anim.js"></script>
+	</body>
+</html>

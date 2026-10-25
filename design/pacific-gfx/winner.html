@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pacific · Winner bumper</title>
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			/* Bumper đội thắng (theo GIF bumper đội của Pacific), ~5.5s:
+     0.0–1.4  nền cyan quét vào, cột chữ V C T, dấu giải trong khung lime
+     1.4–2.9  nền navy quét lên, logo đội lớn + tên đội 2 bên
+     2.9–5.5  ảnh đội + bảng WINNER / tên đội / tỉ số */
+			.layer {
+				position: absolute;
+				inset: 0;
+			}
+			.l1 {
+				background: var(--cyan);
+				animation:
+					wipeR 0.45s var(--ease) both,
+					fadeOut 0.01s 1.45s both;
+			}
+			.l2 {
+				background: var(--navy);
+				animation:
+					wipeU 0.45s 1.35s var(--ease) both,
+					fadeOut 0.01s 2.95s both;
+			}
+			.l3 {
+				animation: wipeR 0.45s 2.85s var(--ease) both;
+			}
+			@keyframes fadeOut {
+				to {
+					opacity: 0;
+					visibility: hidden;
+				}
+			}
+
+			/* cảnh 1 */
+			.vct {
+				position: absolute;
+				top: 120px;
+				bottom: 120px;
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 240px;
+				line-height: 0.8;
+				color: var(--navy);
+			}
+			.vct.l {
+				left: 140px;
+			}
+			.vct.r {
+				right: 140px;
+			}
+			.vct span {
+				animation: rise 0.4s var(--ease) both;
+			}
+			.mark {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				width: 300px;
+				height: 300px;
+				margin: -150px 0 0 -150px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				animation: pop 0.45s 0.3s var(--ease) both;
+			}
+			.mark .brk {
+				width: 80px;
+				height: 80px;
+				border-color: var(--lime);
+			}
+			.mark .brk.tl,
+			.mark .brk.tr,
+			.mark .brk.bl,
+			.mark .brk.br {
+				border-width: 14px;
+			}
+			.mark .brk.tl {
+				border-right: 0;
+				border-bottom: 0;
+			}
+			.mark .brk.tr {
+				border-left: 0;
+				border-bottom: 0;
+			}
+			.mark .brk.bl {
+				border-right: 0;
+				border-top: 0;
+			}
+			.mark .brk.br {
+				border-left: 0;
+				border-top: 0;
+			}
+			.mark b {
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 110px;
+				color: var(--navy);
+			}
+			.hline {
+				position: absolute;
+				top: 50%;
+				height: 4px;
+				width: 520px;
+				background: var(--navy);
+				transform-origin: center;
+				animation: scaleX 0.5s 0.45s var(--ease) both;
+			}
+
+			/* cảnh 2 */
+			.bigLogo {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				width: 420px;
+				height: 420px;
+				margin: -210px 0 0 -210px;
+				font-size: 140px;
+				color: var(--cyan);
+				background: none;
+				animation: pop 0.5s 1.6s var(--ease) both;
+			}
+			.bigLogo::before {
+				content: '';
+				position: absolute;
+				inset: 0;
+				border: 6px solid var(--cyan);
+				transform: rotate(45deg) scale(0.72);
+			}
+			.tagSide {
+				position: absolute;
+				top: 50%;
+				transform: translateY(-50%);
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 90px;
+				color: var(--white);
+			}
+			.tagSide.l {
+				left: 240px;
+				animation: wipeL 0.4s 1.85s var(--ease) both;
+			}
+			.tagSide.r {
+				right: 240px;
+				animation: wipeR 0.4s 1.85s var(--ease) both;
+			}
+
+			/* cảnh 3 */
+			.photo {
+				position: absolute;
+				left: 0;
+				right: 0;
+				top: 130px;
+				height: 560px;
+				z-index: 2;
+				display: flex;
+				justify-content: center;
+				align-items: flex-end;
+				gap: 0;
+			}
+			.photo img {
+				width: 330px;
+				height: 560px;
+				object-fit: contain;
+				object-position: center bottom;
+				margin: 0 -14px;
+				filter: drop-shadow(0 22px 30px #000a);
+				animation: rise 0.5s var(--ease) both;
+			}
+			.photo img:nth-child(3) {
+				position: relative;
+				z-index: 3;
+			}
+			.photo img:nth-child(2),
+			.photo img:nth-child(4) {
+				z-index: 2;
+				position: relative;
+			}
+			.plate {
+				position: absolute;
+				left: 50%;
+				bottom: 120px;
+				transform: translateX(-50%);
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				z-index: 10;
+			}
+			.win {
+				padding: 6px 26px 4px;
+				background: var(--lime);
+				color: var(--ink);
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 34px;
+				letter-spacing: 0.08em;
+				animation: wipeR 0.35s 3.5s var(--ease) both;
+			}
+			.tname {
+				margin-top: 6px;
+				min-width: 640px;
+				text-align: center;
+				padding: 10px 60px 6px;
+				font-size: 120px;
+				box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+				animation: wipeR 0.45s 3.65s var(--ease) both;
+			}
+			.meta {
+				margin-top: 10px;
+				font-weight: 800;
+				font-size: 20px;
+				letter-spacing: 0.22em;
+				color: var(--white);
+				animation: fadeIn 0.4s 4s both;
+			}
+			.meta b {
+				color: var(--lime);
+			}
+			.edge {
+				position: absolute;
+				top: 380px;
+				height: 300px;
+				animation: fadeIn 0.4s 3.2s both;
+			}
+			.edge.l {
+				left: 40px;
+			}
+			.edge.r {
+				right: 40px;
+			}
+			.corner {
+				position: absolute;
+				inset: 40px;
+				animation: fadeIn 0.4s 3.2s both;
+			}
+			.corner .brk {
+				width: 60px;
+				height: 60px;
+			}
+		</style>
+	</head>
+	<body class="preview" data-anim="css">
+		<div class="stage" id="s"></div>
+		<script src="data.js"></script>
+		<script src="assets/real/real.js"></script>
+		<script src="frame.js"></script>
+		<script>
+			const w = GFX.winner,
+				t = GFX.teams[w],
+				o = GFX.teams[w === 'a' ? 'b' : 'a'];
+			const col = (cls) =>
+				`<div class="vct ${cls}">${['V', 'C', 'T'].map((c, i) => `<span style="${d(0.15 + i * 0.07)}">${c}</span>`).join('')}</div>`;
+			document.getElementById('s').innerHTML = `
+    <div class="layer l1">${col('l')}${col('r')}
+      <div class="hline" style="left:200px"></div><div class="hline" style="right:200px"></div>
+      <div class="mark"><i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i><b>BEUS</b></div></div>
+    <div class="layer l2"><div class="bigLogo">${logo('T1', 300)}</div><div class="tagSide l">T1</div><div class="tagSide r">T1</div></div>
+    <div class="layer l3">${frame(2.9, 'jett')}
+      <div class="photo">${REAL.T1.players.map((p, i) => `<img src="${p.img}" style="${d(3.0 + Math.abs(2 - i) * 0.08)}" alt="">`).join('')}</div>
+      
+      
+      <div class="plate"><div class="win">WINNER</div><div class="tname tab">${logo('T1', 96)} T1</div>
+        <div class="meta">${GFX.stage} · GAME ${GFX.map.game} · ${GFX.map.name.toUpperCase()} · <b>${t.score} – ${o.score}</b></div></div>
+    </div>`;
+		</script>
+		<script src="assets/vendor/gsap.min.js"></script>
+		<script src="anim.js"></script>
+	</body>
+</html>

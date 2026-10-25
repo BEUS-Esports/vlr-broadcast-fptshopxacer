@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pacific · Map update</title>
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			.t {
+				left: 150px;
+				top: 110px;
+				padding: 8px 22px 4px;
+				background: var(--cyan);
+				color: var(--ink);
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 60px;
+			}
+			.mini {
+				left: 150px;
+				top: 220px;
+				width: 620px;
+				height: 600px;
+				background: rgba(10, 24, 32, 0.92);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			.mini img {
+				width: 86%;
+				opacity: 0.85;
+				filter: grayscale(1) brightness(1.4);
+			}
+			.mini p {
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 24px;
+				margin: 0;
+				text-align: center;
+				font-weight: 800;
+				font-size: 24px;
+			}
+			.shot {
+				left: 800px;
+				top: 150px;
+				width: 970px;
+				height: 560px;
+				overflow: hidden;
+			}
+			.shot img {
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+			}
+			.rates {
+				left: 800px;
+				top: 730px;
+				width: 970px;
+				display: grid;
+				grid-template-columns: repeat(5, 1fr);
+				gap: 6px;
+			}
+			.rt {
+				background: rgba(10, 24, 32, 0.92);
+			}
+			.rt .ag {
+				height: 140px;
+				overflow: hidden;
+				position: relative;
+				background: #1d3f4f;
+			}
+			.rt .ag img {
+				position: absolute;
+				left: 50%;
+				top: -10px;
+				height: 300px;
+				transform: translateX(-50%);
+			}
+			.rt b {
+				display: block;
+				height: 50px;
+				line-height: 50px;
+				text-align: center;
+				background: var(--cyan);
+				color: var(--ink);
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 34px;
+			}
+			.cap {
+				left: 800px;
+				top: 700px;
+				width: 970px;
+				text-align: center;
+				font-weight: 800;
+				font-size: 18px;
+				letter-spacing: 0.1em;
+				color: var(--white);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage" id="s"></div>
+		<script src="data.js"></script>
+		<script src="assets/real/real.js"></script>
+		<script src="frame.js"></script>
+		<script>
+			const R = [
+				['neon', '55.0%'],
+				['reyna', '54.5%'],
+				['sova', '54.3%'],
+				['jett', '54.1%'],
+				['killjoy', '52.5%']
+			];
+			s.innerHTML =
+				frame() +
+				`<div class="abs t a-wipeR flash" style="${d(0.15)}">ABYSS UPDATE</div>
+<div class="abs mini a-wipeU flash" style="${d(0.35)}"><img src="assets/maps/abyss.png"><p>Bản đồ đầu tiên không có biên — có thể rơi khỏi map</p><i class="brk tl" style="left:-16px;top:-16px"></i><i class="brk br" style="right:-16px;bottom:-16px"></i></div>
+<div class="abs shot a-wipeR" style="${d(0.45)}"><img src="assets/maps/abyss.png"></div>
+<div class="abs rates">${R.map((r, i) => `<div class="rt a-wipeU flash" style="${d(0.8 + i * 0.08)}"><div class="ag"><img src="assets/agents/full/${r[0]}.png"></div><b>${r[1]}</b></div>`).join('')}</div>`;
+		</script>
+		<script src="assets/vendor/gsap.min.js"></script>
+		<script src="anim.js"></script>
+	</body>
+</html>

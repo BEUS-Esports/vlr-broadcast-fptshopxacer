@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pacific · Ace players</title>
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			.t {
+				left: 190px;
+				top: 130px;
+			}
+			.grid {
+				left: 190px;
+				top: 210px;
+				width: 1540px;
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 10px;
+			}
+			.c {
+				height: 360px;
+				display: grid;
+				grid-template-columns: 1.05fr 1fr;
+				grid-template-rows: 52px 1fr;
+				background: rgba(10, 24, 32, 0.9);
+			}
+			.c .nm {
+				grid-column: 1/3;
+				display: grid;
+				grid-template-columns: 1.05fr 1fr;
+			}
+			.c .nm span {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 0 14px;
+				background: var(--cyan);
+				color: var(--ink);
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 30px;
+			}
+			.c .nm em {
+				font-style: normal;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: #0f2c3a;
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 28px;
+			}
+			.c .photo-cut {
+				height: 100%;
+				background: #d8e2e5;
+			}
+			.c .info {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: space-around;
+				padding: 16px 10px;
+				text-align: center;
+			}
+			.c .vs {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 24px;
+				color: var(--muted);
+			}
+			.c .map {
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 34px;
+			}
+			.c .map small {
+				display: block;
+				font-family: var(--body);
+				font-size: 16px;
+				color: var(--muted);
+			}
+			.c.lime .photo-cut {
+				background: var(--lime);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage" id="s"></div>
+		<script src="data.js"></script>
+		<script src="assets/real/real.js"></script>
+		<script src="frame.js"></script>
+		<script>
+			const M = [
+				['MATCH 1', 'GEN', 'ZETA', 'ASCENT', 'R7'],
+				['MATCH 3', 'BLD', 'TLN', 'LOTUS', 'R11'],
+				['MATCH 4', 'T1', 'PRX', 'LOTUS', 'R5'],
+				['MATCH 5', 'TS', 'RRQ', 'SPLIT', 'R4'],
+				['MATCH 5', 'TS', 'RRQ', 'ICEBOX', 'R23'],
+				['MATCH 7', 'GE', 'DFM', 'ASCENT', 'R14']
+			];
+			s.innerHTML =
+				frame() +
+				`<div class="abs t a-blur" style="${d(0.1)}"><div class="kick">WEEK 1 HIGHLIGHTS</div><div class="h1" style="font-size:54px">WEEK 1 ACE PLAYERS</div></div>
+<div class="abs grid">${M.map(
+					(
+						m,
+						i
+					) => `<div class="c ${i == 5 ? 'lime' : ''} a-wipeR flash" style="${d(0.3 + i * 0.1)}"><div class="nm"><span>${logo(m[1], 30)}${pick(m[1], i).ign.toUpperCase()}</span><em>${m[0]}</em></div>
+<div class="photo-cut"><img src="${pick(m[1], i).img}"></div><div class="info"><div class="vs">${logo(m[1], 44)} ✕ ${logo(m[2], 44)}</div><div class="map">${m[3]}<small>${m[4]}</small></div></div></div>`
+				).join('')}</div>`;
+		</script>
+		<script src="assets/vendor/gsap.min.js"></script>
+		<script src="anim.js"></script>
+	</body>
+</html>

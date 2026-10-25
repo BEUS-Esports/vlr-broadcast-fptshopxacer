@@ -40,3 +40,7 @@ test-results
 
 # Local provider-settings encryption root; never commit.
 /data/settings.key
+
+# Pacific GFX prototype: tài nguyên tải về và file xuất
+/design/pacific-gfx/assets/
+/design/pacific-gfx/out/
