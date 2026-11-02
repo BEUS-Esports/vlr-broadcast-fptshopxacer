@@ -1,6 +1,7 @@
 # Possible improvements, i guess?
 
 1. Server logging — implemented: shared TSLog terminal output, optional rotating JSONL files, request correlation, safe provider diagnostics, mutation requests, post-game outcomes, resource sync and asset cleanup. Set `LOG_DIR` to retain files and `LOG_LEVEL=debug` to include successful reads/polling. See the README logging guide.
+    - Still would prefer natural text logging than JSON logging for STDIO.
 2. Authentication via Discord/classic Email + Password and User management route in the admin
 3. Turn the GFX route to an SPA
 4. Write Preload functions for all assets to avoid asset loading during GFX is on air.
