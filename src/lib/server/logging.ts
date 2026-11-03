@@ -7,28 +7,43 @@ type Level = 'debug' | 'info' | 'warn' | 'error';
 type Fields = Record<string, string | number | boolean | null | undefined>;
 
 function consoleValue(value: unknown): string {
-	const text = String(value);
 	// eslint-disable-next-line no-control-regex -- Escape terminal control characters in log values.
-	return !text || /[\s"\\=\u0000-\u001f\u007f]/.test(text) ? JSON.stringify(text) : text;
+	return String(value).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (character) => {
+		if (character === '\n') return '\\n';
+		if (character === '\r') return '\\r';
+		if (character === '\t') return '\\t';
+		return `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`;
+	});
+}
+
+function consoleLabel(value: string): string {
+	return value
+		.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+		.replace(/[._-]+/g, ' ')
+		.toLowerCase()
+		.replace(/\b(id|url|http|api|sql|sse|jsonl)\b/gi, (word) => word.toUpperCase());
 }
 
 /** Format only the console arguments; structured transports keep the original record. */
 function consoleLine(prefix: unknown, ...args: unknown[]): string {
-	const parts: string[] = [];
+	const messages: string[] = [];
+	const details: string[] = [];
 	function field(key: string, value: unknown) {
 		if (value === undefined || (key === 'error' && value === null)) return;
 		if (value !== null && typeof value === 'object') {
 			for (const [child, nested] of Object.entries(value)) field(`${key}.${child}`, nested);
-		} else parts.push(`${consoleValue(key)}=${consoleValue(value)}`);
+		} else details.push(`${consoleValue(consoleLabel(key))}: ${consoleValue(value)}`);
 	}
 	for (const arg of args) {
 		if (arg && typeof arg === 'object') {
 			for (const [key, value] of Object.entries(arg)) {
 				if (key !== 'event') field(key, value);
 			}
-		} else parts.push(consoleValue(arg));
+		} else messages.push(consoleValue(consoleLabel(String(arg))));
 	}
-	return `${String(prefix).trimEnd()} ${parts.join(' ')}`;
+	const message = messages.join(' ');
+	const sentence = message.charAt(0).toUpperCase() + message.slice(1);
+	return `${String(prefix).trimEnd()} ${sentence}${details.length ? ` — ${details.join('; ')}` : ''}`;
 }
 
 export const logger = new Logger<Record<string, unknown>>({

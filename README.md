@@ -101,7 +101,7 @@ LOG_DIR=./data/logs
 
 Both outputs use the same redacted records. Credentials, group codes, request headers/bodies, raw match payloads and SQL values are excluded; provider network/TLS errors retain bounded diagnostic fields. For new server operations, use the shared API and pass only safe metadata:
 
-The terminal prints one plain-text line per event, for example `15:56:36.000 WARN [VLR] live.failure error.code=ETIMEDOUT`. Values containing spaces are quoted; embedded newlines are escaped, and nested diagnostic fields use dotted names. Debug/info use stdout; warnings/errors use stderr. JSONL retains separate structured fields and nested errors.
+The terminal prints one readable line per event, for example `15:56:36.000 WARN [VLR] Live failure — error code: ETIMEDOUT`. Embedded newlines and terminal control characters are escaped, and nested diagnostic fields have readable labels. Debug/info use stdout; warnings/errors use stderr. JSONL retains separate structured fields and nested errors.
 
 ```ts
 import { logEvent } from '#lib/server/logging.ts';

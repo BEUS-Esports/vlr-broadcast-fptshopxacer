@@ -85,14 +85,26 @@ it('prints a readable terminal line and writes the same event as JSONL', async (
 			level: 'INFO',
 			selectedGameId: 'game-1'
 		});
+		expect(JSON.parse(line)).toEqual(records[0]);
 		expect(output).toHaveBeenCalledExactlyOnceWith(expect.any(String));
 		expect(output.mock.calls[0][0]).toMatch(
-			/^\d{2}:\d{2}:\d{2}\.\d{3} INFO \[VLR\] broadcast.changed selectedGameId=game-1$/
+			/^\d{2}:\d{2}:\d{2}\.\d{3} INFO \[VLR\] Broadcast changed — selected game ID: game-1$/
 		);
 	} finally {
 		await stop();
 		await rm(directory, { recursive: true, force: true });
 	}
+});
+
+it('describes events with no details and keeps terminal controls on one line', () => {
+	const output = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	logger.settings.type = 'pretty';
+	logEvent('warn', 'http.failed');
+	logEvent('warn', 'http.failed', { reason: 'bad\u001b[31mvalue\u2028next' });
+	expect(output.mock.calls[0][0]).toMatch(/ WARN \[VLR\] HTTP failed$/);
+	expect(output.mock.calls[1][0]).toContain('HTTP failed — reason: bad\\u001b[31mvalue\\u2028next');
+	for (const control of ['\u001b', '\r', '\n', '\u2028'])
+		expect(output.mock.calls[1][0]).not.toContain(control);
 });
 
 it('routes each level as one escaped, redacted text line while retaining structured fields', () => {
@@ -119,11 +131,11 @@ it('routes each level as one escaped, redacted text line while retaining structu
 		});
 		expect(outputs[level]).toHaveBeenCalledExactlyOnceWith(expect.any(String));
 		const line = outputs[level].mock.calls[0][0] as string;
-		expect(line).toContain(` ${level.toUpperCase()} [VLR] live.failure `);
-		expect(line).toContain('note="two words\\nnext line"');
-		expect(line).toContain('count=0');
-		expect(line).toContain('error.cause.code=ETIMEDOUT');
-		expect(line).toContain('requestId=request-1');
+		expect(line).toContain(` ${level.toUpperCase()} [VLR] Live failure — `);
+		expect(line).toContain('note: two words\\nnext line');
+		expect(line).toContain('count: 0');
+		expect(line).toContain('error cause code: ETIMEDOUT');
+		expect(line).toContain('request ID: request-1');
 		expect(line).not.toMatch(/[\r\n]/);
 		expect(line).not.toContain('\u001b');
 		expect(line).not.toContain('private-token');
