@@ -36,7 +36,7 @@ Management access stays on the trusted operator LAN for the first RHS, as confir
 
 ## Implementation checkpoint — 2026-11-03
 
-Image preparation/retries, plain-text logs, sidebar icons, runtime metadata and backup tooling are implemented. The shared output owner and `/gfx/live/composite` route are a partial B1 checkpoint: browser-route acceptance, output links, composition and vMix measurements remain pending. C controls are paused before implementation; their unfinished test is retained outside the active source tree.
+At this earlier checkpoint, image preparation/retries, plain-text logs, sidebar icons, runtime metadata and backup tooling were implemented; B1 and C were incomplete. Since then, the composite rehearsal link and browser coverage were added, and C1–C3 were merged to `main`. Composite visual acceptance/vMix measurements and C's matching pre-upgrade rollback rehearsal remain pending. See the [implementation plan](superpowers/plans/2026-11-03-first-rhs-improvements.md) for current task status.
 
 Pre-commit verification: Svelte/TypeScript reports zero errors or warnings; ESLint and formatting of changed files pass. All seven backup/seed script tests pass. The complete Vitest run reports 441 passed, two skipped and one failure: `PlayerCard.svelte.test.ts` expects “Powered by ValoSpectra” while the unchanged component renders “Powered by Spectra”. The same failure was reproduced in the clean pre-change checkout. Existing Vitest/Svelte integration warnings also appeared. Global formatting still flags the unchanged `POSSIBLE_IMPROVEMENTS.md`.
 

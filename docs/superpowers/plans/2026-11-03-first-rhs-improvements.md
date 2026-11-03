@@ -10,11 +10,13 @@
 
 **Spec:** [POSSIBLE_IMPROVEMENTS.md](../../../POSSIBLE_IMPROVEMENTS.md), supported by [TECH-SPEC.md](../../TECH-SPEC.md) and [PLAN.md](../../PLAN.md).
 
-**Status:** A1–A4 are implemented with validation limits recorded in [RHS-RUNBOOK.md](../../RHS-RUNBOOK.md). B1 has a shared output owner, a rehearsal link and production-build browser coverage; visual acceptance and vMix measurements remain pending. C1–C3 are implemented in the development worktree; release acceptance, including the matching pre-upgrade rollback rehearsal, remains pending. D1/D2 are pending. D3 is deferred by the user's trusted-LAN decision. User confirmed the first RHS is **next week**, with development continuing during the tournament. No blanket feature freeze. Exact RHS day, available working hours, and final artwork are not yet specified. Checkboxes below still track full task acceptance, including unperformed physical checks.
+**Status as of 2026-11-03:** A1–A4 and C1–C3 are implemented on `main`. B1 is implemented for rehearsal; vMix acceptance is pending. C's database migration and matching pre-upgrade rollback rehearsal remain pending for the event environment. D1/D2 are not started; D3 is deferred by the trusted-LAN decision. E remains later work. See [RHS-RUNBOOK.md](../../RHS-RUNBOOK.md) for recovery and rehearsal details.
+
+**Checkboxes:** `[x]` means the stated work or verification has been completed; `[ ]` means it is still pending. Mixed implementation and acceptance steps are split so pending physical checks are not mistaken for completed work.
 
 ## Start here
 
-**First implementation task: A1, preload images and retry failed images.** A4 must finish before any schema release. Reserve a three-hour production rehearsal block before choosing optional work.
+**Next:** Complete the C pre-upgrade backup and rollback rehearsal before migrating event data. Schedule the B1 vMix measurements and the three-hour production rehearsal; D1/D2 are the next unstarted implementation tasks.
 
 Estimates are focused engineering hours including relevant automated checks, excluding artwork production and waiting for other people. They are planning ranges, not measured throughput or delivery promises.
 
@@ -26,7 +28,15 @@ Estimates are focused engineering hours including relevant automated checks, exc
 | D     | Output presence, wording, conditional shared-password gate                        | 6–10 hours; gate adds 4–6  | Follow core work; gate moves earlier if access requires it |
 | E     | Docker, full accounts, combined PVW/PGM workspace                                 | 8–12 / 24–40 / 32–48 hours | Separate later projects; PVW/PGM after event               |
 
-Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A alone plus rehearsal is **14–20 hours**. Add C only if the remaining time and design inputs support another 10–16 hours. When time is short, move unaccepted work to the next release; retain the working individual-output setup.
+| Batch | Current state                                                                                |
+| ----- | -------------------------------------------------------------------------------------------- |
+| A     | Implemented; restore elapsed time and build/backup identities still need recording.          |
+| B     | Composite available for rehearsal; vMix performance and visual acceptance pending.           |
+| C     | C1–C3 merged in `87bb959`; event migration, rollback rehearsal and remaining checks pending. |
+| D     | D1 and D2 not started; D3 deferred while management stays on the trusted LAN.                |
+| E     | Not started; separate later projects.                                                        |
+
+The original first-RHS estimate was **A + B + three-hour rehearsal: 22–32 hours**, with C estimated separately at 10–16 hours. C is now implemented; its event release still depends on the outstanding recovery and acceptance checks. Retain the working individual-output setup until B1 is accepted.
 
 ## Global constraints
 
@@ -44,9 +54,9 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 - **Shared output disconnect:** composite teardown cleans both streams; provider loss preserves native fallback; admin Preview does not count as output presence. Covered by B1/D1.
 - **Recovery during a tournament:** restored DB, assets, and separately held encryption key reproduce saved output; an old binary must not silently discard a newer capture format. Covered by A4/C1 and release acceptance.
 
-## Findings that change the original order
+## Findings at planning time that changed the original order
 
-| Finding in the current code                                                                                                                                        | Planning consequence                                                                                                                                                                                             |
+| Finding at planning time                                                                                                                                           | Planning consequence                                                                                                                                                                                             |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `LiveGraphic.svelte` creates both a broadcast client and a live client. `liveResources` already shares polling within one browser document.                        | Composite target is **two SSE connections total**, plus one resource poller. Seven mounted `LiveGraphic` instances would still create fourteen SSE connections. Transport merging is unnecessary for this batch. |
 | `Graphic.svelte` puts six graphics into the same large screen region.                                                                                              | A composite needs explicit stacking and a composition test; fewer connections alone do not prove less vMix lag.                                                                                                  |
@@ -64,10 +74,10 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 **Interfaces:** `collectGraphicAssetUrls(snapshot: BroadcastSnapshot, graphic: GraphicId, resources: LiveResources | null): string[]`; `createAssetPreloader(): { update(urls: readonly string[]): void; destroy(): void }`.
 
-- [ ] Add tests for hidden saved content, deduplication, scope-selected player portraits, held-versus-latest images, changed URLs, retry exhaustion, and destruction during a pending retry.
-- [ ] Collect relevant logos/variants, portraits, maps, saved agent art, and locally known ability/weapon icons. Read abilities from `LiveResources`, since the prepared agent payload lacks them. Include held Program assets on reconnect. Do not depend on future telemetry or unsaved editor drafts.
-- [ ] Preload on mount and saved-data/resource changes with at most four concurrent image loads. Retain a bounded working set for current saved/held content. Decode when supported; image failure never blocks Show. Add retries after 1, 5, and 15 seconds; cancel timers on URL change/unmount and retain the existing placeholder behavior.
-- [ ] Run focused unit/client tests and the new browser journey. With an output opened while hidden and asset loading settled, first Show must use prepared images. A simulated transient image failure must recover without reload; permanent failure must stop retrying. Confirm saved Preview may update while Program keeps its capture.
+- [x] Add tests for hidden saved content, deduplication, scope-selected player portraits, held-versus-latest images, changed URLs, retry exhaustion, and destruction during a pending retry.
+- [x] Collect relevant logos/variants, portraits, maps, saved agent art, and locally known ability/weapon icons from saved content and `LiveResources`, including held Program assets on reconnect.
+- [x] Preload on mount and saved-data/resource changes with at most four concurrent image loads. Decode when supported; retry after 1, 5, and 15 seconds, cancel stale work, and retain placeholder behavior.
+- [x] Run focused unit/client tests and browser journeys for first Show, transient and permanent failures, and held Program artwork.
 
 **Visible result:** normal first Show no longer starts loading already-known artwork. Immediate Show before preparation finishes and genuinely new telemetry assets remain best-effort cases.
 
@@ -75,9 +85,9 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 **Backlog:** 1. **Files:** `src/lib/server/logging.ts`, `logging.test.ts`, README logging section.
 
-- [ ] Extend existing console/JSONL tests to require a single textual console message, level routing, redacted nested errors, and escaped embedded newlines.
-- [ ] Format the already-redacted record at the console output boundary as timestamp, level, logger name, event, and `key=value` details. Quote values containing spaces; retain structured records and the `logEvent` API.
-- [ ] Run `pnpm exec vitest run --project server src/lib/server/logging.test.ts`. Confirm JSONL still exposes fields such as `event`, `requestId`, and error codes independently.
+- [x] Extend existing console/JSONL tests to require a single textual console message, level routing, redacted nested errors, and escaped embedded newlines.
+- [x] Format the already-redacted record at the console output boundary as timestamp, level, logger name, event, and `key=value` details. Quote values containing spaces; retain structured records and the `logEvent` API.
+- [x] Run `pnpm exec vitest run --project server src/lib/server/logging.test.ts`. Confirm JSONL still exposes fields such as `event`, `requestId`, and error codes independently.
 
 **Visible result:** a line such as `15:56:36.000 WARN [VLR] live.failure code=ETIMEDOUT`, without an object dump.
 
@@ -85,8 +95,9 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 **Backlog:** 6b. **File:** `src/routes/admin/+layout.svelte`.
 
-- [ ] Add an exhaustive `Record<GraphicId, ...>` icon map using existing Lucide imports: lineup/users, stats/chart, veto/map, agents/crosshair, in-game/monitor, post-game/clipboard, MVP/award.
-- [ ] Run `pnpm check` and inspect the seven links in the sidebar. Preserve labels, hrefs, active state, and keyboard access; no new test suite is needed for this cosmetic change.
+- [x] Add an exhaustive `Record<GraphicId, ...>` icon map using existing Lucide imports: lineup/users, stats/chart, veto/map, agents/crosshair, in-game/monitor, post-game/clipboard, MVP/award.
+- [x] Run `pnpm check` and browser coverage for the seven sidebar links, labels, routes and active state.
+- [ ] Inspect the seven icon shapes and keyboard access in the production rehearsal.
 
 **Visible result:** operators can distinguish the graphic links by shape as well as text.
 
@@ -96,10 +107,11 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 **Files:** `README.md`, `mise.toml`, `package.json`; create `scripts/backup.mjs`, `scripts/backup.test.mjs`, and `docs/RHS-RUNBOOK.md`.
 
-- [ ] Verify a clean frozen-lockfile install and production build in a disposable checkout using the current Node `26.13.0` / pnpm `12.16.1`. Align README, `engines`, and `packageManager` with that verified pair. Retain the lockfile unless evidence requires a change. Investigate the obsolete adapter patch note from actual clean-install results.
-- [ ] Add `pnpm backup -- --output <new-directory> --app-stopped`. Require a stopped app and a new destination; take a consistent SQLite copy including committed WAL data, copy the complete asset store, and record schema/runtime/build identity. Do not print secrets or silently package the encryption key with the main backup.
-- [ ] Document separate protection of the active encryption root, whether supplied by `SETTINGS_ENCRYPTION_KEY`, its configured file, or the default file. Add backup tests for paths containing spaces, WAL data, missing assets/key instructions, existing destinations, and copy failure without a false success result.
-- [ ] Restore into a fresh disposable directory with the matching build and key. Verify saved event records, served artwork, held graphics, and decryption through the app. Record the stop/start commands and elapsed recovery time in the runbook.
+- [x] Verify a clean frozen-lockfile install and production build in a disposable Windows checkout with Node `26.13.0` / pnpm `12.16.1`; align runtime documentation and package metadata.
+- [x] Add `pnpm backup -- --output <new-directory> --app-stopped` with a consistent SQLite copy, complete asset store and build identity; keep the encryption root separate.
+- [x] Document encryption-root protection and test spaces in paths, WAL data, missing assets/key instructions, existing destinations and copy failure.
+- [x] Verify saved records, artwork, held graphics and decryption in an automated disposable restore. The operator also reported that the timed target-LAN restore passed.
+- [ ] Record the elapsed recovery time and matching build/backup identities from the target-LAN rehearsal in the runbook.
 
 **Visible result:** one documented backup command and a demonstrated restore, with matching tool versions. The automation does not stop the live app or overwrite event data on its own.
 
@@ -114,8 +126,9 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 **Interface:** `LiveOutput` accepts `{ graphics: readonly GraphicId[] }` and owns one broadcast client, one live client, and asset preparation for their combined URLs. `LiveGraphic` becomes its single-ID wrapper. The static composite route is separate from `[graphic]`; it does not become an eighth graphic ID.
 
 - [ ] Record a repeatable baseline on the production build: seven output documents, the same saved scene/provider fixture, active SSE/poll counts, and vMix frame/render performance. Use the same PC, resolution, frame rate, scene, and run duration for comparison. Budget 30 minutes each for before/after recordings within this task.
-- [ ] Add shared-lifecycle and route tests; implement the output owner and seven positioned render layers. Suggested bottom-to-top order: in-game, map-veto, player-lineup, agent-select, post-game, player-stats, MVP. Keep each existing visibility/capture rule and fixed 1920×1080 transparent canvas.
-- [ ] Verify exactly one connection to each existing SSE endpoint and one resource polling loop per composite document, including teardown/reconnect. Test all graphics individually, intended simultaneous combinations, hidden output, restart, native/external HUD switching, attribution, and fallback to individual URLs.
+- [x] Implement the shared output owner, seven positioned render layers, individual wrapper and composite route. Add route/browser coverage for Show/Hide, all seven graphics, reload and a simultaneous lineup/veto example.
+- [x] Verify one connection to each SSE endpoint and one initial resource request in a composite browser document.
+- [ ] Verify resource polling over time, teardown/reconnect, intended combinations, restart, native/external HUD switching, attribution and fallback to individual URLs during rehearsal.
 - [ ] Repeat the vMix measurement and inspect actual overlap/alpha. Document the accepted layer order and combinations in the runbook. Promote the composite only if composition is acceptable and measured output performance does not regress; record any claimed improvement numerically.
 
 **Boundary:** several current full-screen graphics shown together will overlap. This batch does not automatically Hide other graphics or change their publication semantics. Final artwork may require a revised layer order. A crash of this one browser source affects every layer, so retain the individual sources as a rehearsed fallback.
@@ -130,10 +143,12 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 **Interfaces:** `LineupTeams = 'both' | 'team-a' | 'team-b'`; `liveControls.lineupTeams`; `playerStats.fields: StatisticField[]`; `controls.mvpFields: StatisticField[]`. Move/re-export the existing eight-field constant and `StatisticField` type from the shared module.
 
-- [ ] Add populated-upgrade tests covering valid v2/v3 captures, malformed captures, legacy `player_stats` JSON, unchanged held content, and a new empty database.
-- [ ] Add `lineup_teams` with default `both` and `mvp_fields` with all eight defaults. Extend existing player-stats JSON without adding another SQL column. Explicitly normalize/backfill old JSON rows; changing a TypeScript default alone does not update existing records.
-- [ ] Introduce prepared snapshot v4. Upgrade only valid persisted v2/v3 publications using default team/field choices, retaining their saved data. Keep the stream envelope at v1. Validate v4 network snapshots strictly; refresh old browser documents when deploying this release. Preserve original control/data revisions during compatibility conversion.
-- [ ] Run focused schema, broadcast-service, publication, and contract tests against disposable databases. Rehearse rollback with the matching pre-upgrade database backup; an old decoder cannot safely consume v4 captures. Preserve any later event edits before contemplating a restore.
+- [x] Add populated-upgrade and contract tests for legacy `player_stats` JSON, valid and malformed v2/v3 captures, held content and a new empty database.
+- [x] Add `lineup_teams` defaulting to `both` and `mvp_fields` defaulting to all eight; backfill existing player-stats JSON without adding another SQL column.
+- [x] Introduce strict prepared snapshot v4 while keeping the stream envelope at v1. Convert valid persisted v2/v3 captures with default choices and preserve their content and revisions.
+- [x] Run focused schema, broadcast-service, publication and contract tests against disposable databases.
+- [ ] Rehearse rollback with the matching pre-upgrade database backup before migrating event data; preserve newer event edits before any restore.
+- [ ] Refresh old output and admin browser documents when deploying the v4 release.
 
 ### C2. Both / Team A / Team B live lineup selection — 3–5 hours
 
@@ -141,10 +156,12 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 **Files:** `src/lib/server/services/broadcast.ts`, `graphics-control.ts`, `src/lib/components/admin/graphics/GraphicsGlobalSetup.svelte`, `src/lib/broadcast/selectors.ts`, `templates/test/PlayerLineup.svelte`; add focused coverage in `broadcast.test.ts`, `selectors.test.ts`, `templates/test/Pregame.svelte.test.ts`, and `tests/gfx-controls.e2e.ts`.
 
-- [ ] Test live team filtering while shown, Swap independence, stale writes, restart, and changing the selected game.
-- [ ] Wire `BroadcastUpdate.lineupTeams?: LineupTeams` through the existing revision-checked action. Keep it in live controls, default/reset it to `both` on game change, and filter by captured competition A/B identity rather than screen position. Hide remains available regardless of incomplete preparation.
-- [ ] Add a compact live selector next to Swap in `GraphicsGlobalSetup`, displayed on the lineup page, with `Both` and the actual two team names. Preserve the original slot for a lone team in the test template; final centering/animation is a design-team decision before final-art acceptance.
-- [ ] Run focused tests and the browser journey: Show both, choose A, Swap, choose B, Hide, change game. Program must change immediately for the selector while newly saved names/portraits remain held until Hide → Show.
+- [x] Test live team filtering while shown, Swap independence, stale writes and changing the selected game.
+- [ ] Verify the selected team survives an application restart.
+- [x] Wire `BroadcastUpdate.lineupTeams?: LineupTeams` through the revision-checked action, reset it to `both` on game change and filter using captured competition identity.
+- [x] Add the live selector next to Swap on the lineup page, with `Both` and team names. Preserve a lone team's original slot in the test template.
+- [x] Run the browser journey: Show both, choose A, Swap, choose B, Hide and change game. Existing held-content journeys cover saved lineup changes remaining in Preview until Hide → Show.
+- [ ] Agree final centering and animation with the design team before final-art acceptance.
 
 ### C3. Separate Player Stats / MVP field pickers — 4–6 hours
 
@@ -154,16 +171,18 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 **Interfaces:** template capabilities declare supported `StatisticField[]` and minimum/maximum slot counts per stats graphic; test template supports all eight, minimum one, maximum eight. `StatsPanel` / `StatsFields` consume the selected list. Persist selections in canonical field order; drag-to-reorder is outside this request.
 
-- [ ] Test independent Player Stats/MVP settings, empty/duplicate/unknown fields, server-side capability limits, and legacy defaults. Capability metadata must be shared browser/server data without importing Svelte templates into server validation.
-- [ ] Add the two pickers to the existing retained-draft forms, and pass the selected fields through both single/head-to-head panels and MVP. Update the saved-versus-published notice to compare `mvpFields` as well as scope. Saving changes Preview; Show captures the list; repeated Show preserves it.
-- [ ] Annotate fields with scope/player coverage, including unavailable Performance Score outside game scope and absent Trades. In head-to-head, show which player lacks data. Preserve zero values and partial coverage; never invent data or silently remove a chosen field. Default stays all eight.
-- [ ] Run validation, capture, component, and browser tests. Verify one-field and eight-field layouts, scope changes, different MVP settings, dirty drafts across SSE updates, and Hide → Show. Register final-template slot limits before enabling that template's picker.
+- [x] Test independent Player Stats/MVP settings, empty/duplicate/unknown fields, capability validation and legacy defaults. Keep capability metadata independent of Svelte template imports.
+- [x] Add both pickers to retained-draft forms and pass the selected fields to single/head-to-head panels and MVP. Compare MVP fields in the saved-versus-published notice; Show captures the list.
+- [x] Annotate fields with scope/player coverage, including unavailable Performance Score and Trades; retain zero and partial values and all eight defaults.
+- [x] Run validation, capture, component and browser tests for field selection, scopes, separate MVP settings and Hide → Show.
+- [ ] Verify dirty field-picker drafts across SSE updates, including both one-field and eight-field layouts in the operator workflow.
+- [ ] Register final-template slot limits before enabling that template's picker.
 
 ## D — Continue in small tournament releases
 
 ### D1. Output connection status — 4–6 hours
 
-**Backlog:** 6a. **Dependency:** B1, so the UI can distinguish a composite from individual outputs.
+**Status:** Not started. **Backlog:** 6a. **Dependency:** B1, so the UI can distinguish a composite from individual outputs.
 
 **Files:** `src/lib/broadcast/client.ts`, `LiveOutput.svelte`, `src/routes/api/broadcast/events/+server.ts`, `src/lib/server/broadcast/publisher.ts`, admin graphics status UI; create `src/lib/server/broadcast/presence.ts` and focused tests.
 
@@ -174,14 +193,14 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 
 ### D2. Operator wording — 2–4 hours for the first pass
 
-**Backlog:** 6c. **Files:** touched admin graphics/live components, associated text-based browser tests.
+**Status:** Not started. **Backlog:** 6c. **Files:** touched admin graphics/live components, associated text-based browser tests.
 
 - [ ] Replace operator-facing `capture` with `shown version`, `revision` notices with `saved changes` / `changed by another operator`, `mapping` with `match players to teams`, `provider` with `data source`, and displayed scope values with `Current map / Series / Tournament` where accurate.
 - [ ] Keep technical details in diagnostics and keep Take, Show/Hide, Preview/Program. Update affected tests alongside copy; run those journeys. Continue wording cleanup only when the relevant screen is being changed.
 
 ### D3. Shared operator-password gate, if needed — 4–6 hours
 
-**Backlog:** 2 stopgap. **Trigger:** management access extends beyond the trusted operator LAN, or the rehearsal requires a gate. Promote ahead of B/C in that case. This is an alternative to shipping full accounts immediately.
+**Status:** Deferred by the trusted-LAN decision. **Backlog:** 2 stopgap. **Trigger:** management access extends beyond the trusted operator LAN, or the rehearsal requires a gate. Promote ahead of B/C in that case. This is an alternative to shipping full accounts immediately.
 
 **Files:** `src/hooks.server.ts`, `src/lib/server/auth.ts`, login/logout routes, `.env.example`, test setup/fixtures, runbook; add auth service and production-route tests.
 
@@ -190,6 +209,8 @@ Suggested first RHS scope is **A + B + three-hour rehearsal: 22–32 hours**. A 
 - [ ] Verify rejected unauthenticated writes, successful LAN HTTP login, HTTPS cookie behavior, logout, and public read-only outputs/assets/API. Provide an isolated test login to all existing E2E journeys and repeat the relevant suite.
 
 ## E — Later projects with their own detailed plans
+
+**Status:** Not started; each project needs its own detailed plan.
 
 | Backlog | Work and dependency                                                                                                                                                                                                            | Acceptance                                                                                                                                                             | Estimate    |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
@@ -213,9 +234,11 @@ Run the final code-release checks sequentially because check/build/E2E share gen
 4. `pnpm build` — archive the accepted build identity, migrations, and environment instructions; run the production Node app on the target LAN address.
 5. Three-hour RHS preparation check — 60 minutes for all graphics/cold-start/lineup/stats; 60 minutes for vMix performance, provider loss/recovery and restart; 60 minutes for backup restore, source fallback and operator checks. Unavailable real-provider proof remains explicitly pending.
 
+**Recorded evidence for C:** `pnpm check` and the localhost production build passed; the focused schema/broadcast/service suite passed 20 tests, and the lineup/statistics component suite passed 17. Both new C browser journeys passed. The wider Playwright run passed 29 of 30 journeys; the remaining visual journey passed separately after its v4 fixture was corrected. A fresh full-suite browser run remains a release check. The full Vitest run had 446 passed, two skipped and one pre-existing `PlayerCard.svelte.test.ts` attribution-text failure. Global formatting previously flagged the unchanged `POSSIBLE_IMPROVEMENTS.md`; changed-file formatting and ESLint passed.
+
 After schema changes, do not assume a Git revert is sufficient recovery. Keep a matching pre-upgrade DB/assets backup and encryption root; do not restore over newer tournament results without preserving/reconciling them. Prefer a forward fix when restoration would discard accepted event edits.
 
-Svelte MCP documentation/autofixer tools were not exposed in this planning session. No Svelte code was written. Rediscover those tools when implementation starts; use the required autofixer if available, plus the repository's type/component/browser checks.
+Svelte MCP documentation/autofixer tools were not exposed during implementation. Rediscover them for future Svelte changes; use the required autofixer if available, plus the repository's type/component/browser checks.
 
 ## Backlog coverage
 
@@ -227,4 +250,4 @@ Svelte MCP documentation/autofixer tools were not exposed in this planning sessi
 | 2, 7         | D3 conditional shared-password gate / E full accounts; A4 runtime / E Docker |
 | 9, 10        | C1 shared compatibility work; C2 lineup; C3 statistics                       |
 
-**Next action:** review the five-row batch table, then start A1. Exact RHS scheduling and final-template decisions can be resolved before their dependent acceptance checks.
+**Next action:** review the pending C backup and rollback steps in the [runbook](../../RHS-RUNBOOK.md).
