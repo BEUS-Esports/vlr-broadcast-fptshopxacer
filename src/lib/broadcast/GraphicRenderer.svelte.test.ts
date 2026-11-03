@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest';
 import { tick } from 'svelte';
 import { render } from 'vitest-browser-svelte';
 import GraphicRenderer from './GraphicRenderer.svelte';
+import LiveGraphic from './LiveGraphic.svelte';
 import GraphicPreview from '#lib/components/admin/graphics/GraphicPreview.svelte';
 import { defaultPlayerStats, defaultVisibility, graphicIds } from './controls';
 import type { BroadcastPreparedSnapshot, BroadcastPublications, BroadcastSnapshot } from './types';
@@ -66,6 +67,63 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 		readiness: { selected: true, map: false, lineups: false, agents: false, result: false }
 	};
 }
+
+it('prepares saved images while the output is hidden and retires images on unmount', async () => {
+	const sources = new Map<string, EventTarget>();
+	class Source extends EventTarget {
+		readyState = 1;
+		constructor(url: string) {
+			super();
+			sources.set(url, this);
+		}
+		close() {}
+	}
+	const images: Array<{ src: string; onload: (() => void) | null }> = [];
+	class ImageRequest {
+		src = '';
+		onload: (() => void) | null = null;
+		onerror: (() => void) | null = null;
+		constructor() {
+			images.push(this);
+		}
+		removeAttribute() {}
+	}
+	vi.stubGlobal('EventSource', Source);
+	vi.stubGlobal('Image', ImageRequest);
+	try {
+		const view = render(LiveGraphic, { graphic: 'player-lineup' });
+		const prepared = preparedFixture();
+		prepared.teams = [
+			{
+				entryId: 'a',
+				teamId: 'a',
+				name: 'A',
+				tag: 'A',
+				logoPath: '/hidden-logo.png',
+				logoWhitePath: null,
+				logoBlackPath: null
+			}
+		];
+		prepared.competition.teamAEntryId = 'a';
+		prepared.presentation.leftEntryId = 'a';
+		const snapshot: BroadcastSnapshot = {
+			...prepared,
+			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+		};
+		sources.get('/api/broadcast/events')!.dispatchEvent(
+			new MessageEvent('snapshot', {
+				data: JSON.stringify({ version: 1, stream: { epoch: 'preload', sequence: 1 }, snapshot })
+			})
+		);
+		await tick();
+		expect(view.container.querySelectorAll('img')).toHaveLength(0);
+		expect(images.map((image) => image.src)).toContain('/hidden-logo.png');
+		await view.unmount();
+		expect(images.every((image) => image.onload === null)).toBe(true);
+	} finally {
+		vi.unstubAllGlobals();
+	}
+});
 
 it('credits saved Spectra reports independently of the live provider and respects captured scope', async () => {
 	const prepared = preparedFixture();
