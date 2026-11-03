@@ -10,7 +10,7 @@
 
 **Spec:** [POSSIBLE_IMPROVEMENTS.md](../../../POSSIBLE_IMPROVEMENTS.md), supported by [TECH-SPEC.md](../../TECH-SPEC.md) and [PLAN.md](../../PLAN.md).
 
-**Status:** Implementation paused on 2026-11-03 for a source-control checkpoint. A1–A4 are implemented with validation limits recorded in [RHS-RUNBOOK.md](../../RHS-RUNBOOK.md); B1 has the shared owner/composite route foundation, with remaining acceptance work pending. C implementation and D1/D2 are pending. D3 is deferred by the user's trusted-LAN decision. User confirmed the first RHS is **next week**, with development continuing during the tournament. No blanket feature freeze. Exact RHS day, available working hours, and final artwork are not yet specified. Checkboxes below still track full task acceptance, including unperformed physical/browser checks.
+**Status:** A1–A4 are implemented with validation limits recorded in [RHS-RUNBOOK.md](../../RHS-RUNBOOK.md). B1 has a shared output owner, a rehearsal link and production-build browser coverage; visual acceptance and vMix measurements remain pending. C implementation and D1/D2 are pending. D3 is deferred by the user's trusted-LAN decision. User confirmed the first RHS is **next week**, with development continuing during the tournament. No blanket feature freeze. Exact RHS day, available working hours, and final artwork are not yet specified. Checkboxes below still track full task acceptance, including unperformed physical checks.
 
 ## Start here
 

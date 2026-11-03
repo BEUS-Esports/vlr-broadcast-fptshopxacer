@@ -21,6 +21,29 @@ async function selectGame(page: Page) {
 	await save(page, 'Take game live');
 }
 
+async function preserveFixture(db: ReturnType<typeof createClient>) {
+	const lineups = await db.execute("SELECT * FROM game_lineups WHERE game_id = 'pg-henrik'");
+	const portraits = await db.execute(
+		"SELECT id, portrait_path FROM players WHERE id IN ('pg-0', 'pg-1', 'pg-2')"
+	);
+	return async () => {
+		await db.batch(
+			[
+				{ sql: "DELETE FROM game_lineups WHERE game_id = 'pg-henrik'", args: [] },
+				...lineups.rows.map((row) => ({
+					sql: 'INSERT INTO game_lineups (game_id, entry_id, slot, player_id, agent_id) VALUES (?, ?, ?, ?, ?)',
+					args: [row.game_id, row.entry_id, row.slot, row.player_id, row.agent_id]
+				})),
+				...portraits.rows.map((row) => ({
+					sql: 'UPDATE players SET portrait_path = ? WHERE id = ?',
+					args: [row.portrait_path, row.id]
+				}))
+			],
+			'write'
+		);
+	};
+}
+
 test('hidden output prepares saved images before first Show and preserves held Program artwork', async ({
 	page,
 	browser
@@ -31,6 +54,7 @@ test('hidden output prepares saved images before first Show and preserves held P
 	await put(first);
 	await put(latest);
 	const db = createClient({ url: process.env.DATABASE_URL! });
+	const restore = await preserveFixture(db);
 	const output = await browser.newPage();
 	try {
 		await db.execute({
@@ -81,6 +105,7 @@ test('hidden output prepares saved images before first Show and preserves held P
 		await expect(output.locator(`img[src="${first}"]`)).toHaveCount(1);
 	} finally {
 		await output.close();
+		await restore();
 		db.close();
 	}
 });
@@ -93,6 +118,7 @@ test('transient images recover without reload and permanent images exhaust their
 	const transient = newAsset();
 	const permanent = newAsset();
 	const db = createClient({ url: process.env.DATABASE_URL! });
+	const restore = await preserveFixture(db);
 	const output = await browser.newPage();
 	const requests: string[] = [];
 	output.on('request', (request) => {
@@ -143,6 +169,7 @@ test('transient images recover without reload and permanent images exhaust their
 		expect(requests.filter((url) => url === permanent)).toHaveLength(exhausted);
 	} finally {
 		await output.close();
+		await restore();
 		db.close();
 	}
 });

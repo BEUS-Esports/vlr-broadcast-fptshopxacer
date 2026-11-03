@@ -36,4 +36,15 @@ Image preparation/retries, plain-text logs, sidebar icons, runtime metadata and 
 
 Pre-commit verification: Svelte/TypeScript reports zero errors or warnings; ESLint and formatting of changed files pass. All seven backup/seed script tests pass. The complete Vitest run reports 441 passed, two skipped and one failure: `PlayerCard.svelte.test.ts` expects “Powered by ValoSpectra” while the unchanged component renders “Powered by Spectra”. The same failure was reproduced in the clean pre-change checkout. Existing Vitest/Svelte integration warnings also appeared. Global formatting still flags the unchanged `POSSIBLE_IMPROVEMENTS.md`.
 
-Production Playwright journeys remain unverified: the earlier elevated launch was rejected, and the sandbox build failed with `spawn EPERM`. This checkpoint is for source control, not production-release acceptance.
+At that checkpoint, production Playwright journeys were unverified: the earlier elevated launch was rejected, and the sandbox build failed with `spawn EPERM`. That checkpoint was for source control, not production-release acceptance.
+
+## Composite rehearsal — 2026-11-03
+
+Global Setup links to `/gfx/live/composite` for rehearsal. Production-build Playwright checks passed for all seven individual graphics against the composite, Show/Hide, reloading held graphics, concurrent Player Lineup and Map Veto, and one connection to each stream with one initial resource request. These checks do not establish visual compatibility or vMix performance.
+
+The full Playwright suite passed on 2026-11-03 (28 tests, Chrome). The image tests now restore their lineup and portrait fixtures so later journeys start with the expected data. The full Vitest suite still has the previously documented attribution-text failure.
+
+1. On the vMix PC, record the build identity, fixture, resolution, frame rate and duration. With seven individual browser sources, record active connections, vMix frame/render performance and any dropped frames for 30 minutes.
+2. Without changing the PC, fixture, scene settings or duration, replace them with the composite and record the same measurements for 30 minutes. Inspect transparency and each intended combination on the actual output.
+3. Check the proposed back-to-front order: In-Game, Map Veto, Player Lineup, Agent Select, Post-Game, Player Stats, MVP. Record which simultaneous combinations are acceptable; full-screen graphics may overlap. Confirm native/external HUD switching, attribution, provider loss, reconnect and restart.
+4. Compare the measurements numerically. Use the composite on air only after the operator accepts the composition and performance does not regress. Rehearse switching back to the seven individual URLs; one composite browser failure affects every layer.

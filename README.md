@@ -46,6 +46,8 @@ Use these stable, read-only OBS URLs, all on a transparent 1920×1080 canvas:
 | Post-Game     | `/gfx/live/post-game`     |
 | MVP           | `/gfx/live/mvp`           |
 
+For rehearsal, `/gfx/live/composite` combines all seven graphics into one transparent output with shared connections. Its layer order, from back to front, is In-Game, Map Veto, Player Lineup, Agent Select, Post-Game, Player Stats and MVP. Shown graphics can overlap: inspect the intended combinations and compare vMix performance before using it on air. Keep the individual URLs as a rehearsed fallback.
+
 Team A/B is competition order; **Swap Left/Right** changes only screen presentation. Current attackers/defenders change blue/red colors without moving teams. The Phase 5/5.1 native In-Game fallback has passed real Valorant/OBS composition testing. Unknown tournament slugs use the generic test templates; final supplied artwork remains a later phase.
 
 Use Node 26.13.0, pnpm 12.16.1 and `pnpm install --frozen-lockfile`, matching `mise.toml` and package metadata. A clean Windows install and production build passed on 2026-11-03; the current lockfile needs no adapter patch. Set `ORIGIN` to the exact address used by controllers and OBS **before building**: SvelteKit 3's `paths.origin` is a build setting; setting it only at runtime does not configure this installed adapter. Use the same address afterward, and rebuild when the deployment origin changes. For PowerShell:

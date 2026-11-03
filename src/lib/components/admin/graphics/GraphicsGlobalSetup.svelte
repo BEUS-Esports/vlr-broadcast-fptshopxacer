@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import ManagementForm from '../management/ManagementForm.svelte';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 	import type { GraphicsControlData } from './GraphicsWorkspace.svelte';
@@ -28,6 +29,11 @@
 
 <section aria-label="Global Setup" class="admin-editor space-y-4">
 	<h2 class="h2">Global Setup</h2>
+	<p class="text-sm">
+		<a class="underline" href={resolve('/gfx/live/composite')} target="_blank" rel="noreferrer"
+			>Open composite output</a
+		> · For rehearsal; keep the individual outputs as a fallback until vMix testing is complete.
+	</p>
 	<details class="space-y-3">
 		<summary class="cursor-pointer font-semibold">ValoSpectra Group Code</summary>
 		<p class="text-sm">
