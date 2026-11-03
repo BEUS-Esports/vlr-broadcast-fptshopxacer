@@ -12,17 +12,8 @@ import { createdAtColumn, updatedAtColumn } from './common';
 import { games } from './games';
 import { players } from './profiles';
 import { tournamentEntries } from './tournaments';
-
-export const statisticFields = [
-	'kills',
-	'deaths',
-	'assists',
-	'performanceScore',
-	'trades',
-	'firstBloods',
-	'plants',
-	'defuses'
-] as const;
+import { statisticFields } from '#lib/statistics/fields.ts';
+export { statisticFields } from '#lib/statistics/fields.ts';
 
 export const gamePlayerStatistics = sqliteTable(
 	'game_player_statistics',

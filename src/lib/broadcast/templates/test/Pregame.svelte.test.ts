@@ -30,11 +30,12 @@ function preparedSnapshot(): BroadcastSnapshot {
 		stylizedBackgroundPath: null
 	};
 	return {
-		version: 3,
+		version: 4,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: true,
+			lineupTeams: 'both',
 			currentAttackersEntryId: 'b',
 			pause: { type: 'none' },
 			ceremony: null
@@ -119,7 +120,12 @@ function preparedSnapshot(): BroadcastSnapshot {
 			match: { ...scope, statistics: { ...scope.statistics, scope: 'match' } },
 			tournament: { ...scope, statistics: { ...scope.statistics, scope: 'tournament' } }
 		},
-		controls: { visibility: defaultVisibility, playerStats: defaultPlayerStats, mvpScope: 'game' },
+		controls: {
+			visibility: defaultVisibility,
+			playerStats: defaultPlayerStats,
+			mvpScope: 'game',
+			mvpFields: [...defaultPlayerStats.fields]
+		},
 		readiness: { selected: true, map: true, lineups: false, agents: false, result: false }
 	};
 }
@@ -147,6 +153,30 @@ it('keeps five neutral lineup slots and saved player ownership after a presentat
 	await view.rerender({ snapshot: { ...snapshot, teams: [] }, graphic: 'player-lineup' });
 	expect(left().textContent).toContain('Team unavailable');
 	expect(left().textContent).toContain('First B');
+});
+
+it('filters by competition identity while preserving the presentation slot', async () => {
+	const snapshot = preparedSnapshot();
+	const view = render(Graphic, {
+		snapshot: { ...snapshot, liveControls: { ...snapshot.liveControls, lineupTeams: 'team-a' } },
+		graphic: 'player-lineup'
+	});
+	expect(view.container.querySelectorAll('[data-position]')).toHaveLength(1);
+	expect(
+		view.container.querySelector('[data-position="right"]')?.getAttribute('data-entry-id')
+	).toBe('a');
+	await view.rerender({
+		snapshot: {
+			...snapshot,
+			liveControls: { ...snapshot.liveControls, lineupTeams: 'team-b' },
+			presentation: { leftEntryId: 'a', rightEntryId: 'b' }
+		},
+		graphic: 'player-lineup'
+	});
+	expect(view.container.querySelectorAll('[data-position]')).toHaveLength(1);
+	expect(
+		view.container.querySelector('[data-position="right"]')?.getAttribute('data-entry-id')
+	).toBe('b');
 });
 
 it('uses prepared sides and saved agents despite opposite manual current sides', async () => {

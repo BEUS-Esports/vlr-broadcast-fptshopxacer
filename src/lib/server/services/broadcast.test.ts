@@ -119,7 +119,8 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 			mode: 'single' as const,
 			scope: 'game' as const,
 			playerId: 'a1',
-			opponentPlayerId: null
+			opponentPlayerId: null,
+			fields: [...schema.statisticFields]
 		};
 		state = await service.updateBroadcastState({
 			expectedRevision: state.controlRevision,
@@ -154,7 +155,13 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 		}
 		state = await service.updateBroadcastState({
 			expectedRevision: state.controlRevision,
-			playerStats: { mode: 'head-to-head', scope: 'match', playerId: 'a1', opponentPlayerId: 'b1' }
+			playerStats: {
+				mode: 'head-to-head',
+				scope: 'match',
+				playerId: 'a1',
+				opponentPlayerId: 'b1',
+				fields: [...schema.statisticFields]
+			}
 		});
 		expect(state.playerStats.opponentPlayerId).toBe('b1');
 		state = await service.updateBroadcastState({
@@ -174,7 +181,13 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 			selectedGameId: 'g2',
 			swapped: true,
 			currentAttackersEntryId: null,
-			playerStats: { mode: 'single', scope: 'game', playerId: null, opponentPlayerId: null },
+			playerStats: {
+				mode: 'single',
+				scope: 'game',
+				playerId: null,
+				opponentPlayerId: null,
+				fields: [...schema.statisticFields]
+			},
 			mvpScope: 'game'
 		});
 		expect(state.visibility['player-stats']).toBe(false);

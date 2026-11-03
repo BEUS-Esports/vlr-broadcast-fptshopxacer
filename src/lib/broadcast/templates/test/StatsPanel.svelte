@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { BroadcastSnapshot } from '../../types';
 	import type { BroadcastScope } from '../../controls';
+	import type { StatisticField } from '../../../statistics/fields';
 	import { playerInScope, teamByEntryId } from '../../selectors';
 	import ResourceCard from '../../primitives/ResourceCard.svelte';
 	import Identity from '../../primitives/Identity.svelte';
@@ -9,8 +10,14 @@
 	let {
 		snapshot,
 		scope,
-		playerId
-	}: { snapshot: BroadcastSnapshot; scope: BroadcastScope; playerId: string | null } = $props();
+		playerId,
+		fields
+	}: {
+		snapshot: BroadcastSnapshot;
+		scope: BroadcastScope;
+		playerId: string | null;
+		fields: StatisticField[];
+	} = $props();
 	const selected = $derived(playerInScope(snapshot, scope, playerId));
 	const entries = $derived(selected.player?.entryIds ?? selected.statistics?.entryIds ?? []);
 	const agent = $derived(
@@ -49,7 +56,7 @@
 			<p class="status">PLAYER UNAVAILABLE</p>
 		{/if}
 
-		<StatsFields statistics={selected.statistics} {scope} />
+		<StatsFields statistics={selected.statistics} {scope} {fields} />
 	</div>
 </article>
 

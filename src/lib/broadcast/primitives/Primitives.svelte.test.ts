@@ -65,11 +65,12 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 		mvpPlayerId: null
 	};
 	const snapshot: BroadcastSnapshot = {
-		version: 3,
+		version: 4,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: true,
+			lineupTeams: 'both',
 			currentAttackersEntryId: 'b',
 			pause: { type: 'none' },
 			ceremony: null
@@ -113,7 +114,12 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 			match: { ...scope, statistics: { ...scope.statistics, scope: 'match' } },
 			tournament: { ...scope, statistics: { ...scope.statistics, scope: 'tournament' } }
 		},
-		controls: { visibility: defaultVisibility, playerStats: defaultPlayerStats, mvpScope: 'game' },
+		controls: {
+			visibility: defaultVisibility,
+			playerStats: defaultPlayerStats,
+			mvpScope: 'game',
+			mvpFields: [...defaultPlayerStats.fields]
+		},
 		readiness: { selected: false, map: false, lineups: false, agents: false, result: false }
 	};
 	const header = render(ScoreHeader, { snapshot, sides: 'prepared' });

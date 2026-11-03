@@ -42,7 +42,7 @@ test('native EventSource receives a complete snapshot, a committed management up
 		reconnect.close();
 		return { initial, updated, resync };
 	});
-	expect(result.initial.version).toBe(3);
+	expect(result.initial.version).toBe(4);
 	expect(result.updated.dataRevision).toBeGreaterThan(result.initial.dataRevision);
 	expect(result.updated.controlRevision).toBe(result.initial.controlRevision);
 	expect(result.resync.dataRevision).toBeGreaterThanOrEqual(result.updated.dataRevision);

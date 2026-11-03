@@ -140,13 +140,15 @@ export const actions: Actions = {
 			await updateBroadcastState({
 				expectedRevision: draft.expectedRevision as number,
 				swapped: draft.swapped as BroadcastUpdate['swapped'],
+				lineupTeams: draft.lineupTeams as BroadcastUpdate['lineupTeams'],
 				currentAttackersEntryId:
 					draft.currentAttackersEntryId === ''
 						? null
 						: (draft.currentAttackersEntryId as BroadcastUpdate['currentAttackersEntryId']),
 				visibility: draft.visibility as BroadcastUpdate['visibility'],
 				playerStats: draft.playerStats as BroadcastUpdate['playerStats'],
-				mvpScope: draft.mvpScope as BroadcastUpdate['mvpScope']
+				mvpScope: draft.mvpScope as BroadcastUpdate['mvpScope'],
+				mvpFields: draft.mvpFields as BroadcastUpdate['mvpFields']
 			});
 			return { saved: true };
 		} catch (cause) {

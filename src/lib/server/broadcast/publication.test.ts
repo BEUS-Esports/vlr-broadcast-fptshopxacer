@@ -19,7 +19,8 @@ it('keeps Hide and live axes usable after a selected stats player leaves the sav
 			mode: 'single' as const,
 			scope: 'game' as const,
 			playerId: 'a1',
-			opponentPlayerId: null
+			opponentPlayerId: null,
+			fields: [...s.statisticFields]
 		};
 		let state = await service.updateBroadcastState({
 			expectedRevision: 1,

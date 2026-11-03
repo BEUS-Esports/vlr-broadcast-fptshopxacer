@@ -221,7 +221,8 @@ it('includes tournament pick branding without changing selected-game ownership o
 				mode: 'head-to-head',
 				scope: 'tournament',
 				playerId: 'c1',
-				opponentPlayerId: 'a1'
+				opponentPlayerId: 'a1',
+				fields: [...s.statisticFields]
 			}
 		});
 		const snapshot = await buildBroadcastSnapshot();
@@ -248,7 +249,8 @@ it('includes tournament pick branding without changing selected-game ownership o
 			mode: 'head-to-head',
 			scope: 'tournament',
 			playerId: 'c1',
-			opponentPlayerId: 'a1'
+			opponentPlayerId: 'a1',
+			fields: [...s.statisticFields]
 		});
 		const { decodeBroadcastSnapshot } = await import('../../broadcast/types');
 		expect(decodeBroadcastSnapshot(JSON.stringify(snapshot))).toEqual(snapshot);

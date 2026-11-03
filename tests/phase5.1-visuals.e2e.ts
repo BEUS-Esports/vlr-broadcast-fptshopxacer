@@ -86,12 +86,14 @@ test('Test GFX v2 renders deterministic complete and edge states inside the nati
 				})
 		);
 		saved.liveControls = {
+			...saved.liveControls,
 			swapped: false,
 			currentAttackersEntryId: null,
 			pause: { type: 'none' },
 			ceremony: null
 		};
 		saved.controls.playerStats = {
+			...saved.controls.playerStats,
 			mode: 'single',
 			scope: 'game',
 			playerId: 'Alpha-1',
@@ -172,6 +174,7 @@ test('Test GFX v2 renders deterministic complete and edge states inside the nati
 		}
 		await capture('player-stats', 'player-stats-head-to-head', (snapshot) => {
 			snapshot.controls.playerStats = {
+				...snapshot.controls.playerStats,
 				mode: 'head-to-head',
 				scope: 'game',
 				playerId: 'Alpha-1',

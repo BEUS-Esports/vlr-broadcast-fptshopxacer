@@ -17,10 +17,20 @@
 </div>
 
 <div class="panels" class:single={control.mode === 'single'}>
-	<StatsPanel {snapshot} scope={control.scope} playerId={control.playerId} />
+	<StatsPanel
+		{snapshot}
+		scope={control.scope}
+		playerId={control.playerId}
+		fields={control.fields}
+	/>
 	{#if control.mode === 'head-to-head'}
 		<div class="versus" aria-hidden="true">VS</div>
-		<StatsPanel {snapshot} scope={control.scope} playerId={control.opponentPlayerId} />
+		<StatsPanel
+			{snapshot}
+			scope={control.scope}
+			playerId={control.opponentPlayerId}
+			fields={control.fields}
+		/>
 	{/if}
 </div>
 

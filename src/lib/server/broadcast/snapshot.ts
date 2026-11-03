@@ -56,11 +56,12 @@ export async function buildBroadcastPreparedSnapshot(
 	state: typeof s.broadcastState.$inferSelect
 ): Promise<BroadcastPreparedSnapshot> {
 	const snapshot: BroadcastPreparedSnapshot = {
-		version: 3,
+		version: 4,
 		controlRevision: state.controlRevision,
 		dataRevision: state.dataRevision,
 		liveControls: {
 			swapped: state.swapped,
+			lineupTeams: state.lineupTeams,
 			currentAttackersEntryId: state.currentAttackersEntryId,
 			pause: state.pause,
 			ceremony: state.ceremony
@@ -89,7 +90,8 @@ export async function buildBroadcastPreparedSnapshot(
 		controls: {
 			visibility: state.visibility,
 			playerStats: state.playerStats,
-			mvpScope: state.mvpScope
+			mvpScope: state.mvpScope,
+			mvpFields: state.mvpFields
 		},
 		readiness: { selected: false, map: false, lineups: false, agents: false, result: false }
 	};

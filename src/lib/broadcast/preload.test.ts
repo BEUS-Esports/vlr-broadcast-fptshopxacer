@@ -13,11 +13,12 @@ function fixture(): BroadcastSnapshot {
 		mvpPlayerId: 'p'
 	};
 	return {
-		version: 3,
+		version: 4,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: false,
+			lineupTeams: 'both',
 			currentAttackersEntryId: null,
 			pause: { type: 'none' },
 			ceremony: null
@@ -101,7 +102,8 @@ function fixture(): BroadcastSnapshot {
 		controls: {
 			visibility: { ...defaultVisibility },
 			playerStats: { ...defaultPlayerStats, playerId: 'p' },
-			mvpScope: 'match'
+			mvpScope: 'match',
+			mvpFields: [...defaultPlayerStats.fields]
 		},
 		readiness: { selected: true, map: true, lineups: true, agents: true, result: false },
 		publications: Object.fromEntries(

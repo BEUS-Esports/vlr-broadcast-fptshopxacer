@@ -1,6 +1,7 @@
 import { test as base } from '@playwright/test';
 import { createClient } from '@libsql/client';
 import { defaultPlayerStats, defaultVisibility } from '../src/lib/broadcast/controls';
+import { statisticFields } from '../src/lib/statistics/fields';
 
 export const test = base.extend<{ broadcastIsolation: void }>({
 	broadcastIsolation: [
@@ -11,9 +12,13 @@ export const test = base.extend<{ broadcastIsolation: void }>({
 				db.execute({
 					sql: `UPDATE broadcast_state SET selected_game_id = NULL, swapped = 0,
 					current_attackers_entry_id = NULL, visibility = ?, publications = '{}',
-					player_stats = ?, mvp_scope = 'game', pause = '{"type":"none"}', ceremony = NULL,
+					player_stats = ?, mvp_scope = 'game', lineup_teams = 'both', mvp_fields = ?, pause = '{"type":"none"}', ceremony = NULL,
 					control_revision = control_revision + 1, revision = revision + 1 WHERE id = 1`,
-					args: [JSON.stringify(defaultVisibility), JSON.stringify(defaultPlayerStats)]
+					args: [
+						JSON.stringify(defaultVisibility),
+						JSON.stringify(defaultPlayerStats),
+						JSON.stringify(statisticFields)
+					]
 				});
 			try {
 				await reset();

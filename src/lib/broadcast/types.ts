@@ -1,5 +1,11 @@
-import type { BroadcastScope, GraphicVisibility, PlayerStatsControl } from './controls';
-import { broadcastScopes, graphicIds } from './controls';
+import type {
+	BroadcastScope,
+	GraphicVisibility,
+	PlayerStatsControl,
+	LineupTeams
+} from './controls';
+import { broadcastScopes, graphicIds, lineupTeams } from './controls';
+import { statisticFields, isStatisticFieldList, type StatisticField } from '../statistics/fields';
 import type { StatisticsView } from '../server/services/statistics-aggregation';
 import {
 	isBroadcastPauseState,
@@ -52,13 +58,14 @@ export type BroadcastScopeView = {
 	mvpPlayerId: string | null;
 };
 export type BroadcastPreparedSnapshot = {
-	version: 3;
+	version: 4;
 	/** Optimistic-lock revision for operator broadcast controls only. */
 	controlRevision: number;
 	/** Persisted invalidation revision for prepared tournament/match/game data. */
 	dataRevision: number;
 	liveControls: {
 		swapped: boolean;
+		lineupTeams: LineupTeams;
 		currentAttackersEntryId: string | null;
 		pause: BroadcastPauseState;
 		ceremony: BroadcastCeremonyEvent;
@@ -114,6 +121,7 @@ export type BroadcastPreparedSnapshot = {
 		visibility: GraphicVisibility;
 		playerStats: PlayerStatsControl;
 		mvpScope: BroadcastScope;
+		mvpFields: StatisticField[];
 	};
 	readiness: {
 		selected: boolean;
@@ -219,11 +227,12 @@ const result = {
 	winnerEntryId: text
 };
 const preparedFields = {
-	version: oneOf(3),
+	version: oneOf(4),
 	controlRevision: (v: unknown) => integer(v) && (v as number) > 0,
 	dataRevision: (v: unknown) => integer(v) && (v as number) > 0,
 	liveControls: object({
 		swapped: boolean,
+		lineupTeams: oneOf(...lineupTeams),
 		currentAttackersEntryId: text,
 		pause: isBroadcastPauseState,
 		ceremony: isBroadcastCeremonyEvent
@@ -308,9 +317,11 @@ const preparedFields = {
 			mode: oneOf('single', 'head-to-head'),
 			scope: oneOf(...broadcastScopes),
 			playerId: text,
-			opponentPlayerId: text
+			opponentPlayerId: text,
+			fields: isStatisticFieldList
 		}),
-		mvpScope: oneOf(...broadcastScopes)
+		mvpScope: oneOf(...broadcastScopes),
+		mvpFields: isStatisticFieldList
 	}),
 	readiness: object({
 		selected: boolean,
@@ -321,22 +332,52 @@ const preparedFields = {
 	})
 };
 const preparedCheck = object(preparedFields);
-const legacyPreparedCheck = object({
+const legacyControls = object({
+	visibility: object(Object.fromEntries(graphicIds.map((id) => [id, boolean]))),
+	playerStats: object({
+		mode: oneOf('single', 'head-to-head'),
+		scope: oneOf(...broadcastScopes),
+		playerId: text,
+		opponentPlayerId: text
+	}),
+	mvpScope: oneOf(...broadcastScopes)
+});
+const legacyPreparedV2Check = object({
 	...preparedFields,
 	version: oneOf(2),
-	liveControls: object({ swapped: boolean, currentAttackersEntryId: text })
+	liveControls: object({ swapped: boolean, currentAttackersEntryId: text }),
+	controls: legacyControls
+});
+const legacyPreparedV3Check = object({
+	...preparedFields,
+	version: oneOf(3),
+	liveControls: object({
+		swapped: boolean,
+		currentAttackersEntryId: text,
+		pause: isBroadcastPauseState,
+		ceremony: isBroadcastCeremonyEvent
+	}),
+	controls: legacyControls
 });
 
 function persistedPublication(value: unknown): BroadcastPreparedSnapshot | null {
 	if (isBroadcastPublication(value)) return value;
-	if (!legacyPreparedCheck(value)) return null;
-	const old = value as Omit<BroadcastPreparedSnapshot, 'version' | 'liveControls'> & {
-		liveControls: { swapped: boolean; currentAttackersEntryId: string | null };
-	};
+	const v2 = legacyPreparedV2Check(value);
+	if (!v2 && !legacyPreparedV3Check(value)) return null;
+	const old = value as BroadcastPreparedSnapshot;
 	const upgraded: BroadcastPreparedSnapshot = {
 		...old,
-		version: 3,
-		liveControls: { ...old.liveControls, pause: { type: 'none' }, ceremony: null }
+		version: 4,
+		liveControls: {
+			...old.liveControls,
+			...(v2 ? { pause: { type: 'none' } as BroadcastPauseState, ceremony: null } : {}),
+			lineupTeams: 'both'
+		},
+		controls: {
+			...old.controls,
+			playerStats: { ...old.controls.playerStats, fields: [...statisticFields] },
+			mvpFields: [...statisticFields]
+		}
 	};
 	return isBroadcastPublication(upgraded) ? upgraded : null;
 }

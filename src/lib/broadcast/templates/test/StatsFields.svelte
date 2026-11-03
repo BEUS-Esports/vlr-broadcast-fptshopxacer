@@ -2,27 +2,35 @@
 	import type { BroadcastScope } from '../../controls';
 	import type { PlayerStatisticsView } from '../../../server/services/statistics-aggregation';
 	import { statisticMetric } from '../../selectors';
+	import { statisticFields, type StatisticField } from '../../../statistics/fields';
 
-	let { statistics, scope }: { statistics: PlayerStatisticsView | null; scope: BroadcastScope } =
-		$props();
-	const fields = [
-		['kills', 'Kills'],
-		['deaths', 'Deaths'],
-		['assists', 'Assists'],
-		['performanceScore', 'Perf. Score'],
-		['trades', 'Trades'],
-		['firstBloods', 'First Bloods'],
-		['plants', 'Plants'],
-		['defuses', 'Defuses']
-	] as const;
+	let {
+		statistics,
+		scope,
+		fields = [...statisticFields]
+	}: {
+		statistics: PlayerStatisticsView | null;
+		scope: BroadcastScope;
+		fields?: readonly StatisticField[];
+	} = $props();
+	const labels: Record<StatisticField, string> = {
+		kills: 'Kills',
+		deaths: 'Deaths',
+		assists: 'Assists',
+		performanceScore: 'Perf. Score',
+		trades: 'Trades',
+		firstBloods: 'First Bloods',
+		plants: 'Plants',
+		defuses: 'Defuses'
+	};
 </script>
 
 <div class="fields" aria-label="K/D/A and statistics">
-	{#each fields as [field, label] (field)}
+	{#each fields as field (field)}
 		{@const metric = statisticMetric(statistics, field, scope)}
 		<div data-field={field} data-coverage={metric.coverage}>
 			<strong>{metric.value ?? '—'}</strong>
-			<span>{label}</span>
+			<span>{labels[field]}</span>
 			{#if metric.coverage === 'partial'}<small>INCOMPLETE</small>{/if}
 		</div>
 	{/each}

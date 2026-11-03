@@ -26,7 +26,9 @@
 	<div class="empty">MVP TBD</div>
 {:else}
 	{#if !selected.player}<p class="status">SELECTED PLAYER UNAVAILABLE</p>{/if}
-	<div class="panel"><StatsPanel {snapshot} {scope} playerId={pick} /></div>
+	<div class="panel">
+		<StatsPanel {snapshot} {scope} playerId={pick} fields={snapshot.controls.mvpFields} />
+	</div>
 {/if}
 
 <style>

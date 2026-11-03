@@ -12,7 +12,7 @@ import {
 } from '#lib/server/testing/management-fixture.ts';
 import { decodeBroadcastSnapshot, validatedPublications } from '#lib/broadcast/types.ts';
 
-it('strictly accepts v3 controls and upgrades only valid persisted v2 captures', async () => {
+it('strictly accepts v4 controls and upgrades only valid persisted v2 captures', async () => {
 	await withManagementFixture(async ({ db }) => {
 		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'Held' });
 		const { updateBroadcastState } = await import('../services/broadcast');
@@ -23,7 +23,7 @@ it('strictly accepts v3 controls and upgrades only valid persisted v2 captures',
 		});
 		const { buildBroadcastSnapshot } = await import('./snapshot');
 		const snapshot = await buildBroadcastSnapshot();
-		expect(snapshot.version).toBe(3);
+		expect(snapshot.version).toBe(4);
 		expect(decodeBroadcastSnapshot(JSON.stringify(snapshot))).toEqual(snapshot);
 		for (const pause of [
 			{ type: 'tactical', entryId: 'entry-a' },
@@ -50,8 +50,12 @@ it('strictly accepts v3 controls and upgrades only valid persisted v2 captures',
 			).toBeNull();
 		}
 		const held = snapshot.publications['in-game']!;
+		const legacyStats = { ...held.controls.playerStats, fields: undefined };
+		const legacyControls = { ...held.controls, mvpFields: undefined };
 		const legacy = {
-			...held,
+			...JSON.parse(
+				JSON.stringify({ ...held, controls: { ...legacyControls, playerStats: legacyStats } })
+			),
 			version: 2,
 			liveControls: {
 				swapped: held.liveControls.swapped,

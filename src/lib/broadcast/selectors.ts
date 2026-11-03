@@ -52,6 +52,16 @@ export function competitionTeams(snapshot: BroadcastSnapshot) {
 	};
 }
 
+export function lineupTeamVisible(snapshot: BroadcastSnapshot, entryId: string | null) {
+	return (
+		snapshot.liveControls.lineupTeams === 'both' ||
+		(snapshot.liveControls.lineupTeams === 'team-a' &&
+			entryId === snapshot.competition.teamAEntryId) ||
+		(snapshot.liveControls.lineupTeams === 'team-b' &&
+			entryId === snapshot.competition.teamBEntryId)
+	);
+}
+
 export function presentationTeams(snapshot: BroadcastSnapshot) {
 	return {
 		left: teamByEntryId(snapshot, snapshot.presentation.leftEntryId),

@@ -1,3 +1,7 @@
+import { statisticFields, type StatisticField } from '#lib/statistics/fields.ts';
+
+export const lineupTeams = ['both', 'team-a', 'team-b'] as const;
+export type LineupTeams = (typeof lineupTeams)[number];
 export const graphicIds = [
 	'player-lineup',
 	'player-stats',
@@ -25,6 +29,7 @@ export type PlayerStatsControl = {
 	scope: BroadcastScope;
 	playerId: string | null;
 	opponentPlayerId: string | null;
+	fields: StatisticField[];
 };
 export const defaultVisibility: GraphicVisibility = {
 	'player-lineup': false,
@@ -39,5 +44,6 @@ export const defaultPlayerStats: PlayerStatsControl = {
 	mode: 'single',
 	scope: 'game',
 	playerId: null,
-	opponentPlayerId: null
+	opponentPlayerId: null,
+	fields: [...statisticFields]
 };

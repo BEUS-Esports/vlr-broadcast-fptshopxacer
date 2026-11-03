@@ -5,8 +5,10 @@ import {
 	defaultVisibility,
 	type BroadcastScope,
 	type GraphicVisibility,
-	type PlayerStatsControl
+	type PlayerStatsControl,
+	type LineupTeams
 } from '#lib/broadcast/controls.ts';
+import { statisticFields, type StatisticField } from '#lib/statistics/fields.ts';
 import { createdAtColumn, revisionColumn, updatedAtColumn } from './common';
 import { games } from './games';
 import { tournamentEntries } from './tournaments';
@@ -25,6 +27,14 @@ export const broadcastState = sqliteTable(
 		dataRevision: revisionColumn(),
 		controlRevision: integer('control_revision').notNull().default(1),
 		swapped: integer('swapped', { mode: 'boolean' }).notNull().default(false),
+		lineupTeams: text('lineup_teams', { enum: ['both', 'team-a', 'team-b'] })
+			.$type<LineupTeams>()
+			.notNull()
+			.default('both'),
+		mvpFields: text('mvp_fields', { mode: 'json' })
+			.$type<StatisticField[]>()
+			.notNull()
+			.default([...statisticFields]),
 		pause: text('pause', { mode: 'json' })
 			.$type<BroadcastPauseState>()
 			.notNull()

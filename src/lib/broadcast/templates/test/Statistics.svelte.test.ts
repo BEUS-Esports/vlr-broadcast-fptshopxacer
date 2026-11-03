@@ -29,11 +29,12 @@ function preparedSnapshot(): BroadcastSnapshot {
 		stylizedBackgroundPath: null
 	};
 	return {
-		version: 3,
+		version: 4,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: true,
+			lineupTeams: 'both',
 			currentAttackersEntryId: 'b',
 			pause: { type: 'none' },
 			ceremony: null
@@ -118,7 +119,12 @@ function preparedSnapshot(): BroadcastSnapshot {
 			match: { ...scope, statistics: { ...scope.statistics, scope: 'match' } },
 			tournament: { ...scope, statistics: { ...scope.statistics, scope: 'tournament' } }
 		},
-		controls: { visibility: defaultVisibility, playerStats: defaultPlayerStats, mvpScope: 'game' },
+		controls: {
+			visibility: defaultVisibility,
+			playerStats: defaultPlayerStats,
+			mvpScope: 'game',
+			mvpFields: [...defaultPlayerStats.fields]
+		},
 		readiness: { selected: true, map: true, lineups: false, agents: false, result: false }
 	};
 }
@@ -182,7 +188,8 @@ function statisticsSnapshot() {
 		mode: 'single',
 		scope: 'game',
 		playerId: 'a0',
-		opponentPlayerId: 'b4'
+		opponentPlayerId: 'b4',
+		fields: [...defaultPlayerStats.fields]
 	};
 	return snapshot;
 }
@@ -210,6 +217,25 @@ it('renders both saved five-player postgame rows, scores, map and manual metrics
 	expect(row.querySelector('[data-field="kills"] strong')?.textContent).toBe('0');
 	await view.rerender({ snapshot: { ...snapshot, teams: [] }, graphic: 'post-game' });
 	expect(view.container.textContent).toContain('Saved b0');
+});
+
+it('uses independent fields for player stats and MVP without losing zero values', async () => {
+	const snapshot = statisticsSnapshot();
+	snapshot.controls.playerStats.fields = ['kills'];
+	snapshot.controls.mvpFields = ['deaths', 'defuses'];
+	const view = render(Graphic, { snapshot, graphic: 'player-stats' });
+	expect(
+		[...view.container.querySelectorAll('[data-field]')].map((node) =>
+			node.getAttribute('data-field')
+		)
+	).toEqual(['kills']);
+	expect(view.container.querySelector('[data-field="kills"] strong')?.textContent).toBe('0');
+	await view.rerender({ snapshot, graphic: 'mvp' });
+	expect(
+		[...view.container.querySelectorAll('[data-field]')].map((node) =>
+			node.getAttribute('data-field')
+		)
+	).toEqual(['deaths', 'defuses']);
 });
 
 it('renders exactly operator single/head-to-head picks across scopes and explicit metric coverage', async () => {
@@ -267,7 +293,8 @@ it('renders exactly operator single/head-to-head picks across scopes and explici
 					mode: 'single',
 					scope: 'match',
 					playerId: 'historical',
-					opponentPlayerId: null
+					opponentPlayerId: null,
+					fields: [...defaultPlayerStats.fields]
 				}
 			}
 		},
@@ -301,7 +328,8 @@ it('preserves explicit tournament H2H identity and order for same-team and other
 						mode: 'head-to-head',
 						scope: 'tournament',
 						playerId: 'a0',
-						opponentPlayerId
+						opponentPlayerId,
+						fields: [...defaultPlayerStats.fields]
 					}
 				}
 			},

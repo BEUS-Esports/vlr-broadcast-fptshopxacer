@@ -16,11 +16,12 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 		mvpPlayerId: null
 	};
 	return {
-		version: 3,
+		version: 4,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: false,
+			lineupTeams: 'both',
 			currentAttackersEntryId: null,
 			pause: { type: 'none' },
 			ceremony: null
@@ -63,7 +64,12 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 			match: { ...scope, statistics: { ...scope.statistics, scope: 'match' } },
 			tournament: { ...scope, statistics: { ...scope.statistics, scope: 'tournament' } }
 		},
-		controls: { visibility: defaultVisibility, playerStats: defaultPlayerStats, mvpScope: 'game' },
+		controls: {
+			visibility: defaultVisibility,
+			playerStats: defaultPlayerStats,
+			mvpScope: 'game',
+			mvpFields: [...defaultPlayerStats.fields]
+		},
 		readiness: { selected: true, map: false, lineups: false, agents: false, result: false }
 	};
 }

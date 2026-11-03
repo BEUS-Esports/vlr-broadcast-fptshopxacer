@@ -1,11 +1,34 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ManagementForm from '../management/ManagementForm.svelte';
-	import { broadcastScopes, graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
+	import {
+		broadcastScopes,
+		graphicLabels,
+		type GraphicId,
+		type BroadcastScope
+	} from '#lib/broadcast/controls.ts';
+	import { statisticFields, type StatisticField } from '#lib/statistics/fields.ts';
+	import { playerInScope, statisticMetric } from '#lib/broadcast/selectors.ts';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 	let { graphic, live }: { graphic: GraphicId; live: BroadcastSnapshot } = $props();
 	const shown = $derived(live.controls.visibility[graphic]);
 	const published = $derived(live.publications[graphic]);
+	const fieldLabels: Record<StatisticField, string> = {
+		kills: 'Kills',
+		deaths: 'Deaths',
+		assists: 'Assists',
+		performanceScore: 'Performance Score',
+		trades: 'Trades',
+		firstBloods: 'First Bloods',
+		plants: 'Plants',
+		defuses: 'Defuses'
+	};
+	function coverage(scope: BroadcastScope, playerId: string | null, field: StatisticField) {
+		const player = playerInScope(live, scope, playerId);
+		const name = player.player?.displayName ?? 'Player not selected';
+		const metric = statisticMetric(player.statistics, field, scope);
+		return `${name}: ${metric.coverage === 'none' ? 'unavailable' : metric.coverage}`;
+	}
 </script>
 
 <section class="admin-editor space-y-4" aria-label="Program controls">
@@ -14,7 +37,7 @@
 		<p>
 			Published data revision {published.dataRevision} · publication {published.controlRevision}
 		</p>
-		{#if live.dataRevision > published.dataRevision || (graphic === 'player-stats' && JSON.stringify(live.controls.playerStats) !== JSON.stringify(published.controls.playerStats)) || (graphic === 'mvp' && live.controls.mvpScope !== published.controls.mvpScope)}
+		{#if live.dataRevision > published.dataRevision || (graphic === 'player-stats' && JSON.stringify(live.controls.playerStats) !== JSON.stringify(published.controls.playerStats)) || (graphic === 'mvp' && (live.controls.mvpScope !== published.controls.mvpScope || JSON.stringify(live.controls.mvpFields) !== JSON.stringify(published.controls.mvpFields)))}
 			<p role="status" class="text-warning-600-400">
 				Preview contains newer saved data or controls. Hide → Show to publish.
 			</p>
@@ -39,11 +62,11 @@
 	{#if graphic === 'player-stats' || graphic === 'mvp'}
 		<ManagementForm
 			action="?/controls"
-			recordDraft={false}
 			initial={{
 				expectedRevision: live.controlRevision,
 				playerStats: graphic === 'player-stats' ? live.controls.playerStats : undefined,
-				mvpScope: graphic === 'mvp' ? live.controls.mvpScope : undefined
+				mvpScope: graphic === 'mvp' ? live.controls.mvpScope : undefined,
+				mvpFields: graphic === 'mvp' ? live.controls.mvpFields : undefined
 			}}
 		>
 			{#snippet children(draft)}
@@ -102,6 +125,42 @@
 							{#each broadcastScopes as scope (scope)}<option value={scope}>{scope}</option>{/each}
 						</select></label
 					>
+				{/if}
+				{@const selectedFields = stats ? stats.fields : draft.mvpFields}
+				{#if selectedFields}
+					<fieldset class="space-y-2">
+						<legend>Statistics fields</legend>
+						{#each statisticFields as field (field)}
+							<label class="flex items-start gap-2">
+								<input
+									type="checkbox"
+									checked={selectedFields.includes(field)}
+									onchange={(event) => {
+										const next = event.currentTarget.checked
+											? [...selectedFields, field]
+											: selectedFields.filter((item) => item !== field);
+										if (stats) stats.fields = next;
+										else draft.mvpFields = next;
+									}}
+								/>
+								<span
+									>{fieldLabels[field]} · {#if stats}{coverage(
+											stats.scope,
+											stats.playerId,
+											field
+										)}{#if stats.mode === 'head-to-head'}; {coverage(
+												stats.scope,
+												stats.opponentPlayerId,
+												field
+											)}{/if}{:else if draft.mvpScope}{coverage(
+											draft.mvpScope,
+											live.scopes[draft.mvpScope].mvpPlayerId,
+											field
+										)}{/if}</span
+								>
+							</label>
+						{/each}
+					</fieldset>
 				{/if}
 				<p class="text-sm">
 					Saving content controls updates Preview. Shown program content remains published until

@@ -7,8 +7,12 @@ import {
 	graphicIds,
 	type BroadcastScope,
 	type GraphicVisibility,
-	type PlayerStatsControl
+	type PlayerStatsControl,
+	type LineupTeams,
+	lineupTeams
 } from '#lib/broadcast/controls.ts';
+import { statisticFields, type StatisticField } from '#lib/statistics/fields.ts';
+import { statisticCapabilities } from '#lib/broadcast/template-capabilities.ts';
 import { SaveError } from './save-error';
 import { buildBroadcastPreparedSnapshot } from '../broadcast/snapshot';
 import { validatedPublications } from '#lib/broadcast/types.ts';
@@ -26,12 +30,30 @@ export type BroadcastUpdate = {
 	expectedRevision: number;
 	selectedGameId?: string | null;
 	swapped?: boolean;
+	lineupTeams?: LineupTeams;
 	currentAttackersEntryId?: string | null;
 	visibility?: Partial<GraphicVisibility>;
 	playerStats?: PlayerStatsControl;
 	mvpScope?: BroadcastScope;
+	mvpFields?: StatisticField[];
 	inGameAction?: InGameControlAction;
 };
+
+function canonicalFields(
+	value: unknown,
+	graphic: keyof typeof statisticCapabilities
+): StatisticField[] {
+	const capability = statisticCapabilities[graphic];
+	if (
+		!Array.isArray(value) ||
+		value.length < capability.min ||
+		value.length > capability.max ||
+		new Set(value).size !== value.length ||
+		value.some((field) => !capability.fields.includes(field))
+	)
+		throw new SaveError('invalid', 'Choose supported, distinct statistic fields.');
+	return statisticFields.filter((field) => value.includes(field));
+}
 
 async function initialize(connection: typeof db | Transaction) {
 	await connection.insert(broadcastState).values({ id: 1 }).onConflictDoNothing();
@@ -106,6 +128,18 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			selectedGameId,
 			// Presentation order is an explicit operator override, not game-owned state.
 			swapped: input.swapped ?? current.swapped,
+			lineupTeams:
+				input.lineupTeams === undefined
+					? changedGame
+						? ('both' as const)
+						: current.lineupTeams
+					: input.lineupTeams,
+			mvpFields:
+				input.mvpFields === undefined
+					? changedGame
+						? [...statisticFields]
+						: current.mvpFields
+					: canonicalFields(input.mvpFields, 'mvp'),
 			currentAttackersEntryId:
 				input.currentAttackersEntryId === undefined
 					? changedGame
@@ -118,7 +152,10 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 					? changedGame
 						? defaultPlayerStats
 						: current.playerStats
-					: input.playerStats,
+					: input.playerStats && {
+							...input.playerStats,
+							fields: canonicalFields(input.playerStats.fields, 'player-stats')
+						},
 			mvpScope:
 				input.mvpScope === undefined
 					? changedGame
@@ -194,6 +231,8 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			(input.swapped !== undefined && typeof input.swapped !== 'boolean')
 		)
 			throw new SaveError('invalid', 'Presentation swap must be a boolean.');
+		if (!lineupTeams.includes(state.lineupTeams))
+			throw new SaveError('invalid', 'Choose both teams, team A, or team B.');
 		if (
 			state.currentAttackersEntryId !== null &&
 			(!selected ||
@@ -217,7 +256,7 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 		if (
 			!stats ||
 			Object.keys(stats).some(
-				(key) => !['mode', 'scope', 'playerId', 'opponentPlayerId'].includes(key)
+				(key) => !['mode', 'scope', 'playerId', 'opponentPlayerId', 'fields'].includes(key)
 			) ||
 			!['single', 'head-to-head'].includes(stats.mode) ||
 			!broadcastScopes.includes(stats.scope) ||
