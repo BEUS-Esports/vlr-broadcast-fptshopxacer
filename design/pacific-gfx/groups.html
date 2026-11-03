@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pacific · Groups</title>
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			.g {
+				top: 200px;
+				width: 500px;
+			}
+			.g.l {
+				left: 220px;
+			}
+			.g.r {
+				right: 220px;
+			}
+			.hd {
+				height: 76px;
+				display: flex;
+				align-items: center;
+				padding: 0 30px;
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 44px;
+				position: relative;
+			}
+			.g.l .hd {
+				background: var(--cyan);
+				color: var(--ink);
+				clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%);
+			}
+			.g.r .hd {
+				background: #182a4a;
+				color: #fff;
+				justify-content: flex-end;
+				clip-path: polygon(8% 0, 100% 0, 100% 100%, 0 100%);
+			}
+			.tm {
+				display: flex;
+				align-items: center;
+				gap: 24px;
+				height: 110px;
+				margin-top: 6px;
+				padding: 0 26px;
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 52px;
+			}
+			.g.l .tm {
+				background: linear-gradient(90deg, rgba(25, 90, 110, 0.95), rgba(25, 90, 110, 0.6));
+			}
+			.g.r .tm {
+				flex-direction: row-reverse;
+				background: linear-gradient(270deg, rgba(24, 42, 74, 0.95), rgba(24, 42, 74, 0.6));
+			}
+			.vs {
+				left: 50%;
+				top: 490px;
+				transform: translateX(-50%);
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 140px;
+				color: var(--lime);
+			}
+			.cr {
+				position: absolute;
+				width: 30px;
+				height: 30px;
+				border: 0 solid var(--lime);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage" id="s"></div>
+		<script src="data.js"></script>
+		<script src="assets/real/real.js"></script>
+		<script src="frame.js"></script>
+		<script>
+			const A = TM.slice(0, 5),
+				B = TM.slice(5, 11);
+			const col = (c, n, L, b) =>
+				`<div class="abs g ${c}"><div class="hd a-wipeR flash" style="${d(b)}">${n}</div>${L.map((t, i) => `<div class="tm a-wipeR flash" style="${d(b + 0.15 + i * 0.08)}">${logo(t[0], 64)}${t[0]}</div>`).join('')}</div>`;
+			s.innerHTML =
+				frame() +
+				col('l', 'ALPHA GROUP', A, 0.2) +
+				col('r', 'OMEGA GROUP', B, 0.3) +
+				`<div class="abs vs a-pop" style="${d(0.5)}">VS<i class="cr" style="left:-40px;top:0;border-width:5px 0 0 5px"></i><i class="cr" style="right:-40px;bottom:10px;border-width:0 5px 5px 0"></i></div>`;
+		</script>
+		<script src="assets/vendor/gsap.min.js"></script>
+		<script src="anim.js"></script>
+	</body>
+</html>

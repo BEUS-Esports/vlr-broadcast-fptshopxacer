@@ -1,0 +1,137 @@
+/* ===== MATTE: bỏ cảm giác "nhựa" — phẳng, cạnh sắc, không glow / bóng đổ / gradient bóng ===== */
+.row,
+.tm,
+.c,
+.ag,
+.bd,
+.sl,
+.cell,
+.blk,
+.rt,
+.mini,
+.hd,
+.tot,
+.champ,
+.card,
+.nm span,
+.p1,
+.pn,
+.tname {
+	box-shadow: none !important;
+}
+.row,
+.tm,
+.ag,
+.bd,
+.cell,
+.rt,
+.c,
+.blk {
+	background-image: none !important;
+}
+.h1,
+.tagSide,
+.title,
+.map b,
+.mapbox b {
+	text-shadow: none !important;
+}
+.bg .glow {
+	opacity: 0.35;
+}
+.bg .tint {
+	background: linear-gradient(
+		120deg,
+		rgba(6, 34, 44, 0.92),
+		rgba(18, 120, 134, 0.55) 50%,
+		rgba(5, 26, 34, 0.94)
+	);
+}
+.bg .art {
+	opacity: 0.42;
+}
+.bg .grain {
+	opacity: 0.28;
+}
+.flash::after {
+	display: none !important;
+}
+.photo img,
+.ag img,
+.photo-cut img {
+	filter: none !important;
+}
+/* hàng phẳng: tách nhau bằng khe, không viền sáng */
+.row:not(:first-child) {
+	background-color: #0f3442 !important;
+}
+.tm {
+	background: #0f3442 !important;
+}
+.g.r .tm {
+	background: #142a46 !important;
+}
+.tot {
+	background: var(--cyan) !important;
+}
+/* thanh quét dẫn đường của GSAP */
+.wiper {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 6px;
+	background: var(--lime);
+	z-index: 25;
+	pointer-events: none;
+}
+.wiper.v {
+	left: 0;
+	right: 0;
+	width: auto;
+	height: 6px;
+	top: auto;
+}
+.ch {
+	display: inline-block;
+	will-change: transform;
+}
+.mask {
+	display: inline-block;
+	overflow: hidden;
+	vertical-align: top;
+	padding-bottom: 0.06em;
+}
+/* lịch: các khối màu phẳng */
+.blk {
+	background-color: #164556 !important;
+}
+.blk.sw {
+	background-color: #1aa3ad !important;
+}
+.blk.po {
+	background-color: var(--cyan) !important;
+	color: var(--ink) !important;
+}
+.blk.fn {
+	background-color: var(--lime) !important;
+	color: var(--ink) !important;
+}
+
+/* nền đã nướng sẵn: chỉ trôi bằng transform (GPU, mượt) */
+.bg .baked {
+	position: absolute;
+	inset: -3%;
+	width: 106%;
+	height: 106%;
+	object-fit: cover;
+	will-change: transform;
+	animation: bakedDrift 20s ease-in-out infinite alternate;
+}
+@keyframes bakedDrift {
+	from {
+		transform: scale(1) translate3d(-0.8%, 0, 0);
+	}
+	to {
+		transform: scale(1.04) translate3d(0.8%, -0.6%, 0);
+	}
+}

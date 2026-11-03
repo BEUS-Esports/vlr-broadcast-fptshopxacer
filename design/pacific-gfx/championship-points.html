@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pacific · Championship points</title>
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			.t {
+				left: 0;
+				right: 0;
+				top: 150px;
+				text-align: center;
+			}
+			.box {
+				left: 180px;
+				right: 180px;
+				top: 300px;
+				height: 620px;
+				display: grid;
+				grid-template-columns: repeat(5, 1fr);
+				gap: 10px;
+			}
+			.col {
+				display: flex;
+				flex-direction: column;
+			}
+			.hd {
+				height: 100px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				text-align: center;
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 36px;
+				line-height: 0.95;
+				background: var(--cyan);
+				color: var(--ink);
+			}
+			.hd.p {
+				background: #8a6cf0;
+				color: #fff;
+			}
+			.bd {
+				flex: 1;
+				margin-top: 8px;
+				background: rgba(10, 24, 32, 0.88);
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 30px;
+			}
+			.bd .mk {
+				width: 110px;
+				height: 110px;
+				clip-path: polygon(
+					50% 0,
+					62% 38%,
+					100% 38%,
+					70% 60%,
+					82% 100%,
+					50% 75%,
+					18% 100%,
+					30% 60%,
+					0 38%,
+					38% 38%
+				);
+				background: #fff;
+			}
+			.bd b {
+				font-family: var(--display);
+				font-weight: 900;
+				font-size: 58px;
+				color: var(--lime);
+			}
+			.cr {
+				top: 600px;
+			}
+			.cr.l {
+				left: 120px;
+			}
+			.cr.r {
+				right: 120px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage" id="s"></div>
+		<script src="data.js"></script>
+		<script src="assets/real/real.js"></script>
+		<script src="frame.js"></script>
+		<script>
+			const C = [
+				['KICKOFF', '', ['+3', '+1']],
+				['MASTERS<br>MADRID', 'p', ['+3']],
+				['STAGE 1', '', ['+1']],
+				['MASTERS<br>SHANGHAI', 'p', []],
+				['STAGE 2', '', []]
+			];
+			s.innerHTML =
+				frame() +
+				`<div class="abs t center a-blur" style="${d(0.1)}"><div class="kick">ROAD TO CHAMPIONS</div><div class="h1">CHAMPIONSHIP POINTS</div></div>
+<div class="abs box">${C.map(
+					(
+						c,
+						i
+					) => `<div class="col"><div class="hd ${c[1]} a-wipeR flash" style="${d(0.3 + i * 0.09)}">${c[0]}</div>
+<div class="bd a-wipeU" style="${d(0.45 + i * 0.09)}"><div class="mk a-pop" style="${d(0.8 + i * 0.09)}"></div>${c[2].map((v) => `<b>${v}</b>`).join('')}</div></div>`
+				).join('')}
+<i class="brk tl" style="left:-22px;top:-22px"></i><i class="brk br" style="right:-22px;bottom:-22px"></i></div>
+<i class="abs cross cr l"></i><i class="abs cross cr r"></i>`;
+		</script>
+		<script src="assets/vendor/gsap.min.js"></script>
+		<script src="anim.js"></script>
+	</body>
+</html>

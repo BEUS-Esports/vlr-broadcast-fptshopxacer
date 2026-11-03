@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="utf-8" />
+		<title>Pacific · Schedule</title>
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			.t {
+				left: 190px;
+				top: 130px;
+			}
+			.cal {
+				left: 190px;
+				top: 215px;
+				width: 1540px;
+				display: grid;
+				grid-template-columns: repeat(7, 1fr);
+				grid-auto-rows: 108px;
+				gap: 3px;
+			}
+			.dh {
+				height: 36px;
+				align-self: end;
+				display: flex;
+				align-items: center;
+				padding: 0 10px;
+				background: #1a3b4c;
+				font-weight: 800;
+				font-size: 16px;
+			}
+			.cell {
+				position: relative;
+				background: rgba(8, 22, 30, 0.85);
+				padding: 6px 10px;
+				font-weight: 700;
+				font-size: 16px;
+				color: var(--muted);
+			}
+			.blk {
+				position: relative;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-family: var(--display);
+				font-weight: 800;
+				font-size: 40px;
+				color: #fff;
+				background: linear-gradient(135deg, #1c5568, #123848);
+			}
+			.blk small {
+				position: absolute;
+				left: 10px;
+				top: 6px;
+				font-family: var(--body);
+				font-size: 16px;
+				color: var(--muted);
+			}
+			.blk.sw {
+				background: linear-gradient(90deg, #1fb8c2, #127a8a);
+			}
+			.blk.po {
+				background: #2ab9c3;
+			}
+			.blk.fn {
+				background: var(--lime);
+				color: var(--ink);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage" id="s"></div>
+		<script src="data.js"></script>
+		<script src="assets/real/real.js"></script>
+		<script src="frame.js"></script>
+		<script>
+			const D = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+			// lưới 6 tuần; null = ô thường, [text,cls,span]
+			const R = [
+				[
+					['JUNE-JULY', '', 5],
+					null,
+					null,
+					null,
+					null,
+					['WEEK 1', '', 1, 15],
+					['WEEK 1', '', 1, 16]
+				],
+				[['WEEK 1', '', 1, 17], 18, 19, 20, 21, ['WEEK 2', '', 1, 22], ['WEEK 2', '', 1, 23]],
+				[['WEEK 2', '', 1, 24], 25, 26, 27, 28, ['WEEK 3', '', 1, 29], ['WEEK 3', '', 1, 30]],
+				[['WEEK 3', '', 1, '7/1'], 2, 3, 4, ['SUPER WEEK', 'sw', 3, 5], null, null],
+				[['SUPER WEEK', 'sw', 1, 8], 9, 10, 11, ['PLAYOFFS', 'po', 3, 12], null, null],
+				[15, 16, 17, 18, 19, ['PLAYOFFS', 'po', 1, 20], ['FINALS', 'fn', 1, 21]]
+			];
+			let h = D.map(
+					(x, i) => `<div class="dh a-wipeR" style="${d(0.2 + i * 0.04)}">${x}</div>`
+				).join(''),
+				k = 0;
+			R.forEach((r, ri) =>
+				r.forEach((c) => {
+					if (c === null) return;
+					k++;
+					const dl = d(0.45 + ri * 0.1 + k * 0.012);
+					h += Array.isArray(c)
+						? `<div class="blk ${c[1]} a-wipeR flash" style="grid-column:span ${c[2]};${dl}">${c[3] !== undefined ? `<small>${c[3]}</small>` : ''}${c[0]}</div>`
+						: `<div class="cell a-fade" style="${dl}">${c}</div>`;
+				})
+			);
+			s.innerHTML =
+				frame() +
+				`<div class="abs t a-blur" style="${d(0.1)}"><div class="kick">JUNE – JULY</div><div class="h1" style="font-size:54px">STAGE 2 SCHEDULE</div></div><div class="abs cal">${h}</div>`;
+		</script>
+		<script src="assets/vendor/gsap.min.js"></script>
+		<script src="anim.js"></script>
+	</body>
+</html>

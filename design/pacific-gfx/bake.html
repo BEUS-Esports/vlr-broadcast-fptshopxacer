@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="pacific.css" />
+		<link rel="stylesheet" href="matte.css" />
+		<style>
+			.bg .art {
+				animation: none !important;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="stage">
+			<svg width="0" height="0" style="position: absolute">
+				<filter id="swirl" x="-10%" y="-10%" width="120%" height="120%">
+					<feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="3" seed="7" />
+					<feDisplacementMap in="SourceGraphic" scale="140" />
+				</filter>
+			</svg>
+			<div class="bg">
+				<img class="art" id="a" alt="" />
+				<div class="tint"></div>
+				<div class="glow"></div>
+				<div class="grain"></div>
+				<div class="vig"></div>
+			</div>
+		</div>
+		<script>
+			document.getElementById('a').src =
+				'assets/agents/full/' + new URLSearchParams(location.search).get('art') + '.png';
+		</script>
+	</body>
+</html>
