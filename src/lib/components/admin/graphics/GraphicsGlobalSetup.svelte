@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import type { LineupTeams } from '#lib/broadcast/controls.ts';
 	import ManagementForm from '../management/ManagementForm.svelte';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 	import type { GraphicsControlData } from './GraphicsWorkspace.svelte';
@@ -174,35 +172,6 @@
 					>Swap Left/Right</button
 				>
 			</ManagementForm>
-			{#if page.url.pathname.endsWith('/player-lineup')}
-				<ManagementForm
-					action="/admin/graphics?/controls"
-					recordDraft={false}
-					initial={{
-						expectedRevision: live.controlRevision,
-						lineupTeams: live.liveControls.lineupTeams
-					}}
-				>
-					{#snippet children(draft)}
-						<label class="label"
-							><span>Lineup teams</span>
-							<select
-								class="select"
-								value={draft.lineupTeams}
-								disabled={!live.selection}
-								onchange={(event) => {
-									draft.lineupTeams = event.currentTarget.value as LineupTeams;
-									event.currentTarget.form?.requestSubmit();
-								}}
-							>
-								<option value="both">Both</option>
-								<option value="team-a">{teamName(live.competition.teamAEntryId)}</option>
-								<option value="team-b">{teamName(live.competition.teamBEntryId)}</option>
-							</select>
-						</label>
-					{/snippet}
-				</ManagementForm>
-			{/if}
 			<ManagementForm action="/admin/graphics?/controls" recordDraft={false} initial={sidesInitial}>
 				{#snippet children(draft)}
 					<label class="label"

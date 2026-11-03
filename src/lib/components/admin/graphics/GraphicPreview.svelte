@@ -18,14 +18,32 @@
 		snapshot: BroadcastSnapshot;
 		connection: string;
 		telemetry?: LiveGameEnvelope | null;
-		variant?: 'normal' | 'live-data';
+		variant?: 'normal' | 'live-data' | 'lineup-both';
 		clock?: BroadcastClock | null;
 	} = $props();
-	const title = $derived(variant === 'live-data' ? 'Preview Live Data HUD' : 'Preview');
+	const title = $derived(
+		variant === 'live-data'
+			? 'Preview Live Data HUD'
+			: variant === 'lineup-both'
+				? 'Preview Both Lineups'
+				: 'Preview'
+	);
 	const largeTitle = $derived(
-		`Large Preview · ${variant === 'live-data' ? 'Live Data HUD' : graphicLabels[graphic]}`
+		`Large Preview · ${variant === 'live-data' ? 'Live Data HUD' : variant === 'lineup-both' ? 'Both Lineups' : graphicLabels[graphic]}`
 	);
 	const renderMode = $derived(variant === 'live-data' ? 'preview-live' : 'preview');
+	let singleTeam = $state<'team-a' | 'team-b'>('team-a');
+	const previewSnapshot = $derived(
+		graphic === 'player-lineup'
+			? {
+					...snapshot,
+					liveControls: {
+						...snapshot.liveControls,
+						lineupTeams: variant === 'lineup-both' ? ('both' as const) : singleTeam
+					}
+				}
+			: snapshot
+	);
 	let width = $state(0);
 	let largeWidth = $state(0);
 	let modal = $state<HTMLDialogElement>();
@@ -35,7 +53,7 @@
 	<div class="composition" style:transform={`scale(${canvasWidth / 1920})`}>
 		<GraphicRenderer
 			{graphic}
-			{snapshot}
+			snapshot={previewSnapshot}
 			{telemetry}
 			resources={liveResources.current}
 			{clock}
@@ -55,6 +73,13 @@
 			<Monitor size={18} aria-hidden="true" /> Large Preview
 		</button>
 	</header>
+	{#if graphic === 'player-lineup' && variant === 'normal'}
+		<label class="label"
+			><span>Single lineup preview</span><select class="select" bind:value={singleTeam}>
+				<option value="team-a">Team A</option><option value="team-b">Team B</option>
+			</select></label
+		>
+	{/if}
 	{#if variant === 'live-data'}
 		<p class="text-sm">
 			HUD template · {telemetry?.status.health ?? 'disconnected'}. Available data fills in
@@ -108,6 +133,9 @@
 		transform-origin: top left;
 	}
 	dialog {
+		position: fixed;
+		inset: 0;
+		margin: auto;
 		width: min(94vw, calc((90dvh - 5rem) * 16 / 9));
 		max-width: none;
 		max-height: 94dvh;

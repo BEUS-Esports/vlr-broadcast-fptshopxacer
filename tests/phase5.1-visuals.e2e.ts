@@ -196,7 +196,10 @@ test('Test GFX v2 renders deterministic complete and edge states inside the nati
 		});
 		await save(page, 'Clear live selection');
 		await page.goto('/admin/graphics/player-lineup');
-		await page.getByRole('button', { name: 'Large Preview', exact: true }).click();
+		await page
+			.getByRole('region', { name: 'Preview', exact: true })
+			.getByRole('button', { name: 'Large Preview', exact: true })
+			.click();
 		await expect(
 			page.getByRole('dialog').getByText('No game selected', { exact: true })
 		).toBeVisible();

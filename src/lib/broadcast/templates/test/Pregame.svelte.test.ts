@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import Graphic from './Graphic.svelte';
+import AlternateGraphic from '../beus-graph-test/Graphic.svelte';
 import type { BroadcastSnapshot } from '../../types';
 import { defaultVisibility, defaultPlayerStats, graphicIds } from '../../controls';
 
@@ -155,29 +156,35 @@ it('keeps five neutral lineup slots and saved player ownership after a presentat
 	expect(left().textContent).toContain('First B');
 });
 
-it('filters by competition identity while preserving the presentation slot', async () => {
-	const snapshot = preparedSnapshot();
-	const view = render(Graphic, {
-		snapshot: { ...snapshot, liveControls: { ...snapshot.liveControls, lineupTeams: 'team-a' } },
-		graphic: 'player-lineup'
-	});
-	expect(view.container.querySelectorAll('[data-position]')).toHaveLength(1);
-	expect(
-		view.container.querySelector('[data-position="right"]')?.getAttribute('data-entry-id')
-	).toBe('a');
-	await view.rerender({
-		snapshot: {
-			...snapshot,
-			liveControls: { ...snapshot.liveControls, lineupTeams: 'team-b' },
-			presentation: { leftEntryId: 'a', rightEntryId: 'b' }
-		},
-		graphic: 'player-lineup'
-	});
-	expect(view.container.querySelectorAll('[data-position]')).toHaveLength(1);
-	expect(
-		view.container.querySelector('[data-position="right"]')?.getAttribute('data-entry-id')
-	).toBe('b');
-});
+it.each([
+	['default', Graphic],
+	['alternate', AlternateGraphic]
+] as const)(
+	'%s template filters by competition identity while preserving the presentation slot',
+	async (_name, Template) => {
+		const snapshot = preparedSnapshot();
+		const view = render(Template, {
+			snapshot: { ...snapshot, liveControls: { ...snapshot.liveControls, lineupTeams: 'team-a' } },
+			graphic: 'player-lineup'
+		});
+		expect(view.container.querySelectorAll('[data-position]')).toHaveLength(1);
+		expect(
+			view.container.querySelector('[data-position="right"]')?.getAttribute('data-entry-id')
+		).toBe('a');
+		await view.rerender({
+			snapshot: {
+				...snapshot,
+				liveControls: { ...snapshot.liveControls, lineupTeams: 'team-b' },
+				presentation: { leftEntryId: 'a', rightEntryId: 'b' }
+			},
+			graphic: 'player-lineup'
+		});
+		expect(view.container.querySelectorAll('[data-position]')).toHaveLength(1);
+		expect(
+			view.container.querySelector('[data-position="right"]')?.getAttribute('data-entry-id')
+		).toBe('b');
+	}
+);
 
 it('uses prepared sides and saved agents despite opposite manual current sides', async () => {
 	const snapshot = preparedSnapshot();

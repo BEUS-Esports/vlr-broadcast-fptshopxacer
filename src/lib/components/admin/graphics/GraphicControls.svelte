@@ -46,6 +46,25 @@
 	{#if shown && !published}<p role="alert">
 			Published content is unavailable. Hide this graphic, then Show again to capture saved data.
 		</p>{/if}
+	{#if graphic === 'player-lineup'}
+		<div role="group" aria-label="Lineup display" class="flex flex-wrap gap-2">
+			{#each [{ value: 'team-a', label: 'Team A lineup' }, { value: 'team-b', label: 'Team B lineup' }, { value: 'both', label: 'Both lineups' }] as choice (choice.value)}
+				<ManagementForm
+					action="/admin/graphics?/controls"
+					recordDraft={false}
+					initial={{ expectedRevision: live.controlRevision, lineupTeams: choice.value }}
+				>
+					<button
+						class="btn {live.liveControls.lineupTeams === choice.value
+							? 'preset-filled-primary-500'
+							: 'preset-tonal-primary'}"
+						aria-pressed={live.liveControls.lineupTeams === choice.value}
+						disabled={!live.selection}>{choice.label}</button
+					>
+				</ManagementForm>
+			{/each}
+		</div>
+	{/if}
 	<ManagementForm
 		action="?/controls"
 		recordDraft={false}

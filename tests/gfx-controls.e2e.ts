@@ -12,12 +12,24 @@ test('live lineup team choice follows competition identity through swap and game
 	await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('pg-henrik');
 	await save(page, 'Take game live');
 	await save(page, 'Show Player Lineup');
+	const sidebar = page.getByRole('navigation', { name: 'Management' });
+	await expect(sidebar.getByLabel('Player Lineup: shown')).toBeVisible();
+	const single = page.getByRole('region', { name: 'Preview', exact: true });
+	const both = page.getByRole('region', { name: 'Preview Both Lineups', exact: true });
+	await expect(single.locator('[data-position][data-entry-id]')).toHaveCount(1);
+	await expect(both.locator('[data-position][data-entry-id]')).toHaveCount(2);
+	await single.getByLabel('Single lineup preview').selectOption('team-b');
+	await expect(single.locator('[data-position][data-entry-id="pg-entry-1"]')).toHaveCount(1);
+	await both.getByRole('button', { name: 'Large Preview' }).click();
+	const largeBoth = page.getByRole('dialog', { name: 'Large Preview · Both Lineups' });
+	await expect(largeBoth.locator('[data-position][data-entry-id]')).toHaveCount(2);
+	await largeBoth.getByRole('button', { name: 'Close Preview' }).click();
 	const output = await browser.newPage();
 	try {
 		await output.goto('/gfx/live/player-lineup');
 		await expect(output.locator('[data-position][data-entry-id]')).toHaveCount(2);
 		let response = page.waitForResponse((result) => result.request().method() === 'POST');
-		await page.getByLabel('Lineup teams').selectOption('team-a');
+		await page.getByRole('button', { name: 'Team A lineup', exact: true }).click();
 		expect((await response).ok()).toBe(true);
 		await expect(output.locator('[data-position][data-entry-id]')).toHaveCount(1);
 		await expect(output.locator('[data-position="left"][data-entry-id="pg-entry-0"]')).toHaveCount(
@@ -28,15 +40,19 @@ test('live lineup team choice follows competition identity through swap and game
 			1
 		);
 		response = page.waitForResponse((result) => result.request().method() === 'POST');
-		await page.getByLabel('Lineup teams').selectOption('team-b');
+		await page.getByRole('button', { name: 'Team B lineup', exact: true }).click();
 		expect((await response).ok()).toBe(true);
 		await expect(output.locator('[data-position="left"][data-entry-id="pg-entry-1"]')).toHaveCount(
 			1
 		);
 		await save(page, 'Hide Player Lineup');
+		await expect(sidebar.getByLabel('Player Lineup: hidden')).toBeVisible();
 		await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('pg-spectra');
 		await save(page, 'Take game live');
-		await expect(page.getByLabel('Lineup teams')).toHaveValue('both');
+		await expect(page.getByRole('button', { name: 'Both lineups', exact: true })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
 	} finally {
 		await output.close();
 	}

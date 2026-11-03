@@ -40,10 +40,12 @@
 	const tournamentsListActive = $derived(page.url.pathname === '/admin/tournaments');
 
 	const broadcastClient = setContext('broadcast-client', createBroadcastClient());
+	let broadcast = $state<ReturnType<typeof broadcastClient.getState> | null>(null);
 
 	let serverTime = $state<number | null>(null);
 
 	onMount(() => {
+		const unsubscribe = broadcastClient.subscribe((state) => (broadcast = state));
 		broadcastClient.connect();
 		const update = () => {
 			serverTime = broadcastClient.getState().clock?.now() ?? null;
@@ -52,12 +54,13 @@
 		const timer = setInterval(update, 500);
 		return () => {
 			clearInterval(timer);
+			unsubscribe();
 			broadcastClient.disconnect();
 		};
 	});
 </script>
 
-<div class="flex h-dvh flex-col overflow-hidden bg-surface-50-950 text-surface-950-50">
+<div class="flex h-dvh flex-col overflow-clip bg-surface-50-950 text-surface-950-50">
 	<a
 		class="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:rounded-base focus:preset-filled-primary-500 focus:p-3"
 		href="#main-content"
@@ -138,13 +141,25 @@
 							>{group.label}</Navigation.Label
 						>
 						{#each group.items as item (item.href)}
+							{@const graphicId = graphicIds.find((id) => item.href === `/admin/graphics/${id}`)}
 							<Navigation.TriggerAnchor
 								href={item.href}
+								aria-label={item.label}
 								aria-current={item.active ? 'page' : undefined}
 								class="flex w-auto items-center gap-2 rounded-base px-3 py-2 text-sm font-medium transition-colors md:w-full {item.active
 									? 'preset-filled-primary-500'
 									: 'text-surface-700-300 hover:preset-tonal-primary'}"
-								><item.icon size={18} aria-hidden="true" />{item.label}</Navigation.TriggerAnchor
+								><item.icon size={18} aria-hidden="true" />{item.label}{#if graphicId}
+									<span
+										class="ml-auto inline-block size-2.5 shrink-0 rounded-full {broadcast?.snapshot
+											? broadcast.snapshot.controls.visibility[graphicId]
+												? 'bg-success-500'
+												: 'bg-surface-500'
+											: 'bg-warning-500'}"
+										role="img"
+										aria-label={`${item.label}: ${broadcast?.snapshot ? (broadcast.snapshot.controls.visibility[graphicId] ? 'shown' : 'hidden') : 'unknown'}`}
+									></span>
+								{/if}</Navigation.TriggerAnchor
 							>
 						{/each}
 					</Navigation.Group>
@@ -169,6 +184,10 @@
 </div>
 
 <style>
+	:global(html:has(#main-content)),
+	:global(body:has(#main-content)) {
+		overflow: hidden;
+	}
 	main {
 		background-image:
 			radial-gradient(

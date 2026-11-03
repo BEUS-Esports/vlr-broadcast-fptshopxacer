@@ -43,7 +43,10 @@
 		{/key}
 	</div>
 	<div
-		class={['min-w-0 space-y-5', data.graphic !== 'in-game' && 'xl:sticky xl:top-0']}
+		class={[
+			'min-w-0 space-y-5',
+			data.graphic !== 'in-game' && data.graphic !== 'player-lineup' && 'xl:sticky xl:top-0'
+		]}
 		data-hud-previews
 	>
 		<GraphicPreview
@@ -61,6 +64,15 @@
 				clock={workspace.clock}
 				{telemetry}
 				variant="live-data"
+			/>
+		{:else if data.graphic === 'player-lineup'}
+			<GraphicPreview
+				graphic={data.graphic}
+				snapshot={workspace.live}
+				connection={workspace.connection}
+				clock={workspace.clock}
+				{telemetry}
+				variant="lineup-both"
 			/>
 		{/if}
 	</div>

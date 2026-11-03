@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { BroadcastSnapshot } from '../../types';
-	import { presentationTeams, lineupForTeam } from '../../selectors';
+	import { presentationTeams, lineupForTeam, lineupTeamVisible } from '../../selectors';
 	import Identity from '../../primitives/Identity.svelte';
 	import ResourceCard from '../../primitives/ResourceCard.svelte';
 
@@ -14,31 +14,33 @@
 		{@const entryId =
 			position === 'left' ? snapshot.presentation.leftEntryId : snapshot.presentation.rightEntryId}
 		{@const lineup = lineupForTeam(snapshot, entryId)}
-		<section class="team" data-position={position} data-entry-id={entryId}>
-			<header>
-				<span class="team-index">{position === 'left' ? '01' : '02'}</span>
-				<Identity
-					name={team?.name ?? null}
-					assetPath={team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null}
-					detail={team?.tag}
-					unavailable="Team unavailable"
-				/>
-			</header>
-			<ol>
-				{#each [1, 2, 3, 4, 5] as slot (slot)}
-					{@const saved = lineup.find((row) => row.slot === slot)}
-					<li data-slot={slot} class:empty={!saved?.player}>
-						<span class="slot">0{slot}</span>
-						<ResourceCard
-							resource={{
-								kind: 'player',
-								value: saved?.player ?? null
-							}}
-						/>
-					</li>
-				{/each}
-			</ol>
-		</section>
+		{#if lineupTeamVisible(snapshot, entryId)}
+			<section class="team" data-position={position} data-entry-id={entryId}>
+				<header>
+					<span class="team-index">{position === 'left' ? '01' : '02'}</span>
+					<Identity
+						name={team?.name ?? null}
+						assetPath={team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null}
+						detail={team?.tag}
+						unavailable="Team unavailable"
+					/>
+				</header>
+				<ol>
+					{#each [1, 2, 3, 4, 5] as slot (slot)}
+						{@const saved = lineup.find((row) => row.slot === slot)}
+						<li data-slot={slot} class:empty={!saved?.player}>
+							<span class="slot">0{slot}</span>
+							<ResourceCard
+								resource={{
+									kind: 'player',
+									value: saved?.player ?? null
+								}}
+							/>
+						</li>
+					{/each}
+				</ol>
+			</section>
+		{/if}
 	{/each}
 </div>
 
@@ -65,6 +67,9 @@
 			18px 100%,
 			0 calc(100% - 18px)
 		);
+	}
+	.team[data-position='right'] {
+		grid-column: 2;
 	}
 	header {
 		height: 112px;

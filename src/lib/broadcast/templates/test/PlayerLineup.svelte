@@ -71,6 +71,9 @@
 	.team[data-position='right'] {
 		grid-column: 2;
 	}
+	.team[data-position='right'] {
+		grid-column: 2;
+	}
 	header {
 		height: 112px;
 		display: flex;
