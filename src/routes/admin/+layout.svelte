@@ -11,14 +11,27 @@
 		Map,
 		Trophy,
 		Monitor,
+		ChartNoAxesCombined,
+		Crosshair,
+		ClipboardList,
+		Award,
 		Settings2
 	} from '@lucide/svelte';
-	import { graphicIds, graphicLabels } from '#lib/broadcast/controls.ts';
+	import { graphicIds, graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
 	import { toaster } from '#lib/toaster.ts';
 	import { onMount, setContext } from 'svelte';
 	import { createBroadcastClient } from '#lib/broadcast/client.ts';
 
 	let { children } = $props();
+	const graphicIcons: Record<GraphicId, typeof Monitor> = {
+		'player-lineup': Users,
+		'player-stats': ChartNoAxesCombined,
+		'map-veto': Map,
+		'agent-select': Crosshair,
+		'in-game': Monitor,
+		'post-game': ClipboardList,
+		mvp: Award
+	};
 	const dashboardActive = $derived(page.url.pathname === '/admin');
 	const teamsActive = $derived(page.url.pathname === '/admin/teams');
 	const playersActive = $derived(page.url.pathname === '/admin/players');
@@ -118,7 +131,7 @@
 						><Settings2 size={18} aria-hidden="true" /> Settings</Navigation.TriggerAnchor
 					>
 				</Navigation.Group>
-				{#each [{ label: 'Preparation', items: [{ href: resolve('/admin/teams'), label: 'Teams', active: teamsActive, icon: Users }, { href: resolve('/admin/players'), label: 'Players', active: playersActive, icon: UserRound }, { href: resolve('/admin/resources'), label: 'Game Resources', active: resourcesActive, icon: Map }, { href: resolve('/admin/tournaments'), label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] }, { label: 'GFX Control', items: [{ href: resolve('/admin/graphics'), label: 'Global Settings', active: page.url.pathname === '/admin/graphics', icon: Settings2 }, ...graphicIds.map( (id) => ({ href: resolve( '/admin/graphics/[graphic]', { graphic: id } ), label: graphicLabels[id], active: page.url.pathname === `/admin/graphics/${id}`, icon: Monitor }) )] }] as group (group.label)}
+				{#each [{ label: 'Preparation', items: [{ href: resolve('/admin/teams'), label: 'Teams', active: teamsActive, icon: Users }, { href: resolve('/admin/players'), label: 'Players', active: playersActive, icon: UserRound }, { href: resolve('/admin/resources'), label: 'Game Resources', active: resourcesActive, icon: Map }, { href: resolve('/admin/tournaments'), label: 'Tournaments', active: tournamentsActive || tournamentsListActive, icon: Trophy }] }, { label: 'GFX Control', items: [{ href: resolve('/admin/graphics'), label: 'Global Settings', active: page.url.pathname === '/admin/graphics', icon: Settings2 }, ...graphicIds.map( (id) => ({ href: resolve( '/admin/graphics/[graphic]', { graphic: id } ), label: graphicLabels[id], active: page.url.pathname === `/admin/graphics/${id}`, icon: graphicIcons[id] }) )] }] as group (group.label)}
 					<Navigation.Group class="contents md:flex md:w-full md:flex-col md:gap-1">
 						<Navigation.Label
 							class="mb-1 hidden px-2 text-xs font-semibold tracking-wider text-surface-600-400 uppercase md:block"
