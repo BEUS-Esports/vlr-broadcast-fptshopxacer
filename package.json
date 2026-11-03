@@ -3,6 +3,11 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"engines": {
+		"node": "26.13.0",
+		"pnpm": "12.16.1"
+	},
+	"packageManager": "pnpm@12.16.1",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
@@ -14,6 +19,8 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test:seed": "node --test scripts/seed.test.mjs",
+		"test:backup": "node --test scripts/backup.test.mjs",
+		"backup": "node --env-file-if-exists=.env scripts/backup.mjs",
 		"test": "npm run test:seed && npm run test:unit -- --run && npm run test:e2e",
 		"test:e2e": "playwright install && playwright test",
 		"db:push": "drizzle-kit push",

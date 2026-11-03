@@ -48,7 +48,7 @@ Use these stable, read-only OBS URLs, all on a transparent 1920×1080 canvas:
 
 Team A/B is competition order; **Swap Left/Right** changes only screen presentation. Current attackers/defenders change blue/red colors without moving teams. The Phase 5/5.1 native In-Game fallback has passed real Valorant/OBS composition testing. Unknown tournament slugs use the generic test templates; final supplied artwork remains a later phase.
 
-Use Node 24 LTS and `pnpm install --frozen-lockfile`. The lockfile applies a small adapter-node prerelease patch for Windows static-asset paths. Set `ORIGIN` to the exact address used by controllers and OBS **before building**: SvelteKit 3's `paths.origin` is a build setting; setting it only at runtime does not configure this installed adapter. Use the same address afterward, and rebuild when the deployment origin changes. For PowerShell:
+Use Node 26.13.0, pnpm 12.16.1 and `pnpm install --frozen-lockfile`, matching `mise.toml` and package metadata. A clean Windows install and production build passed on 2026-11-03; the current lockfile needs no adapter patch. Set `ORIGIN` to the exact address used by controllers and OBS **before building**: SvelteKit 3's `paths.origin` is a build setting; setting it only at runtime does not configure this installed adapter. Use the same address afterward, and rebuild when the deployment origin changes. For PowerShell:
 
 ```powershell
 $env:ORIGIN = 'http://192.168.1.10:3000' # replace with the server LAN address
@@ -57,6 +57,8 @@ $env:HOST = '0.0.0.0'
 $env:PORT = '3000'
 node --env-file=.env build
 ```
+
+For stopped-app backups, run `pnpm backup -- --output <new-directory> --app-stopped` and protect the encryption key separately. Follow the [RHS recovery runbook](./docs/RHS-RUNBOOK.md) before event upgrades.
 
 Keep `DATABASE_URL` and `ASSET_DIR` persistent and set `BODY_SIZE_LIMIT=32M` for uploads. Run **one Node process**: SSE delivery is process-local; shared pub/sub is required before multiple workers/replicas. Prepared graphic captures persist in the database across restart. Authentication is intentionally deferred for trusted-LAN operation. Output pages contain no controls, but anyone who can reach management routes can write; they are not protected by sign-in or authorization.
 
@@ -96,6 +98,8 @@ LOG_DIR=./data/logs
 `LOG_LEVEL` accepts `debug`, `info` (default), `warn`, or `error` and filters both outputs. Invalid values fall back to info. Successful GET/HEAD/OPTIONS requests, including polling, require debug. Mutations, form rejections, HTTP errors, live-provider lifecycle, post-game operations, resource sync, asset cleanup and startup/shutdown have explicit events. `http.completed` records the route pattern, method, named action, status and duration; for streaming responses it measures opening the response, not the stream lifetime. Enhanced forms and resource streams also log operation failures because their HTTP status can remain 200.
 
 Both outputs use the same redacted records. Credentials, group codes, request headers/bodies, raw match payloads and SQL values are excluded; provider network/TLS errors retain bounded diagnostic fields. For new server operations, use the shared API and pass only safe metadata:
+
+The terminal prints one plain-text line per event, for example `15:56:36.000 WARN [VLR] live.failure error.code=ETIMEDOUT`. Values containing spaces are quoted; embedded newlines are escaped, and nested diagnostic fields use dotted names. Debug/info use stdout; warnings/errors use stderr. JSONL retains separate structured fields and nested errors.
 
 ```ts
 import { logEvent } from '#lib/server/logging.ts';
