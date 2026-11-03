@@ -3,7 +3,7 @@
 Rough sizes: S = hours, M = a day or two, L = several days. Order at the bottom.
 
 1. Server logging: done (TSLog + optional JSONL). One thing left (S)
-    - Console still prints the event name + an object dump. Want plain text, like `event key=value`.
+    - Console still prints the event name + an object dump. Want plain text.
     - Example: `2026-03-11T15:56:36Z WARN (module): info_detail_as_plain_words` (example only, not correct).
     - Keep JSONL files as they are. Tests read the structured records, so don't change the log call shape. Only change how the console prints.
 
