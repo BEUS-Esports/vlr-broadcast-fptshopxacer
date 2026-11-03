@@ -85,12 +85,57 @@ it('prints a readable terminal line and writes the same event as JSONL', async (
 			level: 'INFO',
 			selectedGameId: 'game-1'
 		});
-		expect(output.mock.calls.flat().join(' ')).toContain('broadcast.changed');
-		expect(output.mock.calls.flat().join(' ')).toContain('INFO');
+		expect(output).toHaveBeenCalledExactlyOnceWith(expect.any(String));
+		expect(output.mock.calls[0][0]).toMatch(
+			/^\d{2}:\d{2}:\d{2}\.\d{3} INFO \[VLR\] broadcast.changed selectedGameId=game-1$/
+		);
 	} finally {
 		await stop();
 		await rm(directory, { recursive: true, force: true });
 	}
+});
+
+it('routes each level as one escaped, redacted text line while retaining structured fields', () => {
+	const outputs = {
+		debug: vi.spyOn(console, 'debug').mockImplementation(() => {}),
+		info: vi.spyOn(console, 'info').mockImplementation(() => {}),
+		warn: vi.spyOn(console, 'warn').mockImplementation(() => {}),
+		error: vi.spyOn(console, 'error').mockImplementation(() => {})
+	};
+	logger.settings.type = 'pretty';
+	logger.setMinLevel('DEBUG');
+	for (const level of ['debug', 'info', 'warn', 'error'] as const) {
+		logger.runInContext({ requestId: 'request-1' }, () => {
+			logEvent(
+				level,
+				'live.failure',
+				{ note: 'two words\nnext line', count: 0 },
+				{
+					message: 'network failed',
+					cause: { code: 'ETIMEDOUT', message: 'private-token' }
+				},
+				['private-token']
+			);
+		});
+		expect(outputs[level]).toHaveBeenCalledExactlyOnceWith(expect.any(String));
+		const line = outputs[level].mock.calls[0][0] as string;
+		expect(line).toContain(` ${level.toUpperCase()} [VLR] live.failure `);
+		expect(line).toContain('note="two words\\nnext line"');
+		expect(line).toContain('count=0');
+		expect(line).toContain('error.cause.code=ETIMEDOUT');
+		expect(line).toContain('requestId=request-1');
+		expect(line).not.toMatch(/[\r\n]/);
+		expect(line).not.toContain('\u001b');
+		expect(line).not.toContain('private-token');
+	}
+	for (const record of records)
+		expect(record).toMatchObject({
+			event: 'live.failure',
+			requestId: 'request-1',
+			count: 0,
+			note: 'two words\nnext line',
+			error: { cause: { code: 'ETIMEDOUT' } }
+		});
 });
 
 it('rotates oversized files, retains seven archives and keeps unrelated files', async () => {

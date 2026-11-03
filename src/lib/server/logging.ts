@@ -6,6 +6,31 @@ import { redactDiagnostics } from './redaction';
 type Level = 'debug' | 'info' | 'warn' | 'error';
 type Fields = Record<string, string | number | boolean | null | undefined>;
 
+function consoleValue(value: unknown): string {
+	const text = String(value);
+	// eslint-disable-next-line no-control-regex -- Escape terminal control characters in log values.
+	return !text || /[\s"\\=\u0000-\u001f\u007f]/.test(text) ? JSON.stringify(text) : text;
+}
+
+/** Format only the console arguments; structured transports keep the original record. */
+function consoleLine(prefix: unknown, ...args: unknown[]): string {
+	const parts: string[] = [];
+	function field(key: string, value: unknown) {
+		if (value === undefined || (key === 'error' && value === null)) return;
+		if (value !== null && typeof value === 'object') {
+			for (const [child, nested] of Object.entries(value)) field(`${key}.${child}`, nested);
+		} else parts.push(`${consoleValue(key)}=${consoleValue(value)}`);
+	}
+	for (const arg of args) {
+		if (arg && typeof arg === 'object') {
+			for (const [key, value] of Object.entries(arg)) {
+				if (key !== 'event') field(key, value);
+			}
+		} else parts.push(consoleValue(arg));
+	}
+	return `${String(prefix).trimEnd()} ${parts.join(' ')}`;
+}
+
 export const logger = new Logger<Record<string, unknown>>({
 	name: 'VLR',
 	type: 'pretty',
@@ -14,12 +39,13 @@ export const logger = new Logger<Record<string, unknown>>({
 	pretty: {
 		template: '{{hh}}:{{MM}}:{{ss}}.{{ms}} {{logLevelName}} [{{name}}] ',
 		timeZone: 'local',
-		inspectOptions: { breakLength: Infinity },
+		style: false,
+		passObjectsNatively: true,
 		levelMethod: {
-			DEBUG: (...args) => console.debug(...args),
-			INFO: (...args) => console.info(...args),
-			WARN: (...args) => console.warn(...args),
-			ERROR: (...args) => console.error(...args)
+			DEBUG: (prefix, ...args) => console.debug(consoleLine(prefix, ...args)),
+			INFO: (prefix, ...args) => console.info(consoleLine(prefix, ...args)),
+			WARN: (prefix, ...args) => console.warn(consoleLine(prefix, ...args)),
+			ERROR: (prefix, ...args) => console.error(consoleLine(prefix, ...args))
 		}
 	}
 });
