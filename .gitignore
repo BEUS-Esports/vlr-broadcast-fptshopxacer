@@ -44,3 +44,5 @@ test-results
 # Pacific GFX prototype: tài nguyên tải về và file xuất
 /design/pacific-gfx/assets/
 /design/pacific-gfx/out/
+
+/design_reference
