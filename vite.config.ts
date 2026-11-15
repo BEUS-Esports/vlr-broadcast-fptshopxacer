@@ -21,6 +21,16 @@ export default defineConfig({
 		// Keep browser and native database integration tests within the same machine's capacity.
 		maxWorkers: 2,
 		expect: { requireAssertions: true },
+		coverage: {
+			include: ['src/**/*.{ts,tsx}'],
+			provider: 'istanbul',
+			thresholds: {
+				statements: 80,
+				branches: 80,
+				functions: 80,
+				lines: 80
+			}
+		},
 		projects: [
 			{
 				extends: './vite.config.ts',
