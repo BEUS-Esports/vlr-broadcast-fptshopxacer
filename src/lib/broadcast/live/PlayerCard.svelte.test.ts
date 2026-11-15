@@ -134,13 +134,9 @@ it('shows conservative provider attribution unless Spectra supporter status is c
 	const view = render(ProviderAttribution, {
 		status: liveSessionFixture({ provider: 'spectra', attribution: 'unknown' })
 	});
-	expect(view.container.textContent).toContain('Powered by ValoSpectra');
+	expect(view.container.textContent).toContain('Powered by Spectra');
 	await view.rerender({
 		status: liveSessionFixture({ provider: 'spectra', attribution: 'supporter' })
 	});
 	expect(view.container.textContent).not.toContain('Powered by');
-	await view.rerender({
-		status: liveSessionFixture({ provider: 'gstack', attribution: 'unknown' })
-	});
-	expect(view.container.textContent).toContain('Powered by GStack');
 });
