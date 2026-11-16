@@ -1,7 +1,7 @@
 <script lang="ts" generics="T extends Record<string, unknown>">
 	import { enhance } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
-	import { getContext, onDestroy, onMount, untrack, type Snippet } from 'svelte';
+	import { getContext, onDestroy, onMount, tick, untrack, type Snippet } from 'svelte';
 	import type { DraftRegistry } from './DraftGuard.svelte';
 	let {
 		action,
@@ -35,7 +35,7 @@
 	const drafts = getContext<DraftRegistry | undefined>('management-drafts');
 	const id = Symbol();
 	$effect.pre(() => {
-		drafts?.set(id, { dirty, record: recordDraft, reset: resetToSaved });
+		drafts?.set(id, { dirty, record: recordDraft, reset: resetToSaved, rebase });
 	});
 	onDestroy(() => drafts?.delete(id));
 	// Only clean sections follow a refreshed load. Dirty sections keep their original revision.
@@ -45,6 +45,20 @@
 			formState.baseline = saved;
 		}
 	});
+	const isRevision = (key: string) => /^expected\w*Revision$/.test(key);
+	const withoutRevisions = (json: string) =>
+		JSON.stringify(JSON.parse(json), (key, value) => (isRevision(key) ? undefined : value));
+	// Called after another section on this page saved. If only revisions moved, nothing this
+	// section shows changed, so the draft moves to them; the server still rejects later conflicts.
+	// Changes by other operators never rebase: they keep the draft stale until an explicit reload.
+	function rebase() {
+		if (!dirty || pending || withoutRevisions(saved) !== withoutRevisions(formState.baseline))
+			return;
+		const latest = JSON.parse(saved) as Record<string, unknown>;
+		const draft = formState.draft as Record<string, unknown>;
+		for (const key of Object.keys(latest)) if (isRevision(key)) draft[key] = latest[key];
+		formState.baseline = saved;
+	}
 	function resetToSaved() {
 		formState.baseline = JSON.stringify(initial);
 		formState.draft = JSON.parse(formState.baseline);
@@ -79,6 +93,8 @@
 					for (const [, form] of affected) form.reset();
 					formState.baseline = JSON.stringify(formState.draft);
 					await update({ reset: false, navigate: false });
+					await tick();
+					for (const [key, form] of drafts?.entries() ?? []) if (key !== id) form.rebase();
 					resetToSaved();
 					message = 'Saved.';
 					failed = false;

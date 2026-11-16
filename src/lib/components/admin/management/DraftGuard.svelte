@@ -2,7 +2,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	export type DraftRegistry = SvelteMap<
 		symbol,
-		{ dirty: boolean; record: boolean; reset: () => void }
+		{ dirty: boolean; record: boolean; reset: () => void; rebase: () => void }
 	>;
 </script>
 

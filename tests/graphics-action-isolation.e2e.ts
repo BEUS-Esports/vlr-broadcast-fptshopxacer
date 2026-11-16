@@ -118,17 +118,7 @@ test('Swap Left/Right submits only screen positions and leaves the attacker draf
 	await expect(onAir).toContainText('Left: Bravo');
 	await expect(onAir).toContainText('Attackers: Unknown');
 	await expect(attackers).toHaveValue(pendingAttackers);
-	const rejected = page.waitForResponse((response) => response.request().method() === 'POST');
-	await page.getByRole('button', { name: 'Save presentation', exact: true }).click();
-	expect((await rejected).status()).toBe(409);
-	await expect(attackers).toHaveValue(pendingAttackers);
-	page.once('dialog', (dialog) => dialog.accept());
-	await page.getByRole('button', { name: 'Reload this section', exact: true }).click();
-	await expect(page.getByRole('button', { name: 'Reload this section', exact: true })).toHaveCount(
-		0
-	);
-	await expect(attackers).toHaveValue('');
-	await attackers.selectOption({ label: 'Alpha' });
+	// The swap came from this page and changed nothing the attacker draft shows, so it still saves.
 	await save(page, 'Save presentation');
 	await expect(onAir).toContainText('Attackers: Alpha');
 	await expect(onAir).toContainText('Left: Bravo');

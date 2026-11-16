@@ -41,7 +41,7 @@ test('named actions reject malformed JSON types before changing stored records',
 	}
 });
 
-test('saving a sibling section keeps a dirty section and its original revision', async ({
+test('saving a sibling section moves an unchanged dirty section to the new revision', async ({
 	page
 }) => {
 	await page.goto('/admin/tournaments?new=1');
@@ -56,8 +56,11 @@ test('saving a sibling section keeps a dirty section and its original revision',
 	await page.getByRole('checkbox', { name: 'Map 1', exact: true }).check();
 	await save(page, 'Save map pool');
 	await page.getByRole('tab', { name: 'Overview', exact: true }).click();
-	expect(await payload(page, 'save')).toEqual(original);
-	await staleSave(page, 'Save details', 'save');
+	await expect(page).toHaveURL(/[?&]tab=overview/);
+	expect(await payload(page, 'save')).toEqual({
+		...original,
+		expectedRevision: original.expectedRevision + 1
+	});
 	const url = page.url();
 	page.once('dialog', (dialog) => dialog.dismiss());
 	await page.getByRole('link', { name: '← Tournaments', exact: true }).click();
@@ -65,10 +68,10 @@ test('saving a sibling section keeps a dirty section and its original revision',
 	await expect(page.getByRole('textbox', { name: 'Tournament name', exact: true })).toHaveValue(
 		'Unsaved details'
 	);
-	page.once('dialog', (dialog) => dialog.accept());
-	await page.getByRole('button', { name: 'Reload this section', exact: true }).click();
+	await save(page, 'Save details');
+	await page.reload();
 	await expect(page.getByRole('textbox', { name: 'Tournament name', exact: true })).toHaveValue(
-		'Draft retention event'
+		'Unsaved details'
 	);
 });
 
