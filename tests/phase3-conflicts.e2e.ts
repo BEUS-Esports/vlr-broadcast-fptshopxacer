@@ -100,6 +100,7 @@ test('two operators retain losing map, lineup, ordered veto and result drafts un
 		await page.getByRole('combobox', { name: 'Map', exact: true }).selectOption('map-1');
 		await save(page, 'Save game info');
 		await page.getByRole('tab', { name: 'Lineup', exact: true }).click();
+		await expect(page).toHaveURL(/[?&]tab=lineup/);
 		await other.goto(page.url());
 		await other
 			.getByRole('combobox', { name: 'Alpha slot 1', exact: true })
