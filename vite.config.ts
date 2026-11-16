@@ -22,13 +22,28 @@ export default defineConfig({
 		maxWorkers: 2,
 		expect: { requireAssertions: true },
 		coverage: {
-			include: ['src/**/*.{ts,tsx}'],
+			include: ['src/**/*.{ts,tsx,svelte}'],
+			// Schema callbacks never run in tests, test helpers are not product code, and the
+			// beus-graph-test templates are throwaway test artwork with no tests.
+			exclude: [
+				'src/lib/server/db/schema/**',
+				'src/lib/server/testing/**',
+				'src/lib/broadcast/templates/beus-graph-test/**'
+			],
 			provider: 'istanbul',
 			thresholds: {
-				statements: 80,
-				branches: 80,
-				functions: 80,
-				lines: 80
+				// Regression floors a few points under the 2026-11-16 baseline (docs/QA-BASELINE.md).
+				// Raise them as coverage improves; the component floor is separate so strong .ts
+				// coverage cannot hide an untested .svelte file.
+				statements: 71,
+				branches: 67,
+				functions: 74,
+				lines: 70,
+				'src/**/*.svelte': { statements: 61, branches: 45, functions: 65, lines: 51 },
+				'src/lib/broadcast/**': { statements: 90, branches: 88, functions: 90, lines: 90 },
+				'src/lib/server/services/**': { statements: 86, branches: 84, functions: 88, lines: 86 },
+				'src/lib/server/post-game/**': { statements: 88, branches: 85, functions: 90, lines: 88 },
+				'src/lib/server/live/**': { statements: 82, branches: 75, functions: 82, lines: 84 }
 			}
 		},
 		projects: [
