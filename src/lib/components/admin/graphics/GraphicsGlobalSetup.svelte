@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import ManagementForm from '../management/ManagementForm.svelte';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
+	import { graphicIds, graphicLabels } from '#lib/broadcast/controls.ts';
 	import type { GraphicsControlData } from './GraphicsWorkspace.svelte';
 	let {
 		data,
@@ -55,7 +56,25 @@
 	</p>
 	{#if locked}<p role="status" class="text-warning-600-400">
 			Hide all shown graphics before changing or clearing the live selection.
-		</p>{/if}
+		</p>
+		<ManagementForm
+			action="/admin/graphics?/controls"
+			recordDraft={false}
+			initial={{
+				expectedRevision: live.controlRevision,
+				visibility: Object.fromEntries(graphicIds.map((id) => [id, false]))
+			}}
+		>
+			<div class="flex flex-wrap items-center gap-3">
+				<button class="btn preset-filled-error-500">Hide all graphics</button>
+				<span class="text-sm"
+					>Shown: {graphicIds
+						.filter((id) => live.controls.visibility[id])
+						.map((id) => graphicLabels[id])
+						.join(', ')}</span
+				>
+			</div>
+		</ManagementForm>{/if}
 	<section aria-label="On air" class="space-y-2">
 		<h2 class="h3">On air</h2>
 		{#if live.selection}
