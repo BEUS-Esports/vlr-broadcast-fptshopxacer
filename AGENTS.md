@@ -8,7 +8,7 @@ Documentation for SvelteKit 3 is at <https://next.svelte.dev>, for differences f
 
 UI Library from Skeleton UI, docs here: <https://www.skeleton.dev/docs/svelte/get-started/introduction>, LLM-readable documentation is at: <https://www.skeleton.dev/llms.txt>
 
-Expected data from external data providers are provided in the @README.md file.
+Project rules are in @README.md. External data provider details are in docs/LIVE-PROVIDERS.md and docs/POST-GAME-IMPORTS.md.
 
 ---
 
