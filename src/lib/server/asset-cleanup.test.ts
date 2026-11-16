@@ -252,7 +252,8 @@ it.each([true, false])(
 	'starts automatic cleanup only outside builds (building=%s)',
 	async (building) => {
 		await withManagementFixture(async () => {
-			vi.doMock('$app/env', () => ({ building }));
+			// dev keeps init from attaching shutdown signal listeners to the test worker.
+			vi.doMock('$app/env', () => ({ building, dev: true }));
 			try {
 				const cleanup = await import('./asset-cleanup');
 				const start = vi.spyOn(cleanup, 'startAssetCleanup').mockReturnValue(() => {});

@@ -73,7 +73,7 @@ test('live context changes preserve preparation on cancellation and failure, the
 		page.once('dialog', (dialog) => dialog.accept());
 		await page.getByRole('button', { name: 'Clear live selection', exact: true }).click();
 		await expect(page.getByRole('alert')).toContainText(
-			'Could not save. Your draft is still here.'
+			'Could not reach the server. Your draft is still here'
 		);
 		await expect(slot).toHaveValue('Alpha-2');
 		expect(await lineup.locator('input[name="payload"]').inputValue()).toBe(nextDraft);

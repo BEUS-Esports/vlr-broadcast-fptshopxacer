@@ -1,11 +1,12 @@
 import type { RequestHandler } from './$types';
 import { livePublisher, createLiveResponse } from '#lib/server/live/publisher.ts';
 import { initializeLiveSettings } from '#lib/server/live/runtime.ts';
+import { shutdownSignal } from '#lib/server/shutdown.ts';
 
 /** Public, read-only and credential-free. Subscribing never starts an upstream session. */
 export const GET: RequestHandler = async ({ request }) => {
 	await initializeLiveSettings();
-	return createLiveResponse(livePublisher, request.signal);
+	return createLiveResponse(livePublisher, AbortSignal.any([request.signal, shutdownSignal]));
 };
 export const HEAD: RequestHandler = () =>
 	new Response(null, {
