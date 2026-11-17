@@ -9,6 +9,7 @@
 	import MVP from './MVP.svelte';
 	import MapVeto from './MapVeto.svelte';
 	import AgentSelect from './AgentSelect.svelte';
+	import PostGame from './PostGame.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 </script>
@@ -32,6 +33,8 @@
 		<MapVeto {snapshot} />
 	{:else if graphic === 'agent-select'}
 		<AgentSelect {snapshot} />
+	{:else if graphic === 'post-game'}
+		<PostGame {snapshot} />
 	{:else}
 		<p class="pending">{graphicLabels[graphic]}</p>
 	{/if}

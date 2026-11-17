@@ -145,3 +145,49 @@ it('shows five agent slots per team with player names, map and sides', () => {
 	expect(view.container.textContent).toContain('Saved map');
 	expect(view.container.querySelector('img[alt="Roadshow"]')).toBeNull();
 });
+
+it('shows both teams with score, five player rows and a per-team MVP', () => {
+	const base = stats('single', ['kills']);
+	const snapshot = {
+		...base,
+		game: {
+			...base.game!,
+			scoreA: 13,
+			scoreB: 9,
+			resultType: 'normal' as const,
+			winnerEntryId: 'a'
+		}
+	};
+	const view = render(Graphic, { snapshot, graphic: 'post-game' });
+	const teams = [...view.container.querySelectorAll('[data-position]')];
+	expect(teams).toHaveLength(2);
+	for (const team of teams) {
+		expect(team.querySelectorAll('[data-slot]')).toHaveLength(5);
+		expect(team.querySelectorAll('[data-team-mvp]')).toHaveLength(1);
+	}
+	const mvpA = view.container.querySelector('[data-entry-id="a"] [data-team-mvp]')!;
+	expect(mvpA.textContent).toContain('First A');
+	expect(mvpA.textContent).toContain('Saved agent');
+	expect(mvpA.textContent).toContain('21');
+	expect(mvpA.textContent).toContain('2.1');
+	expect(view.container.querySelector('[data-entry-id="a"] [data-score]')?.textContent).toBe('13');
+	expect(view.container.querySelector('[data-entry-id="b"] [data-score]')?.textContent).toBe('9');
+});
+
+it('shows 13–0 for the advancing team when no score is saved', () => {
+	const base = preparedSnapshot();
+	const snapshot = {
+		...base,
+		game: {
+			...base.game!,
+			scoreA: null,
+			scoreB: null,
+			resultType: 'walkover' as const,
+			winnerEntryId: 'b'
+		}
+	};
+	const view = render(Graphic, { snapshot, graphic: 'post-game' });
+	expect(view.container.querySelector('[data-entry-id="b"] [data-score]')?.textContent).toBe('13');
+	expect(view.container.querySelector('[data-entry-id="a"] [data-score]')?.textContent).toBe('0');
+	expect(view.container.textContent).not.toMatch(/forfeit|walkover/i);
+});

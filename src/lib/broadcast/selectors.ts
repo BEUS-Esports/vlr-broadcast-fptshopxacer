@@ -69,6 +69,13 @@ export function lineupTeamVisible(snapshot: BroadcastSnapshot, entryId: string |
 	);
 }
 
+/** Forfeits and walkovers save no score; broadcast shows the advancing team 13–0 instead. */
+export function displayGameScore(snapshot: BroadcastSnapshot, entryId: string | null) {
+	const saved = teamScore(snapshot, entryId, 'game');
+	if (saved !== null || !snapshot.game?.winnerEntryId || entryId === null) return saved;
+	return entryId === snapshot.game.winnerEntryId ? 13 : 0;
+}
+
 export function gameWinnerTeam(snapshot: BroadcastSnapshot) {
 	return teamByEntryId(snapshot, snapshot.game?.winnerEntryId ?? null);
 }
