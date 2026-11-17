@@ -69,11 +69,16 @@ Always open the app by hostname. `https://<IP>` gives a certificate error, and t
 
 ### One-time setup
 
-1. Reserve the server's LAN IP in DHCP. The reservation is per network interface: Wi-Fi and Ethernet have different MAC addresses, so reserve the one used on show day.
-2. In Cloudflare, add an A record `valorant-gfx.noibo` → that IP, **DNS-only** (grey cloud). Cloudflare's proxy cannot reach a private IP.
-3. Create an API token with **Zone → DNS → Edit** for `beusesports.vn` only. Cloudflare scopes tokens per zone, so this token can edit any record in it. Keep it only on this machine.
-4. `cp deploy/caddy/caddy.env.example deploy/caddy/caddy.env`, `chmod 600 deploy/caddy/caddy.env`, and paste the token. The file is gitignored, and the app container never sees it.
-5. Keep `.env` as for any production run. Compose overrides `ORIGIN` and sets `DATABASE_URL=file:data/broadcast.db`. Relative paths such as `./data/assets` resolve inside the `./data` bind mount. To keep existing data, copy `local.db` to `data/broadcast.db` while nothing is running.
+1. Run `sudo systemctl enable --now docker.service`. With only `docker.socket` enabled, Docker starts on the first `docker` command, not at boot, so after a reboot the outputs would stay blank until someone ran one.
+2. Reserve the server's LAN IP in DHCP. The reservation is per network interface: Wi-Fi and Ethernet have different MAC addresses, so reserve the one used on show day.
+3. In Cloudflare, add an A record `valorant-gfx.noibo` → that IP, **DNS-only** (grey cloud). Cloudflare's proxy cannot reach a private IP. Add the same name → IP to every local DNS override that answers for it (AdGuard, MikroTik).
+4. Create an API token with **Zone → DNS → Edit** for `beusesports.vn` only. Cloudflare scopes tokens per zone, so this token can edit any record in it. Keep it only on this machine.
+5. `cp deploy/caddy/caddy.env.example deploy/caddy/caddy.env`, `chmod 600 deploy/caddy/caddy.env`, and paste the token. The file is gitignored, and the app container never sees it.
+6. Keep `.env` as for any production run. Compose overrides `ORIGIN` and pins `DATABASE_URL=file:data/broadcast.db`, `ASSET_DIR=./data/assets` and `SETTINGS_ENCRYPTION_KEY_FILE=./data/settings.key`, so every data path stays inside the `./data` bind mount.
+7. Prepare `./data` as your own user before the first start. The container runs as uid 1000, so `id -u` must print `1000`. If Docker has to create the directory itself, it is owned by root and the app cannot write to it.
+   - Run `mkdir -p data/assets`.
+   - To keep existing data, copy the database with `sqlite3 local.db ".backup data/broadcast.db"`. This is safe even while a dev server has `local.db` open.
+   - For a new event database, run `DATABASE_URL=file:data/broadcast.db pnpm db:migrate` instead. The app does not migrate on startup.
 
 ### Start, stop and logs
 
@@ -84,29 +89,30 @@ docker compose logs -f app
 docker compose down
 ```
 
-Both services restart with Docker unless they were stopped. The certificate and ACME account live in the `caddy_data` volume. Renewal needs internet roughly every 60 days, so start the stack once before travelling to an offline venue.
+Both services restart with Docker unless they were stopped. Before the show, check that `docker compose ps` lists `app` and `caddy` as running. The certificate and ACME account live in the `caddy_data` volume. Renewal needs internet roughly every 60 days, so start the stack once before travelling to an offline venue.
 
 ### Backups and upgrades
 
-The database, assets and key stay in `./data`, so the host-side commands work unchanged. Stop the app first:
+The database, assets and key stay in `./data`, so the host-side scripts work. Host commands read `.env`, and `.env` may still point at `local.db` for development. Always pass the event paths explicitly; the prefix wins over `.env`. Stop the app first:
 
 ```bash
+export DATABASE_URL=file:data/broadcast.db ASSET_DIR=data/assets SETTINGS_ENCRYPTION_KEY_FILE=data/settings.key
 docker compose stop app
-DATABASE_URL=file:data/broadcast.db pnpm backup -- --output <new-directory> --app-stopped
+pnpm backup -- --output <new-directory> --app-stopped
 docker compose start app
 ```
 
-To upgrade: `git pull`, `docker compose stop app`, back up, then rehearse `DATABASE_URL=file:<copy>.db pnpm db:migrate` on a copy. Run it again with `DATABASE_URL=file:data/broadcast.db`, then `docker compose up -d --build`.
+To upgrade: `git pull`, `docker compose stop app`, back up as above, then rehearse `DATABASE_URL=file:<copy>.db pnpm db:migrate` on a copy. Run it again with the exported `DATABASE_URL`, then `docker compose up -d --build`.
 
 ### Network checks
 
-- **IP changed:** edit the Cloudflare A record. Nothing needs rebuilding.
-- **Before the show,** run `nslookup valorant-gfx.noibo.beusesports.vn` on each graphics PC and compare the answer with `ip -4 addr` on the server. If the name does not resolve, the router may block DNS answers that point to private IPs. Add a DNS override on the router, or a hosts-file entry on that PC.
+- **IP changed:** update the Cloudflare A record **and** every local DNS override (AdGuard, MikroTik). A local override answers first, so leaving it behind keeps the dead address. Then run `ipconfig /flushdns` on each graphics PC and reload its browser sources. Nothing needs rebuilding.
+- **Before the show,** run `nslookup valorant-gfx.noibo.beusesports.vn` on each graphics PC and compare the answer with the server's LAN interface address (`ip -4 addr show wlan0` or the Ethernet interface; ignore the 172.x Docker bridges). If the name does not resolve, the router may block DNS answers that point to private IPs. Add a DNS override on the router, or a hosts-file entry on that PC.
 - **GStack:** inside the container, `localhost` is the container itself. Set the GStack URL in Settings to the GStack PC's LAN IP.
 
 ## Backups
 
-Stopped-app backup: `pnpm backup -- --output <new-directory> --app-stopped`. Protect the encryption key separately. Follow the [RHS recovery runbook](./RHS-RUNBOOK.md) before event upgrades.
+Stopped-app backup: `pnpm backup -- --output <new-directory> --app-stopped`. For the Docker deployment, use the commands in [Backups and upgrades](#backups-and-upgrades), which target `data/broadcast.db`. Protect the encryption key separately. Follow the [RHS recovery runbook](./RHS-RUNBOOK.md) before event upgrades.
 
 ## Upgrading an existing installation
 
@@ -129,6 +135,8 @@ Reviewed forward migrations:
 - 0010 protects legacy imported agents whose manual-edit history is unavailable. Review differing agent proposals on the first reimport.
 
 To upgrade:
+
+For the Docker deployment, follow [Backups and upgrades](#backups-and-upgrades). `.env` may still point at the development `local.db`.
 
 1. Back up the database and assets together.
 2. Stop the app and confirm `DATABASE_URL`.

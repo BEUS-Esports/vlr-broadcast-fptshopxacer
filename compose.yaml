@@ -6,7 +6,10 @@ services:
     env_file: .env
     environment:
       ORIGIN: https://valorant-gfx.noibo.beusesports.vn
+      # Every data path stays inside the ./data bind mount, whatever .env says.
       DATABASE_URL: file:data/broadcast.db
+      ASSET_DIR: ./data/assets
+      SETTINGS_ENCRYPTION_KEY_FILE: ./data/settings.key
     volumes:
       - ./data:/app/data
     restart: unless-stopped
