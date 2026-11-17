@@ -105,12 +105,28 @@ docker compose start app
 To upgrade, between shows and never during one:
 
 ```bash
+git rev-parse --short HEAD   # note the running version, for rolling back
 git pull
 docker compose up -d --build
 docker compose logs app | grep -i migrations   # empty when nothing was pending
 ```
 
-On start the app applies pending migrations by itself. If the database already has data, it first backs up the database and assets to `data/backups/<time>-before-<migration>/` (the log shows it as `/app/data/backups/…`). If the backup or a migration fails, nothing is applied, the app exits and Docker keeps restarting it, and `docker compose logs app` names the backup. Restore with the [RHS runbook](./RHS-RUNBOOK.md). These backups are never pruned; delete old ones yourself. The encryption key is not copied into them; it stays in `data/settings.key`.
+On start the app applies pending migrations by itself. If the database already has data, it first backs up the database and assets to `data/backups/<time>-before-<migration>/` (the log shows it as `/app/data/backups/…`). These backups are never pruned; delete old ones yourself. The encryption key is not copied into them; it stays in `data/settings.key`.
+
+If the backup or a migration fails, nothing is applied, the app exits and Docker keeps restarting it, and `docker compose logs app` shows why. While the database is unchanged, each retry reuses the same backup instead of taking a new one. The data is untouched, so roll back only the code: `git checkout <noted version>`, then `docker compose up -d --build`.
+
+If the migration succeeded but the result is wrong, roll back the code **and** the data. Restoring only the data does not help: the new build would migrate it again on start. Check that the backup's `manifest.json` has `"complete": true`, then:
+
+```bash
+docker compose stop app
+git checkout <noted version>
+B=data/backups/<time>-before-<migration>
+mv data/broadcast.db data/broadcast.db.rejected && mv data/assets data/assets.rejected
+cp "$B/database.db" data/broadcast.db && cp -r "$B/assets" data/assets
+docker compose up -d --build
+```
+
+Edits made after the upgrade are only in the `.rejected` copies. The [RHS runbook](./RHS-RUNBOOK.md) covers checking the restored outputs before going back on air.
 
 Optional rehearsal: to preview what a migration changes on air (such as 0007 hiding shown graphics), copy the database with `sqlite3 data/broadcast.db ".backup <copy>.db"` and start the new build against the copy first.
 
