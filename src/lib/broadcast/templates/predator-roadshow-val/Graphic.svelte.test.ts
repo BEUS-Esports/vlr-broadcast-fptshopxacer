@@ -50,3 +50,75 @@ it('shows both teams', () => {
 	expect(view.container.querySelectorAll('[data-position]')).toHaveLength(2);
 	expect(view.container.querySelectorAll('[data-slot]')).toHaveLength(10);
 });
+
+function stats(
+	mode: 'single' | 'head-to-head',
+	fields: import('#lib/statistics/fields.ts').StatisticField[]
+) {
+	const base = preparedSnapshot();
+	const metric = (value: number) => ({ value, coverage: 'complete' as const });
+	const player = (playerId: string, displayName: string, entryId: string, kills: number) => ({
+		playerId,
+		displayName,
+		entryIds: [entryId],
+		gamesPlayed: 1,
+		gamesWithStatistics: 1,
+		kills: metric(kills),
+		deaths: metric(10),
+		assists: metric(4),
+		performanceScore: metric(231.6),
+		trades: metric(3),
+		firstBloods: metric(2),
+		plants: metric(1),
+		defuses: metric(0)
+	});
+	const game = {
+		...base.scopes.game,
+		candidates: [
+			{ playerId: 'p1', displayName: 'First A', portraitPath: null, entryIds: ['a'] },
+			{ playerId: 'pb', displayName: 'First B', portraitPath: null, entryIds: ['b'] }
+		],
+		statistics: {
+			...base.scopes.game.statistics,
+			players: [player('p1', 'First A', 'a', 21), player('pb', 'First B', 'b', 17)]
+		},
+		mvpPlayerId: 'p1'
+	};
+	return {
+		...base,
+		scopes: { ...base.scopes, game },
+		controls: {
+			...base.controls,
+			playerStats: { mode, scope: 'game' as const, playerId: 'p1', opponentPlayerId: 'pb', fields },
+			mvpFields: fields
+		}
+	};
+}
+
+it('renders only the selected statistic fields with English and Vietnamese labels', () => {
+	const view = render(Graphic, {
+		snapshot: stats('single', ['kills', 'firstBloods']),
+		graphic: 'player-stats'
+	});
+	expect(view.container.querySelectorAll('[data-field]')).toHaveLength(2);
+	for (const text of ['KILLS', 'Hạ gục', 'FIRST BLOODS', '21', 'First A'])
+		expect(view.container.textContent).toContain(text);
+});
+
+it('renders head-to-head with both players', () => {
+	const view = render(Graphic, {
+		snapshot: stats('head-to-head', ['kills', 'deaths']),
+		graphic: 'player-stats'
+	});
+	expect(view.container.textContent).toContain('First A');
+	expect(view.container.textContent).toContain('First B');
+	expect(view.container.querySelectorAll('[data-field="kills"] [data-value]')).toHaveLength(2);
+	expect(view.container.querySelector('[data-field="kills"]')?.textContent).toContain('17');
+});
+
+it('renders MVP with an MVP title', () => {
+	const view = render(Graphic, { snapshot: stats('single', ['kills']), graphic: 'mvp' });
+	expect(view.container.querySelector('h1')?.textContent).toBe('MVP');
+	expect(view.container.textContent).toContain('First A');
+	expect(view.container.querySelectorAll('[data-field]')).toHaveLength(1);
+});

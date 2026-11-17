@@ -5,6 +5,8 @@
 	import { dev } from '$app/env';
 	import Header from './Header.svelte';
 	import PlayerLineup from './PlayerLineup.svelte';
+	import PlayerStats from './PlayerStats.svelte';
+	import MVP from './MVP.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 </script>
@@ -20,6 +22,10 @@
 		{/if}
 	{:else if graphic === 'player-lineup'}
 		<PlayerLineup {snapshot} />
+	{:else if graphic === 'player-stats'}
+		<PlayerStats {snapshot} />
+	{:else if graphic === 'mvp'}
+		<MVP {snapshot} />
 	{:else}
 		<p class="pending">{graphicLabels[graphic]}</p>
 	{/if}
