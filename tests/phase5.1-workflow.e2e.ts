@@ -17,6 +17,7 @@ test('each graphics control route shares setup and a visibility-independent prev
 		'Players',
 		'Game Resources',
 		'Tournaments',
+		'Player Cameras',
 		'Global Settings',
 		...graphicIds.map((id) => graphicLabels[id])
 	]);
