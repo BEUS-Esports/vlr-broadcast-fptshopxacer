@@ -122,3 +122,14 @@ it('renders MVP with an MVP title', () => {
 	expect(view.container.textContent).toContain('First A');
 	expect(view.container.querySelectorAll('[data-field]')).toHaveLength(1);
 });
+
+it('lists veto steps in sequence with Vietnamese action labels', () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'map-veto' });
+	const steps = [...view.container.querySelectorAll('[data-sequence]')];
+	expect(steps.map((step) => step.getAttribute('data-sequence'))).toEqual(['1', '2']);
+	expect(steps[0].textContent).toContain('CẤM BẢN ĐỒ');
+	expect(steps[0].querySelector('[data-actor]')?.textContent).toBe('b');
+	expect(steps[1].textContent).toContain('CHỌN BẢN ĐỒ');
+	expect(steps[1].querySelector('[data-actor]')?.textContent).toBe('a');
+	expect(steps[1].textContent).toContain('b CHỌN THỦ');
+});

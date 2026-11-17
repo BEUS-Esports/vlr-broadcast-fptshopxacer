@@ -7,6 +7,7 @@
 	import PlayerLineup from './PlayerLineup.svelte';
 	import PlayerStats from './PlayerStats.svelte';
 	import MVP from './MVP.svelte';
+	import MapVeto from './MapVeto.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 </script>
@@ -26,6 +27,8 @@
 		<PlayerStats {snapshot} />
 	{:else if graphic === 'mvp'}
 		<MVP {snapshot} />
+	{:else if graphic === 'map-veto'}
+		<MapVeto {snapshot} />
 	{:else}
 		<p class="pending">{graphicLabels[graphic]}</p>
 	{/if}
