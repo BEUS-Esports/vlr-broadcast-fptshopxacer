@@ -1,3 +1,9 @@
+<script module lang="ts">
+	import type { SponsorSupport } from '../../sponsor';
+
+	export const sponsor: SponsorSupport = { banners: true, loop: true };
+</script>
+
 <script lang="ts">
 	import './theme.css';
 	import { graphicLabels } from '../../controls';
