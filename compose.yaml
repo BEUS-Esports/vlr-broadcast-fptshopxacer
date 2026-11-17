@@ -1,0 +1,34 @@
+# HTTPS deployment: Caddy terminates TLS for the hostname and forwards to the app.
+# The app has no published port; open it only through https://valorant-gfx.noibo.beusesports.vn.
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      ORIGIN: https://valorant-gfx.noibo.beusesports.vn
+      # Every data path stays inside the ./data bind mount, whatever .env says.
+      DATABASE_URL: file:data/broadcast.db
+      ASSET_DIR: ./data/assets
+      SETTINGS_ENCRYPTION_KEY_FILE: ./data/settings.key
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  caddy:
+    build: deploy/caddy
+    env_file: deploy/caddy/caddy.env
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and the ACME account key; losing this volume means re-issuing.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

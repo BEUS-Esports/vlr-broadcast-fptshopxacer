@@ -1,0 +1,16 @@
+.git
+node_modules
+build
+.svelte-kit
+coverage
+test-results
+data
+*.db
+.env
+.env.*
+!.env.example
+deploy/caddy/caddy.env
+design
+design_reference
+.codegraph
+.superpowers

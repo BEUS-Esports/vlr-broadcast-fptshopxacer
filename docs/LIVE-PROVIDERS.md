@@ -66,7 +66,7 @@ Endpoints and TLS:
 - EU and NA use `https://<region>.valospectra.com:5200/`. Socket.IO starts with HTTPS polling and can upgrade to WSS.
 - A custom host's scheme must match its exposed endpoint. An HTTPS website on port 443 doesn't prove that port 5200 supports TLS. See [Socket.IO connection troubleshooting](https://socket.io/docs/v4/troubleshooting-connection-issues/).
 
-To capture logs, enable `LOG_DIR` ([Logging](./LOGGING.md)), or tee the terminal output of a production build made with your `ORIGIN`:
+To capture logs, enable `LOG_DIR` ([Logging](./LOGGING.md)), or tee the terminal output of a production build started with your `ORIGIN`:
 
 ```powershell
 node --env-file=.env build 2>&1 | Tee-Object -FilePath "$env:TEMP\vlr-live-provider.log"

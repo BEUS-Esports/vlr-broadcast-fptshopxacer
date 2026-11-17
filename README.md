@@ -21,14 +21,14 @@ pnpm dev
 
 ## Rules
 
-- Change the schema only with reviewed migrations. Never `db:push` event data.
+- Change the schema only with reviewed migrations; the app applies them on startup after an automatic backup. Never `db:push` event data.
 - Run `pnpm check`, `pnpm build` and E2E one after another; they share generated files. Use `PLAYWRIGHT_CHANNEL=chrome` for installed Chrome.
 - Run one Node process. SSE and the live-provider session are process-local.
 - Management routes have no sign-in (trusted LAN only). `/gfx/live/*` output pages have no controls.
 - Keep provider keys and group codes out of public env vars, fixtures, OBS URLs, SSE, form responses and client data.
 - Log server operations with `logEvent` and safe metadata only. Pass known credentials as the last argument so they are redacted:
   `logEvent('warn', 'example.failed', { provider }, cause, [accessKey, groupCode])`
-- `ORIGIN` is build-time: set it before `pnpm build`, and rebuild when it changes.
+- `ORIGIN` is read at startup: set it before `node build`, and restart when it changes. No rebuild.
 - Back up the database, `ASSET_DIR` and the encryption key together.
 - Team A/B is competition order. Swap Left/Right changes only presentation.
 - Preview follows saved data. A shown graphic keeps its capture until Hide → Show.
@@ -36,7 +36,7 @@ pnpm dev
 ## Docs
 
 - [Management](./docs/MANAGEMENT.md): tournaments, game preparation, assets, resource sync
-- [Broadcast operations](./docs/BROADCAST-OPERATIONS.md): GFX control, OBS URLs, deployment, migrations, backups
+- [Broadcast operations](./docs/BROADCAST-OPERATIONS.md): GFX control, OBS URLs, deployment (including HTTPS with Docker + Caddy), migrations, backups
 - [Live providers](./docs/LIVE-PROVIDERS.md): Spectra, GStack, external HUD, connection diagnostics
 - [Post-game imports](./docs/POST-GAME-IMPORTS.md): HenrikDev, Spectra
 - [Logging](./docs/LOGGING.md) · [Testing](./docs/TESTING.md) · [Recovery runbook](./docs/RHS-RUNBOOK.md) · [Spec](./docs/TECH-SPEC.md)

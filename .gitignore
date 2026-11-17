@@ -48,3 +48,8 @@ test-results
 /design_reference
 
 /coverage
+
+# Cloudflare DNS token for the Caddy container; never commit.
+/deploy/caddy/caddy.env
+# Automatic pre-migration backups made by the app on startup.
+/data/backups/

@@ -5,11 +5,16 @@ import { logger, logEvent } from './lib/server/logging';
 import { formError } from './lib/server/services/form-error';
 import { SaveError } from './lib/server/services/save-error';
 import { startAssetCleanup } from './lib/server/asset-cleanup';
+import { migrateOnStartup } from './lib/server/db/startup-migrations';
 
 vi.mock('$app/env/private', () => ({ LOG_LEVEL: 'debug', LOG_DIR: undefined }));
 vi.mock('#lib/server/asset-cleanup.ts', () => ({ startAssetCleanup: vi.fn(() => vi.fn()) }));
 vi.mock('#lib/server/broadcast/publisher.ts', () => ({ broadcastPublisher: { publish: vi.fn() } }));
 vi.mock('#lib/server/live/runtime.ts', () => ({ syncLiveBinding: vi.fn() }));
+vi.mock('#lib/server/db/index.ts', () => ({ db: {} }));
+vi.mock('#lib/server/db/startup-migrations.ts', () => ({
+	migrateOnStartup: vi.fn(async () => ({ applied: [], backup: null }))
+}));
 
 let records: Record<string, unknown>[];
 let detach: () => void;
@@ -39,6 +44,22 @@ it('applies declared logging environment settings and closes on adapter shutdown
 		expect(records.at(-1)).toMatchObject({ event: 'server.stopping' });
 	} finally {
 		process.off('sveltekit:shutdown', shutdown);
+	}
+});
+
+it('stops before serving when migrations fail', async () => {
+	vi.mocked(migrateOnStartup).mockRejectedValueOnce(new Error('broken migration'));
+	const exit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as never);
+	const cleanups = vi.mocked(startAssetCleanup).mock.calls.length;
+	try {
+		await init();
+		expect(exit).toHaveBeenCalledWith(1);
+		expect(records).toContainEqual(
+			expect.objectContaining({ event: 'db.migrations.failed', level: 'ERROR' })
+		);
+		expect(vi.mocked(startAssetCleanup).mock.calls.length).toBe(cleanups);
+	} finally {
+		exit.mockRestore();
 	}
 });
 
