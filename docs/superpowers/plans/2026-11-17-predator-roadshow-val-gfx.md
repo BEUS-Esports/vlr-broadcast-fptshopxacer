@@ -21,6 +21,10 @@
 - Canvas: 1920×1080.
 - Fonts: Predator TTFs only, loaded via `@font-face` from committed files. No Google Fonts.
 - Text, numbers and names are live HTML, never baked into images.
+- Long names fit by shrinking a whole group to one font size, never by ellipsis or per-name sizes:
+  - all player names on screen share one size: 5 for a one-team graphic, all 10 for a two-team graphic;
+  - team names on screen share one size.
+- No "Forfeit" or "Walkover" text anywhere. Where a score must be shown and none is saved, show `13–0` for the team that advanced. The Map Winner graphic shows no score.
 - Labels: English headline plus a small Vietnamese subtitle. Map Veto actions: `CẤM BẢN ĐỒ`, `CHỌN BẢN ĐỒ`, `BẢN ĐỒ QUYẾT ĐỊNH`.
 - Do not copy league art: no shield logo, no dragon or landmark art.
 - Entrance animations respect `prefers-reduced-motion`.
@@ -31,10 +35,10 @@
 
 ## Review Focus
 
-1. **A long team or player name** (for example "9G CHARLINGTON", "Robo Trái Cây") or Vietnamese diacritics on stacked lines. Expected: ellipsis or font-fit inside the plate, never overflowing the frame or clipping diacritics. _Test:_ Task 10's overflow assertion.
+1. **A long team or player name** (for example "9G CHARLINGTON", "Robo Trái Cây") or Vietnamese diacritics on stacked lines. Expected: the whole group (team's 5 names, all 10 names, or the team names) shrinks to one shared size that fits, never overflowing or clipping diacritics. _Test:_ Task 3's `fitGroup` test and Task 10's overflow assertion.
 2. **Map winner chosen and then the operator changes game.** The server already resets `lineupTeams` to `'both'` on a game change. Expected: the button is unpressed and the new game's result is shown. _Test:_ Task 2, server test.
 3. **Missing images** (player portrait, team logo, agent or map art is `null`). Expected: the frame still renders with a neutral fill; no broken-image icon. _Test:_ Task 3 render-each-graphic test using null asset paths.
-4. **A game with a forfeit or walkover result.** `winnerEntryId` is set but scores may be null. Expected: the Map Winner info shows the winner and "Forfeit" or "Walkover" instead of a score. _Test:_ Task 2, component test.
+4. **A game with a forfeit or walkover result.** `winnerEntryId` is set but scores may be null. Expected: the Map Winner info shows the winner with `13–0`, and never the words Forfeit or Walkover. _Test:_ Task 2, component test.
 5. **The roadshow theme leaking into other templates' HUD.** Expected: the `test` template's live HUD computed colours are unchanged. _Test:_ Task 9.
 
 ---
@@ -103,7 +107,7 @@ Steps:
   - `MapWinnerControl.svelte.test.ts`:
     - no winner: the button `Map winner` is disabled and the text `No result saved for this game yet` is visible;
     - winner `a`, map `Ascent`, game 2, scores 13 and 9, `resultType: 'normal'`: the text contains `Game 2 · Ascent` and `Team a won 13–9`, and the button is enabled;
-    - `resultType: 'forfeit'` with null scores: the text contains `won by forfeit`;
+    - `resultType: 'forfeit'` with null scores and winner `b`: the text contains `Team b won 13–0` and does not match `/forfeit|walkover/i`;
     - `lineupTeams: 'winner'`: the button has `aria-pressed="true"`.
 - [ ] **Step 2:** Run `pnpm vitest run src/lib/broadcast/selectors.test.ts src/lib/server/broadcast/field-controls.test.ts src/lib/components/admin/graphics/MapWinnerControl.svelte.test.ts`. Expected: FAIL (`gameWinnerTeam` and the component don't exist; `'winner'` is rejected as invalid).
 - [ ] **Step 3: Implement.**
@@ -128,6 +132,7 @@ Steps:
   - `.../predator-roadshow-val/theme.css`
   - `.../predator-roadshow-val/Header.svelte`
   - `.../predator-roadshow-val/labels.ts`
+  - `.../predator-roadshow-val/fit.ts` and `.../predator-roadshow-val/fit.svelte.test.ts`
   - `.../predator-roadshow-val/assets/*` (PNG or WebP exports, plus `fonts/Predator-{Regular,Bold,Black,BlackItalic}.ttf`)
   - `src/lib/broadcast/templates/test-snapshot.ts` (moves `preparedSnapshot()` out of `Pregame.svelte.test.ts`)
   - `src/lib/broadcast/templates/predator-roadshow-val/Graphic.svelte.test.ts`
@@ -157,6 +162,11 @@ Steps:
     - `@font-face` for family `Predator` at weights 400, 700, 900, and 900 italic;
     - palette custom properties on `[data-template="predator-roadshow-val"]`. Sample exact values from the PSDs; starting points: `--rs-panel: #000`, `--rs-line: #1fe6f0`, `--rs-plate-from: #2ff3f5`, `--rs-plate-to: #00d9b0`, `--rs-ink-dark: #04121a`, `--rs-ink: #fff`, `--rs-label: #2fe0f0`.
   - `test-snapshot.ts` exports `preparedSnapshot(): BroadcastSnapshot`, unchanged from the current body.
+  - `fit.ts` exports `fitGroup(group: string): Attachment<HTMLElement>`, a Svelte 5 attachment for `{@attach fitGroup('players')}` on a container.
+    - It finds descendant `[data-fit="<group>"]` elements and computes one scale, `min(1, min over elements of clientWidth / scrollWidth)`, floored at `0.6`.
+    - It sets `--fit-<group>` on the container. Styles use `font-size: calc(<base> * var(--fit-<group>, 1))`.
+    - Measure at scale 1 first. Re-measure after `document.fonts.ready` and whenever a `MutationObserver` (childList, characterData, subtree) sees the text change.
+    - Groups: `players` (every player name on the graphic, so 5 for one team and 10 for two) and `teams` (every team name on the graphic). The two groups are independent.
 
 Steps:
 
@@ -173,8 +183,12 @@ Steps:
 - [ ] **Step 2: Write the failing test** `Graphic.svelte.test.ts`:
   - `it.each(graphicIds)('renders %s with and without a selection')` mounts `Graphic` with `preparedSnapshot()` and with `{ ...preparedSnapshot(), selection: null }`, and expects no throw. With no selection, the text contains `WAITING FOR MATCH`.
   - `it('resolves stop slugs to this template')`: `resolveGraphicTemplate('predator-roadshow-val-dong-nai').id === 'predator-roadshow-val'`.
+  - `fit.svelte.test.ts`, using a tiny harness component with two `players` names of width 200px (`'AB'` and `'9G CHARLINGTON VERY LONG'`) and one `teams` name (`'Robo Trái Cây'`):
+    - `it('shrinks every name in a group to one size that fits')`: both player names have equal computed `font-size`, smaller than the base, and `scrollWidth <= clientWidth` for both;
+    - `it('keeps groups independent')`: the team name's `font-size` equals its base;
+    - `it('re-fits when a name changes')`: after the long name is replaced with `'C'`, both player names return to the base size.
 - [ ] **Step 3:** Run `pnpm vitest run src/lib/broadcast/templates/`. Expected: FAIL (no module).
-- [ ] **Step 4:** Implement the shell, `Header`, `labels.ts`, `theme.css` and the `test-snapshot.ts` move.
+- [ ] **Step 4:** Implement the shell, `Header`, `labels.ts`, `fit.ts`, `theme.css` and the `test-snapshot.ts` move. Every later task marks player names `data-fit="players"` and team names `data-fit="teams"`, and attaches `fitGroup` for both on its root.
 - [ ] **Step 5:** Re-run `pnpm vitest run src/lib/broadcast/templates/`. Expected: PASS, including the existing Pregame tests.
 - [ ] **Step 6:** Commit `feat(gfx): add predator-roadshow-val template shell, assets and fonts`.
 
@@ -339,7 +353,7 @@ Steps:
 - [ ] **Step 1: Write the test** `test('Roadshow template renders every graphic inside the canvas')`. For each `graphicId`, plus lineup `winner` and player-stats `head-to-head`:
   - open `/gfx/live/<graphic>` after Show;
   - expect `[data-template="predator-roadshow-val"]`;
-  - expect that no element matching `[data-template] :is(strong, span, p, h1, h2, small)` has `scrollWidth > clientWidth + 1` unless it has `text-overflow: ellipsis`;
+  - expect that no element matching `[data-template] :is(strong, span, p, h1, h2, small)` has `scrollWidth > clientWidth + 1`, and that all `[data-fit="players"]` share one computed `font-size` (likewise `[data-fit="teams"]`);
   - save a screenshot to `test-results/roadshow/<name>.png`.
 - [ ] **Step 2:** Run `PLAYWRIGHT_CHANNEL=chrome pnpm exec playwright test tests/roadshow-visuals.e2e.ts`. Expected: PASS. Fix any overflow it reports in the owning component.
 - [ ] **Step 3: Eye check.** Composite each screenshot over the first frame of `MAIN.mp4`. Use `ffmpeg -i "…/MAIN.mp4" -frames:v 1 bg.png`, then `magick bg.png shot.png -composite out.png` in the scratchpad. Compare against `reference_img/0`, `1`, `2` and `POSTMATCH.psd`. Record the fixes made.
