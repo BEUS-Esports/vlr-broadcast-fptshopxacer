@@ -133,3 +133,15 @@ it('lists veto steps in sequence with Vietnamese action labels', () => {
 	expect(steps[1].querySelector('[data-actor]')?.textContent).toBe('a');
 	expect(steps[1].textContent).toContain('b CHỌN THỦ');
 });
+
+it('shows five agent slots per team with player names, map and sides', () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'agent-select' });
+	expect(view.container.querySelectorAll('[data-slot]')).toHaveLength(10);
+	const left = view.container.querySelector('[data-position="left"]')!;
+	const right = view.container.querySelector('[data-position="right"]')!;
+	expect(right.textContent).toContain('First A');
+	expect(right.textContent).toContain('CÔNG');
+	expect(left.textContent).toContain('THỦ');
+	expect(view.container.textContent).toContain('Saved map');
+	expect(view.container.querySelector('img[alt="Roadshow"]')).toBeNull();
+});

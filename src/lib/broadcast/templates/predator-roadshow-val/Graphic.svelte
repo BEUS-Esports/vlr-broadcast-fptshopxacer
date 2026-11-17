@@ -8,6 +8,7 @@
 	import PlayerStats from './PlayerStats.svelte';
 	import MVP from './MVP.svelte';
 	import MapVeto from './MapVeto.svelte';
+	import AgentSelect from './AgentSelect.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 </script>
@@ -29,13 +30,15 @@
 		<MVP {snapshot} />
 	{:else if graphic === 'map-veto'}
 		<MapVeto {snapshot} />
+	{:else if graphic === 'agent-select'}
+		<AgentSelect {snapshot} />
 	{:else}
 		<p class="pending">{graphicLabels[graphic]}</p>
 	{/if}
 </section>
 
 <footer
-	class={{ 'in-game': graphic === 'in-game' }}
+	class={{ 'in-game': graphic === 'in-game', top: graphic === 'agent-select' }}
 	data-attribution-safe-area
 	aria-label="Reserved data source attribution"
 >
@@ -97,6 +100,11 @@
 		color: var(--rs-label, #35e2f2);
 		font: 700 11px/28px var(--rs-font, sans-serif);
 		letter-spacing: 0.16em;
+	}
+	/* Agent Select fills the bottom band; Spectra attribution renders top-right anyway. */
+	footer.top {
+		top: 0;
+		right: 30px;
 	}
 	footer.in-game {
 		top: 1014px;
