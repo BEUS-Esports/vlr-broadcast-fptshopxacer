@@ -512,7 +512,7 @@ it('art update does not restart the ceremony window', async () => {
 	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
 });
 
-it('keeps text above the sponsor logo and reserves room for it', () => {
+it('keeps text above the sponsor logo and centres the logo on the top edge', () => {
 	const snapshot = fixture();
 	snapshot.liveControls.pause = { type: 'technical' };
 	snapshot.sponsor = {
@@ -525,17 +525,30 @@ it('keeps text above the sponsor logo and reserves room for it', () => {
 	expect(Number(getComputedStyle(logo).zIndex)).toBeLessThan(
 		Number(getComputedStyle(content).zIndex)
 	);
-	// The logo box (right offset + width) plus a gap must be reserved beside the text.
-	const banner = content.parentElement!.getBoundingClientRect();
+	// Half the logo sits above the banner's top edge, horizontally centred.
+	const bannerEl = content.parentElement!;
+	const banner = bannerEl.getBoundingClientRect();
 	const logoBox = logo.getBoundingClientRect();
-	const reserved = Number.parseFloat(getComputedStyle(content).paddingRight);
-	expect(reserved).toBeGreaterThan(banner.right - logoBox.left);
+	expect(logoBox.top).toBeLessThan(banner.top);
+	expect(logoBox.bottom).toBeGreaterThan(banner.top);
+	// Centred on the inner top edge, i.e. within the banner's 2px top border.
+	expect(Math.abs(logoBox.top + logoBox.height / 2 - banner.top)).toBeLessThanOrEqual(3);
+	expect(
+		Math.abs(logoBox.left + logoBox.width / 2 - (banner.left + banner.width / 2))
+	).toBeLessThanOrEqual(1);
+	// The text is pushed down by the logo's inner half, and the clip shape opens above the edge.
+	expect(Number.parseFloat(getComputedStyle(content).paddingTop)).toBeGreaterThanOrEqual(
+		logoBox.height / 2
+	);
+	expect(getComputedStyle(bannerEl).clipPath).toMatch(/[(, ]-\d/);
 });
 
-it('adds no text padding when there is no logo', () => {
+it('adds no text padding or clip notch when there is no logo', () => {
 	const snapshot = fixture();
 	snapshot.liveControls.pause = { type: 'technical' };
 	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
 	const content = view.container.querySelector<HTMLElement>('.banner-content')!;
 	expect(getComputedStyle(content).paddingRight).toBe('38px');
+	expect(getComputedStyle(content).paddingTop).toBe('0px');
+	expect(getComputedStyle(content.parentElement!).clipPath).not.toMatch(/[(, ]-\d/);
 });

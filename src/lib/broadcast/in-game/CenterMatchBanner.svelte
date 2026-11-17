@@ -116,8 +116,11 @@
 	.match-banner {
 		--accent: #c0c8d3;
 		--sponsor-logo-width: 110px;
-		--sponsor-logo-right: 24px;
-		--sponsor-logo-gap: 24px;
+		--sponsor-logo-height: 56px;
+		/* Logo straddles the top edge: these bound the notch the clip-path opens for it. */
+		--sponsor-notch-left: calc(50% - var(--sponsor-logo-width) / 2);
+		--sponsor-notch-right: calc(50% + var(--sponsor-logo-width) / 2);
+		--sponsor-notch-top: calc(var(--sponsor-logo-height) / -2);
 		position: absolute;
 		z-index: 20;
 		left: 50%;
@@ -164,20 +167,31 @@
 		--asset-width: 82px;
 		--asset-height: 82px;
 	}
-	/* Text keeps clear of the logo: reserve its width, offset and a gap. */
-	.match-banner:has(.sponsor-logo) .banner-content {
-		padding-right: calc(
-			var(--sponsor-logo-right) + var(--sponsor-logo-width) + var(--sponsor-logo-gap)
+	/* With a logo, open a notch above the top edge so its upper half is not clipped. */
+	.match-banner:has(.sponsor-logo) {
+		clip-path: polygon(
+			20px 0,
+			var(--sponsor-notch-left) 0,
+			var(--sponsor-notch-left) var(--sponsor-notch-top),
+			var(--sponsor-notch-right) var(--sponsor-notch-top),
+			var(--sponsor-notch-right) 0,
+			100% 0,
+			calc(100% - 20px) 100%,
+			0 100%
 		);
+	}
+	/* Text keeps clear of the logo's lower half. */
+	.match-banner:has(.sponsor-logo) .banner-content {
+		padding-top: calc(var(--sponsor-logo-height) / 2 + 6px);
 	}
 	.sponsor-logo {
 		position: absolute;
 		z-index: 0;
-		right: var(--sponsor-logo-right);
-		top: 50%;
-		transform: translateY(-50%);
+		left: 50%;
+		top: 0;
+		transform: translate(-50%, -50%);
 		--asset-width: var(--sponsor-logo-width);
-		--asset-height: 56px;
+		--asset-height: var(--sponsor-logo-height);
 	}
 	.copy {
 		min-width: 0;

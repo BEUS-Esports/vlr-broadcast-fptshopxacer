@@ -193,13 +193,21 @@
 	border-bottom: 5px solid var(--accent);
 	clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
 }
-/* Sponsor art: background fills the banner under its clip-path; logo clears the text on the right. */
+/* Sponsor art: background fills the banner under its clip-path; the logo straddles the top edge. */
 [data-template='predator-roadshow-val'] .match-banner.match-banner .sponsor-background {
 	inset: 10px 0 0;
 }
-[data-template='predator-roadshow-val'] .match-banner.match-banner {
-	--sponsor-logo-right: 36px;
-}
-[data-template='predator-roadshow-val'] .match-banner.match-banner .sponsor-logo {
-	top: calc(50% + 5px);
+[data-template='predator-roadshow-val'] .match-banner.match-banner:has(.sponsor-logo) {
+	clip-path: polygon(
+		18px 0,
+		var(--sponsor-notch-left) 0,
+		var(--sponsor-notch-left) var(--sponsor-notch-top),
+		var(--sponsor-notch-right) var(--sponsor-notch-top),
+		var(--sponsor-notch-right) 0,
+		calc(100% - 18px) 0,
+		100% 18px,
+		100% 100%,
+		0 100%,
+		0 18px
+	);
 }

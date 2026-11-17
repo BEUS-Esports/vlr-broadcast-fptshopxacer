@@ -39,7 +39,8 @@
 
 	.logo {
 		position: absolute;
-		inset: 0;
+		/* Breathing room inside the scorebar's sponsor slot. */
+		inset: 8px 18px;
 		display: grid;
 		place-items: center;
 		--asset-width: 100%;
