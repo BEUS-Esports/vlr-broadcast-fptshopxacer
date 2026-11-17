@@ -511,6 +511,15 @@ it('themes the live HUD only for the roadshow template', async () => {
 	};
 	const roadshow = await hud('predator-roadshow-val-dong-nai');
 	expect(getComputedStyle(roadshow).fontFamily).toContain('Predator');
+	// Long names never ellipsize under the roadshow theme.
+	const clipped = [
+		...roadshow.querySelectorAll('article header strong, article .agent span, .team-rail strong')
+	];
+	expect(clipped.length).toBeGreaterThan(0);
+	for (const el of clipped) {
+		expect(getComputedStyle(el).textOverflow).toBe('clip');
+		expect(getComputedStyle(el).webkitLineClamp).toBe('none');
+	}
 	const other = await hud('other');
 	expect(getComputedStyle(other).fontFamily).not.toContain('Predator');
 	expect(

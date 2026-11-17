@@ -56,7 +56,7 @@
 		})
 	);
 	const kd = (kills: number | null, deaths: number | null) =>
-		kills === null || !deaths ? '—' : (kills / deaths).toFixed(1);
+		kills === null || deaths === null ? '—' : (kills / Math.max(deaths, 1)).toFixed(1);
 </script>
 
 <div class="post" {@attach fitGroup('players')} {@attach fitGroup('teams')}>

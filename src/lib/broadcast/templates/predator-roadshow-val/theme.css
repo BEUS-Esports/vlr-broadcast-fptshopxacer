@@ -106,23 +106,28 @@
 	flex-direction: row-reverse;
 	text-align: right;
 }
-/* No ellipsis: the shared HUD cannot run the fit helper, so long names wrap to two lines. */
+/* No ellipsis: the shared HUD cannot run the fit helper, so long names wrap to at most two
+ * lines (a line-clamp would draw "…" in Chromium/OBS) and very long single words break. */
 [data-template='predator-roadshow-val']
 	[aria-label='In-Game']
 	.team-rail[data-position]
 	.identity
 	strong {
 	flex: none;
+	display: block;
 	width: 200px;
 	max-width: 200px;
+	max-height: 2.1em;
 	overflow: hidden;
 	white-space: normal;
 	text-overflow: clip;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	line-clamp: 2;
+	overflow-wrap: anywhere;
 	font: 900 21px/1.05 var(--hud-font);
+}
+[data-template='predator-roadshow-val'] [data-live-hud] article header strong,
+[data-template='predator-roadshow-val'] [data-live-hud] article .agent span,
+[data-template='predator-roadshow-val'] .match-banner.match-banner .team span {
+	text-overflow: clip;
 }
 [data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail[data-side='attack'] {
 	border-bottom: 4px solid var(--hud-attack);

@@ -32,3 +32,17 @@ it('re-fits when a name changes', async () => {
 	await settle();
 	for (const el of view.container.querySelectorAll('.player')) expect(size(el)).toBe(20);
 });
+
+it('re-fits when a hidden group becomes visible', async () => {
+	const view = render(FitHarness, { long: 'C' });
+	await settle();
+	view.container.style.display = 'none';
+	await view.rerender({ long: '9G CHARLINGTON VERY LONG' });
+	await settle();
+	view.container.style.display = '';
+	await settle();
+	await settle();
+	const [, long] = view.container.querySelectorAll<HTMLElement>('.player');
+	expect(size(long)).toBeLessThan(20);
+	expect(long.scrollWidth).toBeLessThanOrEqual(long.clientWidth);
+});

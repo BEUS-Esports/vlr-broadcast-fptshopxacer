@@ -30,8 +30,12 @@ export function fitGroup(group: string): Attachment<HTMLElement> {
 		void document.fonts?.ready.then(schedule);
 		const observer = new MutationObserver(schedule);
 		observer.observe(container, { subtree: true, childList: true, characterData: true });
+		// A group measured while hidden (e.g. a closed preview dialog) re-fits once it gets a size.
+		const resize = new ResizeObserver(schedule);
+		resize.observe(container);
 		return () => {
 			observer.disconnect();
+			resize.disconnect();
 			cancelAnimationFrame(frame);
 		};
 	};

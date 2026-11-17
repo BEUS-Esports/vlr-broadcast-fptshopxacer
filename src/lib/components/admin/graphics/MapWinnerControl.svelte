@@ -6,6 +6,13 @@
 	let { live }: { live: BroadcastSnapshot } = $props();
 	const winner = $derived(gameWinnerTeam(live));
 	const active = $derived(live.liveControls.lineupTeams === 'winner');
+	// Program pairs live controls with the published capture, so switching modes while Lineup is
+	// on air would show the old (possibly empty) result. Require Hide → Show first.
+	const unpublished = $derived(
+		live.controls.visibility['player-lineup'] &&
+			(live.publications['player-lineup']?.game?.winnerEntryId ?? null) !==
+				(live.game?.winnerEntryId ?? null)
+	);
 	const game = $derived(
 		live.game ? `Game ${live.game.number} · ${live.game.map?.displayName ?? 'Map TBD'}` : ''
 	);
@@ -30,11 +37,12 @@
 			<button
 				class="btn {active ? 'preset-filled-primary-500' : 'preset-tonal-primary'}"
 				aria-pressed={active}
-				disabled={!live.selection || !winner}>Map winner</button
+				disabled={!live.selection || !winner || unpublished}>Map winner</button
 			>
 		</ManagementForm>
 		<p>
-			{#if winner}{game} — {winner.name} won {score}{:else}No result saved for this game yet{/if}
+			{#if winner && unpublished}Hide → Show Player Lineup to publish the result first{:else if winner}{game}
+				— {winner.name} won {score}{:else}No result saved for this game yet{/if}
 		</p>
 	</div>
 </section>

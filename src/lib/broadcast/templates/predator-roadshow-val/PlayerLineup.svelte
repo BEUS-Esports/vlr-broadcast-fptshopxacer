@@ -17,7 +17,8 @@
 	});
 </script>
 
-<Header title={winnerMode ? 'WINNER' : undefined} />
+<!-- Winner mode without a saved winner shows nothing rather than an empty WINNER page. -->
+{#if !winnerMode || shown.length}<Header title={winnerMode ? 'WINNER' : undefined} />{/if}
 <div
 	class={['lineup', { both: shown.length > 1 }]}
 	{@attach fitGroup('players')}

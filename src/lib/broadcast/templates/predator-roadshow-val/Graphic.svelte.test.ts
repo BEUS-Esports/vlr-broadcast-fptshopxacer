@@ -206,3 +206,29 @@ it.each(graphicIds)('reserves the data-source area only on In-Game (%s)', (graph
 	if (graphic === 'in-game') expect(reserved).not.toBeNull();
 	else expect(reserved).toBeNull();
 });
+
+it('renders nothing for Map Winner when the game has no winner', () => {
+	const view = render(Graphic, { snapshot: lineup('winner', null), graphic: 'player-lineup' });
+	expect(view.container.textContent).not.toContain('WINNER');
+	expect(view.container.querySelector('img[alt="Predator"]')).toBeNull();
+});
+
+it('shows kills as K/D for a player who never died', () => {
+	const base = stats('single', ['kills']);
+	const players = base.scopes.game.statistics.players.map((player) =>
+		player.playerId === 'p1'
+			? { ...player, deaths: { value: 0, coverage: 'complete' as const } }
+			: player
+	);
+	const snapshot = {
+		...base,
+		scopes: {
+			...base.scopes,
+			game: { ...base.scopes.game, statistics: { ...base.scopes.game.statistics, players } }
+		}
+	};
+	const view = render(Graphic, { snapshot, graphic: 'post-game' });
+	expect(
+		view.container.querySelector('[data-entry-id="a"] [data-team-mvp]')?.textContent
+	).toContain('21.0');
+});
