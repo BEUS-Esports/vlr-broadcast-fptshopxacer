@@ -1,4 +1,4 @@
-import type { Client } from '@libsql/client';
+import { sql } from 'drizzle-orm';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -15,7 +15,7 @@ type Options = {
 
 /** Applies pending migrations before the server serves, backing up existing data first. */
 export async function migrateOnStartup<TSchema extends Record<string, unknown>>(
-	db: LibSQLDatabase<TSchema> & { $client: Client },
+	db: LibSQLDatabase<TSchema>,
 	{
 		migrationsFolder = resolve('drizzle'),
 		backupRoot = resolve('data/backups'),
@@ -29,12 +29,15 @@ export async function migrateOnStartup<TSchema extends Record<string, unknown>>(
 		await readFile(join(migrationsFolder, 'meta', '_journal.json'), 'utf8')
 	);
 	// Drizzle's own rule: a migration is pending when it is newer than the latest applied one.
-	const table = await db.$client.execute(
-		"SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'"
+	const table = await db.all(
+		sql`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'`
 	);
-	const latest = table.rows.length
-		? (await db.$client.execute('SELECT MAX(created_at) AS latest FROM __drizzle_migrations'))
-				.rows[0].latest
+	const latest = table.length
+		? (
+				await db.all<{ latest: number | null }>(
+					sql`SELECT MAX(created_at) AS latest FROM __drizzle_migrations`
+				)
+			)[0].latest
 		: null;
 	const pending = journal.entries
 		.filter((entry) => latest === null || entry.when > Number(latest))

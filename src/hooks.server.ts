@@ -5,15 +5,29 @@ import { LOG_DIR, LOG_LEVEL } from '$app/env/private';
 import { startAssetCleanup } from '#lib/server/asset-cleanup.ts';
 import { isBroadcastMutation } from '#lib/server/broadcast/mutations.ts';
 import { broadcastPublisher } from '#lib/server/broadcast/publisher.ts';
+import { db } from '#lib/server/db/index.ts';
+import { migrateOnStartup } from '#lib/server/db/startup-migrations.ts';
 import { syncLiveBinding } from '#lib/server/live/runtime.ts';
 import { logger, logEvent, startFileLogging } from '#lib/server/logging.ts';
 
-export const init: ServerInit = () => {
+export const init: ServerInit = async () => {
 	if (building) return;
 	const levels = { debug: 'DEBUG', info: 'INFO', warn: 'WARN', error: 'ERROR' } as const;
 	const level = LOG_LEVEL?.toLowerCase() ?? 'info';
 	logger.setMinLevel(Object.hasOwn(levels, level) ? levels[level as keyof typeof levels] : 'INFO');
 	const stopLogging = LOG_DIR ? startFileLogging(LOG_DIR) : undefined;
+	// Nothing may touch the database before its schema is current.
+	try {
+		const { applied, backup } = await migrateOnStartup(db);
+		if (applied.length)
+			logEvent('info', 'db.migrations.applied', { applied: applied.join(', '), backup });
+	} catch (error) {
+		logEvent('error', 'db.migrations.failed', {}, error);
+		await stopLogging?.();
+		await logger.flush();
+		process.exit(1);
+		return;
+	}
 	const stop = startAssetCleanup();
 	const shutdown = async () => {
 		stop();

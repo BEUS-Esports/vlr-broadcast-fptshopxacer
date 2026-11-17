@@ -21,6 +21,8 @@ WORKDIR /app
 COPY package.json ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
+# Applied on startup by the app itself.
+COPY drizzle ./drizzle
 RUN mkdir -p /app/data && chown node:node /app/data
 USER node
 EXPOSE 3000
