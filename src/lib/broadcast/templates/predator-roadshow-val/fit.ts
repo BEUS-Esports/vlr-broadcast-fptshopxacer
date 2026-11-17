@@ -1,6 +1,6 @@
 import type { Attachment } from 'svelte/attachments';
 
-const MIN_SCALE = 0.6;
+const MIN_SCALE = 0.45;
 
 /**
  * Shrinks every `[data-fit="<group>"]` descendant to one shared size: the scale that makes the

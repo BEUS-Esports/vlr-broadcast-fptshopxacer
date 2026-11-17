@@ -21,7 +21,7 @@
 
 - Team A/B is competition order. **Swap Left/Right** changes only screen presentation.
 - Current attackers/defenders set the blue/red colors without moving teams.
-- Unknown tournament slugs use the generic test templates. Final supplied artwork is a later phase.
+- Unknown tournament slugs use the generic test templates. A slug `<template>-<anything>` uses that template, so `predator-roadshow-val-dong-nai` uses `predator-roadshow-val`.
 - The Phase 5/5.1 native In-Game fallback passed real Valorant/OBS composition testing. The Phase 5/5.1 native/test package is the accepted fallback baseline; external-provider HUD acceptance is recorded separately.
 
 ## OBS URLs
@@ -39,6 +39,14 @@ Read-only, on a transparent 1920×1080 canvas:
 | MVP           | `/gfx/live/mvp`           |
 
 For rehearsal, `/gfx/live/composite` combines all seven in one output with shared connections. Layers from back to front: In-Game, Map Veto, Player Lineup, Agent Select, Post-Game, Player Stats, MVP. Shown graphics can overlap, so check the combinations you plan to use and compare vMix performance before going on air with it. Keep the individual URLs as a rehearsed fallback.
+
+## Predator Roadshow VALORANT
+
+- Give each stop's tournament a slug starting with `predator-roadshow-val-`, for example `predator-roadshow-val-dong-nai`, `-da-nang` or `-ha-noi`.
+- Pages stay transparent. Put the package background loop (`MAIN.mp4`) in OBS as its own layer below the full-screen graphics (Lineup, Map Veto, Player Stats, Post-Game, MVP). Do not put it behind In-Game or Agent Select.
+- **Map Winner** is on the Player Lineup page. Press **Map winner**, check the result line beside it (game, map, winner and score), then **Show Player Lineup**. Forfeits and walkovers show `13–0`. Choosing another game resets the mode to both lineups.
+- Long names shrink so every name in a group shares one size. On the In-Game scorebar, team names wrap to two lines instead.
+- The data-source placeholder appears only on In-Game.
 
 ## Production deployment
 

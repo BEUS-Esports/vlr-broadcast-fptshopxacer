@@ -122,7 +122,7 @@
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
 	line-clamp: 2;
-	font: 900 24px/1.05 var(--hud-font);
+	font: 900 21px/1.05 var(--hud-font);
 }
 [data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail[data-side='attack'] {
 	border-bottom: 4px solid var(--hud-attack);
@@ -168,7 +168,12 @@
 	border: 1px solid var(--hud-line);
 }
 
-/* Match bug: black plate, cyan edge. */
+/* Match bug: black plate, cyan edge; the match label wraps instead of ellipsizing. */
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .match-bug.match-bug strong {
+	white-space: normal;
+	text-overflow: clip;
+	line-height: 1.1;
+}
 [data-template='predator-roadshow-val'] [aria-label='In-Game'] .match-bug {
 	background: linear-gradient(180deg, #000000e6, #002a30e6);
 	border-left: 4px solid var(--hud-accent);

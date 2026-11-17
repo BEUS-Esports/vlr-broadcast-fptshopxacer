@@ -128,7 +128,10 @@ it('shows saved game scores, or 13–0 for the advancing team when none is saved
 	const saved = { ...base, game: { ...base.game!, scoreA: 13, scoreB: 9, winnerEntryId: 'a' } };
 	expect(displayGameScore(saved, 'a')).toBe(13);
 	expect(displayGameScore(saved, 'b')).toBe(9);
-	const walkover = { ...base, game: { ...base.game!, scoreA: null, scoreB: null, winnerEntryId: 'b' } };
+	const walkover = {
+		...base,
+		game: { ...base.game!, scoreA: null, scoreB: null, winnerEntryId: 'b' }
+	};
 	expect(displayGameScore(walkover, 'b')).toBe(13);
 	expect(displayGameScore(walkover, 'a')).toBe(0);
 	expect(displayGameScore(base, 'a')).toBeNull();
