@@ -1,0 +1,8 @@
+valorant-gfx.noibo.beusesports.vn {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		# Check DNS-01 propagation against public DNS, not the LAN resolver.
+		resolvers 1.1.1.1
+	}
+	reverse_proxy app:3000
+}

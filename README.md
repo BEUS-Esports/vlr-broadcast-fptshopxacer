@@ -36,7 +36,7 @@ pnpm dev
 ## Docs
 
 - [Management](./docs/MANAGEMENT.md): tournaments, game preparation, assets, resource sync
-- [Broadcast operations](./docs/BROADCAST-OPERATIONS.md): GFX control, OBS URLs, deployment, migrations, backups
+- [Broadcast operations](./docs/BROADCAST-OPERATIONS.md): GFX control, OBS URLs, deployment (including HTTPS with Docker + Caddy), migrations, backups
 - [Live providers](./docs/LIVE-PROVIDERS.md): Spectra, GStack, external HUD, connection diagnostics
 - [Post-game imports](./docs/POST-GAME-IMPORTS.md): HenrikDev, Spectra
 - [Logging](./docs/LOGGING.md) · [Testing](./docs/TESTING.md) · [Recovery runbook](./docs/RHS-RUNBOOK.md) · [Spec](./docs/TECH-SPEC.md)

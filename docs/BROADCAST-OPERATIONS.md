@@ -61,6 +61,49 @@ At runtime:
 - Prepared graphic captures are stored in the database and survive restarts.
 - Authentication is deferred for trusted-LAN operation. Output pages have no controls, but anyone who can reach the management routes can write.
 
+## Linux HTTPS deployment (Docker + Caddy)
+
+VDO.Ninja camera iframes load only in a secure context, so OBS and vMix on other PCs need HTTPS. `compose.yaml` runs the app behind Caddy at `https://valorant-gfx.noibo.beusesports.vn`. Caddy gets a Let's Encrypt certificate through the Cloudflare DNS-01 challenge, so the server never needs to be reachable from the internet. It has its own certificate and token, independent of the shared internal web server.
+
+Always open the app by hostname. `https://<IP>` gives a certificate error, and the app's own port is not published.
+
+### One-time setup
+
+1. Reserve the server's LAN IP in DHCP. The reservation is per network interface: Wi-Fi and Ethernet have different MAC addresses, so reserve the one used on show day.
+2. In Cloudflare, add an A record `valorant-gfx.noibo` → that IP, **DNS-only** (grey cloud). Cloudflare's proxy cannot reach a private IP.
+3. Create an API token with **Zone → DNS → Edit** for `beusesports.vn` only. Cloudflare scopes tokens per zone, so this token can edit any record in it. Keep it only on this machine.
+4. `cp deploy/caddy/caddy.env.example deploy/caddy/caddy.env`, `chmod 600 deploy/caddy/caddy.env`, and paste the token. The file is gitignored, and the app container never sees it.
+5. Keep `.env` as for any production run. Compose overrides `ORIGIN` and sets `DATABASE_URL=file:data/broadcast.db`. Relative paths such as `./data/assets` resolve inside the `./data` bind mount. To keep existing data, copy `local.db` to `data/broadcast.db` while nothing is running.
+
+### Start, stop and logs
+
+```bash
+docker compose up -d --build
+docker compose logs caddy | grep -i 'certificate obtained'   # first start only
+docker compose logs -f app
+docker compose down
+```
+
+Both services restart with Docker unless they were stopped. The certificate and ACME account live in the `caddy_data` volume. Renewal needs internet roughly every 60 days, so start the stack once before travelling to an offline venue.
+
+### Backups and upgrades
+
+The database, assets and key stay in `./data`, so the host-side commands work unchanged. Stop the app first:
+
+```bash
+docker compose stop app
+DATABASE_URL=file:data/broadcast.db pnpm backup -- --output <new-directory> --app-stopped
+docker compose start app
+```
+
+To upgrade: `git pull`, `docker compose stop app`, back up, then rehearse `DATABASE_URL=file:<copy>.db pnpm db:migrate` on a copy. Run it again with `DATABASE_URL=file:data/broadcast.db`, then `docker compose up -d --build`.
+
+### Network checks
+
+- **IP changed:** edit the Cloudflare A record. Nothing needs rebuilding.
+- **Before the show,** run `nslookup valorant-gfx.noibo.beusesports.vn` on each graphics PC and compare the answer with `ip -4 addr` on the server. If the name does not resolve, the router may block DNS answers that point to private IPs. Add a DNS override on the router, or a hosts-file entry on that PC.
+- **GStack:** inside the container, `localhost` is the container itself. Set the GStack URL in Settings to the GStack PC's LAN IP.
+
 ## Backups
 
 Stopped-app backup: `pnpm backup -- --output <new-directory> --app-stopped`. Protect the encryption key separately. Follow the [RHS recovery runbook](./RHS-RUNBOOK.md) before event upgrades.
