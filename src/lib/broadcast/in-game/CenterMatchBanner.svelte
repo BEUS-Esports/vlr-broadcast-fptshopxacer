@@ -115,6 +115,9 @@
 <style>
 	.match-banner {
 		--accent: #c0c8d3;
+		--sponsor-logo-width: 110px;
+		--sponsor-logo-right: 24px;
+		--sponsor-logo-gap: 24px;
 		position: absolute;
 		z-index: 20;
 		left: 50%;
@@ -161,13 +164,19 @@
 		--asset-width: 82px;
 		--asset-height: 82px;
 	}
+	/* Text keeps clear of the logo: reserve its width, offset and a gap. */
+	.match-banner:has(.sponsor-logo) .banner-content {
+		padding-right: calc(
+			var(--sponsor-logo-right) + var(--sponsor-logo-width) + var(--sponsor-logo-gap)
+		);
+	}
 	.sponsor-logo {
 		position: absolute;
-		z-index: 1;
-		right: 24px;
+		z-index: 0;
+		right: var(--sponsor-logo-right);
 		top: 50%;
 		transform: translateY(-50%);
-		--asset-width: 110px;
+		--asset-width: var(--sponsor-logo-width);
 		--asset-height: 56px;
 	}
 	.copy {

@@ -197,7 +197,9 @@
 [data-template='predator-roadshow-val'] .match-banner.match-banner .sponsor-background {
 	inset: 10px 0 0;
 }
+[data-template='predator-roadshow-val'] .match-banner.match-banner {
+	--sponsor-logo-right: 36px;
+}
 [data-template='predator-roadshow-val'] .match-banner.match-banner .sponsor-logo {
-	right: 36px;
 	top: calc(50% + 5px);
 }

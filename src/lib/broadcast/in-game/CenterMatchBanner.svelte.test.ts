@@ -511,3 +511,31 @@ it('art update does not restart the ceremony window', async () => {
 	await tick();
 	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
 });
+
+it('keeps text above the sponsor logo and reserves room for it', () => {
+	const snapshot = fixture();
+	snapshot.liveControls.pause = { type: 'technical' };
+	snapshot.sponsor = {
+		...emptySponsor,
+		banners: { ...emptySponsor.banners, technical: art(null, '/assets/b.png') }
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	const content = view.container.querySelector<HTMLElement>('.banner-content')!;
+	const logo = view.container.querySelector<HTMLElement>('[data-banner-sponsor-logo]')!;
+	expect(Number(getComputedStyle(logo).zIndex)).toBeLessThan(
+		Number(getComputedStyle(content).zIndex)
+	);
+	// The logo box (right offset + width) plus a gap must be reserved beside the text.
+	const banner = content.parentElement!.getBoundingClientRect();
+	const logoBox = logo.getBoundingClientRect();
+	const reserved = Number.parseFloat(getComputedStyle(content).paddingRight);
+	expect(reserved).toBeGreaterThan(banner.right - logoBox.left);
+});
+
+it('adds no text padding when there is no logo', () => {
+	const snapshot = fixture();
+	snapshot.liveControls.pause = { type: 'technical' };
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	const content = view.container.querySelector<HTMLElement>('.banner-content')!;
+	expect(getComputedStyle(content).paddingRight).toBe('38px');
+});
