@@ -59,3 +59,14 @@ it.each([
 		expect(await loadCameraSettings()).toEqual(initial);
 	});
 });
+
+it('rejects a missing revision as invalid input', async () => {
+	await withManagementFixture(async () => {
+		const { loadCameraSettings, saveCameraSettings } = await import('./cameras');
+		const initial = await loadCameraSettings();
+		await expect(
+			saveCameraSettings({ room: 'event', password: 'abcd1234' }, undefined as unknown as number)
+		).rejects.toMatchObject({ code: 'invalid' });
+		expect(await loadCameraSettings()).toEqual(initial);
+	});
+});

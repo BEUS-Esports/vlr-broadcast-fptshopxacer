@@ -35,34 +35,36 @@
 
 ## File Map
 
-| File | Responsibility |
-| --- | --- |
-| `src/lib/server/settings/secrets.ts` (new) | Encryption key loader + `encryptSecret`/`decryptSecret` (moved from providers.ts) |
-| `src/lib/server/settings/providers.ts` | Imports secrets instead of owning them |
-| `src/lib/server/db/schema/broadcast.ts` | `boothsSwapped` column + check |
-| `src/lib/server/db/schema/settings.ts` | `cameraSettings` singleton table |
-| `drizzle/0015_*.sql`, `drizzle/0016_*.sql` | Generated migrations |
-| `src/lib/server/services/broadcast.ts` | `BroadcastUpdate.boothsSwapped` |
-| `src/lib/server/broadcast/mutations.ts` | Publish after `/admin/player-cameras` POSTs |
-| `src/lib/broadcast/types.ts` | Snapshot v5 type, decoder, v4→v5 upgrade |
-| `src/lib/server/broadcast/snapshot.ts` | `booths` + `liveControls.boothsSwapped` derivation |
-| `src/lib/server/settings/cameras.ts` (new) | Load/init/validate/save camera settings |
-| `src/lib/cameras/vdo-ninja.ts` (new) | Seat IDs, URL builders, origin constant |
-| `src/lib/cameras/booths.ts` (new) | `boothViews(snapshot)` (booth → role, team, seat labels) |
-| `src/lib/components/admin/cameras/PlayerCameraPreview.svelte` (new) | One iframe + connection badge |
-| `src/routes/admin/player-cameras/+page.server.ts` (new), `+page.svelte` | Page load, `room` and `booths` actions, UI |
-| `src/routes/admin/+layout.svelte` | Nav entry (already edited, uncommitted) |
-| `tests/fixtures.ts`, `tests/player-cameras.e2e.ts` (new) | Reset `booths_swapped`; page e2e |
+| File                                                                    | Responsibility                                                                    |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `src/lib/server/settings/secrets.ts` (new)                              | Encryption key loader + `encryptSecret`/`decryptSecret` (moved from providers.ts) |
+| `src/lib/server/settings/providers.ts`                                  | Imports secrets instead of owning them                                            |
+| `src/lib/server/db/schema/broadcast.ts`                                 | `boothsSwapped` column + check                                                    |
+| `src/lib/server/db/schema/settings.ts`                                  | `cameraSettings` singleton table                                                  |
+| `drizzle/0015_*.sql`, `drizzle/0016_*.sql`                              | Generated migrations                                                              |
+| `src/lib/server/services/broadcast.ts`                                  | `BroadcastUpdate.boothsSwapped`                                                   |
+| `src/lib/server/broadcast/mutations.ts`                                 | Publish after `/admin/player-cameras` POSTs                                       |
+| `src/lib/broadcast/types.ts`                                            | Snapshot v5 type, decoder, v4→v5 upgrade                                          |
+| `src/lib/server/broadcast/snapshot.ts`                                  | `booths` + `liveControls.boothsSwapped` derivation                                |
+| `src/lib/server/settings/cameras.ts` (new)                              | Load/init/validate/save camera settings                                           |
+| `src/lib/cameras/vdo-ninja.ts` (new)                                    | Seat IDs, URL builders, origin constant                                           |
+| `src/lib/cameras/booths.ts` (new)                                       | `boothViews(snapshot)` (booth → role, team, seat labels)                          |
+| `src/lib/components/admin/cameras/PlayerCameraPreview.svelte` (new)     | One iframe + connection badge                                                     |
+| `src/routes/admin/player-cameras/+page.server.ts` (new), `+page.svelte` | Page load, `room` and `booths` actions, UI                                        |
+| `src/routes/admin/+layout.svelte`                                       | Nav entry (already edited, uncommitted)                                           |
+| `tests/fixtures.ts`, `tests/player-cameras.e2e.ts` (new)                | Reset `booths_swapped`; page e2e                                                  |
 
 ---
 
 ### Task 1: Shared secrets module
 
 **Files:**
+
 - Create: `src/lib/server/settings/secrets.ts`, `src/lib/server/settings/secrets.test.ts`
 - Modify: `src/lib/server/settings/providers.ts` (remove `parseEncryptionKey`, `getEncryptionKey`, `encryptSecret`, `decryptSecret`; import from `./secrets`)
 
 **Interfaces:**
+
 - Produces: `encryptSecret(value: string, purpose: string): Promise<string | null>` (`null` for `''`) and `decryptSecret(value: string | null, purpose: string): Promise<string>` (`''` for null/empty). The bodies move verbatim; only the decrypt error text becomes `'Could not decrypt saved settings. Check the server encryption key.'`
 
 - [ ] **Step 1: Write failing tests** in `secrets.test.ts` (set `process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64')`, delete it in `afterEach`):
@@ -79,11 +81,13 @@
 ### Task 2: `boothsSwapped` broadcast control
 
 **Files:**
+
 - Modify: `src/lib/server/db/schema/broadcast.ts`, `src/lib/server/services/broadcast.ts:29-40,125-165`, `src/lib/server/broadcast/mutations.ts`, `tests/fixtures.ts:13`
 - Create: `drizzle/0015_<generated>.sql` (+ meta)
 - Test: `src/lib/server/services/broadcast.test.ts`, `src/lib/server/broadcast/mutations.test.ts`
 
 **Interfaces:**
+
 - Produces: `broadcastState.boothsSwapped` (`integer('booths_swapped', { mode: 'boolean' }).notNull().default(false)`, check `broadcast_booths_swapped_check` `in (0, 1)`); `BroadcastUpdate.boothsSwapped?: boolean`; `getBroadcastState()` / `updateBroadcastState()` results carry `boothsSwapped`.
 
 - [ ] **Step 1: Write failing tests** in `broadcast.test.ts` (reuse the fixture style of the existing swap test, `withTwoConnections`, games `g1`/`g2` in one match):
@@ -100,11 +104,13 @@
 ### Task 3: Snapshot v5 with `booths`
 
 **Files:**
+
 - Modify: `src/lib/broadcast/types.ts:60-133,233-383`, `src/lib/server/broadcast/snapshot.ts:58-75,204-208`
 - Modify fixtures (`version: 4` → `5`, add `booths` and `liveControls.boothsSwapped: false`): `src/lib/broadcast/GraphicRenderer.svelte.test.ts`, `primitives/Primitives.svelte.test.ts`, `in-game/CenterMatchBanner.svelte.test.ts`, `templates/test/Pregame.svelte.test.ts`, `templates/test/Statistics.svelte.test.ts`, `preload.test.ts`, `src/lib/components/admin/graphics/InGameMatchControls.svelte.test.ts`
 - Test: `src/lib/server/broadcast/snapshot.test.ts`
 
 **Interfaces:**
+
 - Consumes: `broadcastState.boothsSwapped` (Task 2).
 - Produces: `BroadcastPreparedSnapshot.version: 5`; `liveControls.boothsSwapped: boolean`; `booths: { booth1EntryId: string | null; booth2EntryId: string | null }`.
 
@@ -121,10 +127,12 @@
 ### Task 4: Camera settings storage
 
 **Files:**
+
 - Modify: `src/lib/server/db/schema/settings.ts`
 - Create: `drizzle/0016_<generated>.sql`, `src/lib/server/settings/cameras.ts`, `src/lib/server/settings/cameras.test.ts`
 
 **Interfaces:**
+
 - Consumes: `encryptSecret`/`decryptSecret` (Task 1).
 - Produces:
   - `cameraSettings` table `camera_settings`: `id` (pk default 1), `revision: revisionColumn()`, `room: text('room').notNull().default('')`, `passwordEncrypted: text('password_encrypted')`, timestamps, checks `camera_settings_singleton_check` (`id = 1`) and `camera_settings_revision_check` (`revision > 0`).
@@ -147,17 +155,20 @@
 ### Task 5: VDO.Ninja URL helpers
 
 **Files:**
+
 - Create: `src/lib/cameras/vdo-ninja.ts`, `src/lib/cameras/vdo-ninja.test.ts`
 
 **Interfaces:**
+
 - Produces:
+
   ```ts
   export const VDO_NINJA_ORIGIN = 'https://vdo.ninja';
   export type Booth = 1 | 2;
   export type Seat = 1 | 2 | 3 | 4 | 5;
   export type SeatId = `BOOTH${Booth}_S${Seat}`;
-  export const seats: readonly Seat[];          // [1,2,3,4,5]
-  export const seatIds: readonly SeatId[];      // BOOTH1_S1…S5, BOOTH2_S1…S5
+  export const seats: readonly Seat[]; // [1,2,3,4,5]
+  export const seatIds: readonly SeatId[]; // BOOTH1_S1…S5, BOOTH2_S1…S5
   export function seatId(booth: Booth, seat: Seat): SeatId;
   export const pushCapture = { width: 1280, height: 720, fps: 30 } as const;
   export const previewQuality = { codec: 'h264', vb: 200, scale: 25 } as const;
@@ -182,22 +193,26 @@
 ### Task 6: Booth view helper and preview component
 
 **Files:**
+
 - Create: `src/lib/cameras/booths.ts`, `src/lib/cameras/booths.test.ts`, `src/lib/components/admin/cameras/PlayerCameraPreview.svelte`, `src/lib/components/admin/cameras/PlayerCameraPreview.svelte.test.ts`
 
 **Interfaces:**
+
 - Consumes: snapshot v5 (Task 3), `SeatId`/`seatId`/`seats`/`VDO_NINJA_ORIGIN` (Task 5).
 - Produces:
+
   ```ts
   export type BoothView = {
-    booth: Booth;
-    role: 'Team A' | 'Team B' | null;
-    team: { name: string; tag: string } | null;
-    seats: Array<{ id: SeatId; player: string | null }>; // seat 1..5
+  	booth: Booth;
+  	role: 'Team A' | 'Team B' | null;
+  	team: { name: string; tag: string } | null;
+  	seats: Array<{ id: SeatId; player: string | null }>; // seat 1..5
   };
   export function boothViews(
-    snapshot: Pick<BroadcastPreparedSnapshot, 'booths' | 'competition' | 'teams' | 'lineups'>
+  	snapshot: Pick<BroadcastPreparedSnapshot, 'booths' | 'competition' | 'teams' | 'lineups'>
   ): [BoothView, BoothView];
   ```
+
   `PlayerCameraPreview` props: `{ src: string | null; title: string; connected?: boolean /* $bindable, default false */ }`.
 
 - [ ] **Step 1: Write failing tests.**
@@ -220,10 +235,12 @@
 ### Task 7: Player Cameras page
 
 **Files:**
+
 - Create: `src/routes/admin/player-cameras/+page.server.ts`, `tests/player-cameras.e2e.ts`
 - Modify: `src/routes/admin/player-cameras/+page.svelte` (currently empty), `src/routes/admin/+layout.svelte` (nav entry already present; let prettier fix the trailing comma)
 
 **Interfaces:**
+
 - Consumes: `loadCameraSettings`, `saveCameraSettings` (Task 4); `buildBroadcastSnapshot`; `updateBroadcastState` (Task 2); `boothViews` (Task 6); URL helpers (Task 5); `ManagementForm`, `readPayload`, `formError`, `toaster`.
 - Produces: `load` → `{ cameras: CameraSettings; controlRevision: number; boothsSwapped: boolean; booths: [BoothView, BoothView] }` (do not ship the whole snapshot). Actions: `room` (payload `{ expectedRevision, room, password }`) and `booths` (payload `{ expectedRevision, boothsSwapped }`), each `readPayload` → service → `{ saved: true }`, with `formError` on failure.
 

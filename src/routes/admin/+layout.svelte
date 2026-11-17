@@ -69,7 +69,7 @@
 					label: 'Player Cameras',
 					active: playerCamerasActive,
 					icon: Aperture
-				},
+				}
 			]
 		},
 		{

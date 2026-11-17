@@ -45,6 +45,8 @@ export async function saveCameraSettings(
 	input: { room: unknown; password: unknown },
 	expectedRevision: number
 ): Promise<CameraSettings> {
+	if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+		throw new SaveError('invalid', 'A valid camera settings revision is required.');
 	const room = safe(input.room, 1, 32, 'Room: 1–32 letters, digits or underscores.');
 	const password = safe(input.password, 8, 32, 'Password: 8–32 letters, digits or underscores.');
 	const [row] = await db

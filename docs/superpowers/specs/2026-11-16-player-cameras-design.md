@@ -33,7 +33,7 @@ Refers to the map veto order of teams. Team A will always be the first to take a
 
 ### Booth
 
-Where the team physically sits in the competing venue. 
+Where the team physically sits in the competing venue.
 
 Note: Not all teams will sit at the expected position even if they selected Team A/B, therefore swapping "booths" do not swap Map Veto Order (Team A/B).
 
