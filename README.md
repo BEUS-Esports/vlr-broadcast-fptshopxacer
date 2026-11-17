@@ -28,7 +28,7 @@ pnpm dev
 - Keep provider keys and group codes out of public env vars, fixtures, OBS URLs, SSE, form responses and client data.
 - Log server operations with `logEvent` and safe metadata only. Pass known credentials as the last argument so they are redacted:
   `logEvent('warn', 'example.failed', { provider }, cause, [accessKey, groupCode])`
-- `ORIGIN` is build-time: set it before `pnpm build`, and rebuild when it changes.
+- `ORIGIN` is read at startup: set it before `node build`, and restart when it changes. No rebuild.
 - Back up the database, `ASSET_DIR` and the encryption key together.
 - Team A/B is competition order. Swap Left/Right changes only presentation.
 - Preview follows saved data. A shown graphic keeps its capture until Hide → Show.

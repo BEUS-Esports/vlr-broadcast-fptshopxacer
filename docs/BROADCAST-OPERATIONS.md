@@ -44,11 +44,11 @@ For rehearsal, `/gfx/live/composite` combines all seven in one output with share
 
 Use Node 26.13.0, pnpm 12.16.1 and `pnpm install --frozen-lockfile`. A clean Windows install and production build passed on 2026-11-03; the current lockfile needs no adapter patch.
 
-Set `ORIGIN` to the exact address that controllers and OBS use **before building**. SvelteKit 3's `paths.origin` is a build setting, so setting it only at runtime has no effect. Rebuild whenever the address changes. In PowerShell:
+Set `ORIGIN` to the exact address that controllers and OBS use when starting the server. adapter-node reads it at startup, so changing the address needs a restart, not a rebuild. In PowerShell:
 
 ```powershell
-$env:ORIGIN = 'http://192.168.1.10:3000' # replace with the server LAN address
 pnpm build
+$env:ORIGIN = 'http://192.168.1.10:3000' # replace with the server LAN address
 $env:HOST = '0.0.0.0'
 $env:PORT = '3000'
 node --env-file=.env build

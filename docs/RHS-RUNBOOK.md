@@ -15,8 +15,8 @@ Use Node **26.13.0**, pnpm **12.16.1**, and one application process. Keep the ac
 ## Restore rehearsal in a fresh directory
 
 1. Use a fresh application checkout with the **matching accepted build**, lockfile and migrations. Check the manifest's file hashes before copying its `database.db` and complete `assets/` store into fresh locations. Preserve the original backup.
-2. Restore the separately held key, and configure `DATABASE_URL=file:<absolute-restored-db-path>`, `ASSET_DIR=<absolute-restored-assets-path>` and the matching key setting. Keep secrets out of command output and Git. Restore the original build environment, including its origin and upload limit.
-3. For a different rehearsal address, rebuild with that exact `ORIGIN`. Example PowerShell: `$env:ORIGIN = 'http://127.0.0.1:4180'`, then `pnpm build`; set `$env:HOST = '127.0.0.1'` and `$env:PORT = '4180'`, then `node --env-file=.env build`. Run one process per restored database.
+2. Restore the separately held key, and configure `DATABASE_URL=file:<absolute-restored-db-path>`, `ASSET_DIR=<absolute-restored-assets-path>` and the matching key setting. Keep secrets out of command output and Git. Restore the original runtime environment, including its `ORIGIN` and upload limit.
+3. For a different rehearsal address, start the server with that exact `ORIGIN`; no rebuild is needed. Example PowerShell: set `$env:ORIGIN = 'http://127.0.0.1:4180'`, `$env:HOST = '127.0.0.1'` and `$env:PORT = '4180'`, then `node --env-file=.env build`. Run one process per restored database.
 4. Open `/admin/graphics`, confirm the selected game and saved edits, then open the previously shown graphic URL. Its shown version must survive, including artwork, while newer saved edits remain in Preview. Check Settings can read the restored encrypted configuration without exposing credentials. Test all seven individual outputs before returning to air.
 5. Stop the rehearsal process with **Ctrl+C**. Record the elapsed stop-to-working-output time and build/backup identities. Replacing production data requires operator confirmation; preserve newer event edits before any restore.
 
