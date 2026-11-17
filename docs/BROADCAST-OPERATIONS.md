@@ -113,7 +113,7 @@ docker compose logs app | grep -i migrations   # empty when nothing was pending
 
 On start the app applies pending migrations by itself. If the database already has data, it first backs up the database and assets to `data/backups/<time>-before-<migration>/` (the log shows it as `/app/data/backups/…`). These backups are never pruned; delete old ones yourself. The encryption key is not copied into them; it stays in `data/settings.key`.
 
-If the backup or a migration fails, nothing is applied, the app exits and Docker keeps restarting it, and `docker compose logs app` shows why. While the database is unchanged, each retry reuses the same backup instead of taking a new one. The data is untouched, so roll back only the code: `git checkout <noted version>`, then `docker compose up -d --build`.
+If the backup or a migration fails, nothing is applied and the app exits. It writes what failed, the backup path and the error to `data/backups/MIGRATION-FAILED`. Docker keeps restarting the app, but while that file exists, a start with pending migrations neither backs up nor migrates: it logs the failure and exits again, so one failure makes at most one backup. The data is untouched, so roll back only the code: `git checkout <noted version>`, then `docker compose up -d --build`. The old version has nothing pending and starts normally. Delete `data/backups/MIGRATION-FAILED` only when you want the next start to try the upgrade again with a fresh backup.
 
 If the migration succeeded but the result is wrong, roll back the code **and** the data. Restoring only the data does not help: the new build would migrate it again on start. Check that the backup's `manifest.json` has `"complete": true`, then:
 
@@ -166,7 +166,7 @@ For the Docker deployment, follow [Backups and upgrades](#backups-and-upgrades).
 
 1. Upgrade between shows, never during one.
 2. Confirm `DATABASE_URL` points at the event database.
-3. Start the new build. It backs up existing data to `data/backups/<time>-before-<migration>/`, then applies the reviewed migrations. If either step fails, it applies nothing and exits; the log names the backup.
+3. Start the new build. It backs up existing data to `data/backups/<time>-before-<migration>/`, then applies the reviewed migrations. If either step fails, it applies nothing, records the failure in `data/backups/MIGRATION-FAILED` and exits. It won't retry until you delete that file.
 4. Optionally, start the new build against a copy of the database first to preview on-air effects. Never use `db:push` on event data.
 
 Verification runs on disposable databases; the local/event database has not been migrated by this phase.

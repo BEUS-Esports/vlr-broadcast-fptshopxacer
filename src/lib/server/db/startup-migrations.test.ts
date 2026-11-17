@@ -1,7 +1,7 @@
 import { createClient, type Client } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -133,36 +133,57 @@ async function brokenFolder() {
 	return broken;
 }
 
-const times = (...isos: string[]) => {
-	const dates = isos.map((iso) => new Date(iso));
-	return () => dates.shift()!;
-};
+const at = (iso: string) => () => new Date(iso);
 
-it('reuses the backup when an unchanged database retries a failed migration', async () => {
+it('takes one backup however often a failed migration restarts', async () => {
 	await migrate(db, { migrationsFolder: realFolder });
 	const migrationsFolder = await brokenFolder();
-	const now = times('2026-11-17T01:00:00.000Z', '2026-11-17T01:01:00.000Z');
-	const first = await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(
-		(error: Error) => error.message
+	const now = at('2026-11-17T01:00:00.000Z');
+	const backup = join(backupRoot, '2026-11-17T01-00-00-000Z-before-9999_broken');
+	await expect(migrateOnStartup(db, { migrationsFolder, backupRoot, now })).rejects.toThrow(
+		`the pre-migration backup is at ${backup}.`
 	);
-	const second = await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(
-		(error: Error) => error.message
-	);
-	expect(second).toBe(first);
-	expect(await readdir(backupRoot)).toEqual(['2026-11-17T01-00-00-000Z-before-9999_broken']);
+	for (const restart of ['2026-11-17T01:01:00.000Z', '2026-11-17T01:02:00.000Z'])
+		await expect(
+			migrateOnStartup(db, { migrationsFolder, backupRoot, now: at(restart) })
+		).rejects.toThrow(/A previous migration failed.*MIGRATION-FAILED/);
+	expect((await readdir(backupRoot)).sort()).toEqual([
+		'2026-11-17T01-00-00-000Z-before-9999_broken',
+		'MIGRATION-FAILED'
+	]);
+	const marker = await readFile(join(backupRoot, 'MIGRATION-FAILED'), 'utf8');
+	expect(marker).toContain('9999_broken');
+	expect(marker).toContain(backup);
+	expect(await appliedCount()).toBe(tags.length);
 });
 
-it('backs up again when the database changed since the last backup', async () => {
+it('starts a build with nothing pending despite a failure marker', async () => {
 	await migrate(db, { migrationsFolder: realFolder });
-	const migrationsFolder = await brokenFolder();
-	const now = times('2026-11-17T01:00:00.000Z', '2026-11-17T01:01:00.000Z');
-	await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(() => {});
-	await db.insert(schema.teams).values({ id: 'newer', name: 'Newer', tag: 'N' });
-	await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(() => {});
-	expect(await readdir(backupRoot)).toEqual([
-		'2026-11-17T01-00-00-000Z-before-9999_broken',
-		'2026-11-17T01-01-00-000Z-before-9999_broken'
-	]);
+	await migrateOnStartup(db, { migrationsFolder: await brokenFolder(), backupRoot }).catch(
+		() => {}
+	);
+	expect(existsSync(join(backupRoot, 'MIGRATION-FAILED'))).toBe(true);
+	await expect(migrateOnStartup(db, { migrationsFolder: realFolder, backupRoot })).resolves.toEqual(
+		{ applied: [], backup: null }
+	);
+});
+
+it('retries with a new backup once the failure marker is deleted', async () => {
+	await migrate(db, { migrationsFolder: await partial() });
+	const failing = () => Promise.reject(new Error('disk full'));
+	await expect(
+		migrateOnStartup(db, { migrationsFolder: realFolder, backupRoot, backup: failing })
+	).rejects.toThrow(/Pre-migration backup failed/);
+	await expect(migrateOnStartup(db, { migrationsFolder: realFolder, backupRoot })).rejects.toThrow(
+		/A previous migration failed/
+	);
+	expect(await appliedCount()).toBe(tags.length - 1);
+	expect(await readFile(join(backupRoot, 'MIGRATION-FAILED'), 'utf8')).toContain('Backup: none');
+	await rm(join(backupRoot, 'MIGRATION-FAILED'));
+	const result = await migrateOnStartup(db, { migrationsFolder: realFolder, backupRoot });
+	expect(result.applied).toEqual([lastTag]);
+	expect(existsSync(join(result.backup!, 'manifest.json'))).toBe(true);
+	expect(await appliedCount()).toBe(tags.length);
 });
 
 it('rolls back a failing migration and keeps the backup', async () => {

@@ -1,60 +1,35 @@
 import { sql } from 'drizzle-orm';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { mkdir, open, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { DATABASE_URL } from '$app/env/private';
 import { createBackup } from '../../../../scripts/backup.mjs';
 
-const STATE_FILE = 'source-state.json';
-type SourceState = { latest: number; changeCounter: number };
+const FAILURE_MARKER = 'MIGRATION-FAILED';
 
-/** SQLite's file change counter: outside WAL mode it changes on every committed write. */
-async function sourceState<TSchema extends Record<string, unknown>>(
-	db: LibSQLDatabase<TSchema>,
-	latest: number
-): Promise<SourceState | null> {
-	const [{ journal_mode: mode }] = await db.all<{ journal_mode: string }>(sql`PRAGMA journal_mode`);
-	if (mode === 'wal' || !DATABASE_URL.startsWith('file:') || /[?#]/.test(DATABASE_URL)) return null;
-	const path = DATABASE_URL.startsWith('file://')
-		? fileURLToPath(DATABASE_URL)
-		: resolve(DATABASE_URL.slice(5));
-	const handle = await open(path, 'r');
-	try {
-		const header = Buffer.alloc(4);
-		await handle.read(header, 0, 4, 24);
-		return { latest, changeCounter: header.readUInt32BE(0) };
-	} finally {
-		await handle.close();
-	}
-}
-
-/** The newest complete backup for `tag`, if the database has not changed since it was taken. */
-async function reusableBackup(backupRoot: string, tag: string, state: SourceState) {
-	let names: string[];
-	try {
-		names = await readdir(backupRoot);
-	} catch {
-		return null;
-	}
-	const newest = names
-		.filter((name) => name.endsWith(`-before-${tag}`))
-		.sort()
-		.at(-1);
-	if (!newest) return null;
-	const path = join(backupRoot, newest);
-	try {
-		const manifest = JSON.parse(await readFile(join(path, 'manifest.json'), 'utf8'));
-		const saved: SourceState = JSON.parse(await readFile(join(path, STATE_FILE), 'utf8'));
-		return manifest.complete === true &&
-			saved.latest === state.latest &&
-			saved.changeCounter === state.changeCounter
-			? path
-			: null;
-	} catch {
-		return null;
-	}
+/** Records a failed attempt so Docker's restarts don't back up and retry it every minute. */
+async function recordFailure(
+	marker: string,
+	tag: string,
+	at: Date,
+	backup: string | null,
+	error: Error
+) {
+	const cause = error.cause instanceof Error ? error.cause.message : String(error.cause ?? '');
+	await writeFile(
+		marker,
+		[
+			`Migration to ${tag} failed at ${at.toISOString()}.`,
+			`Backup: ${backup ?? 'none'}`,
+			`Error: ${error.message}`,
+			`Cause: ${cause}`,
+			'Pending migrations are not retried while this file exists. Roll back the code,',
+			'or fix the migration, then delete this file to back up and migrate again.',
+			''
+		].join('\n')
+	);
 }
 
 type Options = {
@@ -95,33 +70,42 @@ export async function migrateOnStartup<TSchema extends Record<string, unknown>>(
 		.map((entry) => entry.tag);
 	if (!pending.length) return { applied: [], backup: null };
 
+	const tag = pending.at(-1)!;
+	const marker = join(backupRoot, FAILURE_MARKER);
+	if (existsSync(marker))
+		throw new Error(
+			`A previous migration failed; nothing was retried. Read ${marker}, then delete it to retry.`
+		);
+
+	const at = now();
 	let backupPath: string | null = null;
-	if (latest !== null) {
-		const tag = pending.at(-1)!;
-		const state = await sourceState(db, Number(latest));
-		// A failed migration exits and Docker restarts the app; don't copy the same data every time.
-		backupPath = state && (await reusableBackup(backupRoot, tag, state));
-		if (!backupPath) {
-			const stamp = now().toISOString().replace(/[:.]/g, '-');
-			backupPath = join(backupRoot, `${stamp}-before-${tag}`);
+	try {
+		if (latest !== null) {
+			const target = join(backupRoot, `${at.toISOString().replace(/[:.]/g, '-')}-before-${tag}`);
 			try {
 				await mkdir(backupRoot, { recursive: true });
-				await backup(backupPath);
-				if (state) await writeFile(join(backupPath, STATE_FILE), JSON.stringify(state) + '\n');
+				await backup(target);
+				backupPath = target;
 			} catch (cause) {
 				throw new Error('Pre-migration backup failed; no migrations were applied.', { cause });
 			}
 		}
-	}
-	try {
-		await migrate(db, { migrationsFolder });
-	} catch (cause) {
-		throw new Error(
-			backupPath
-				? `Database migration failed; the pre-migration backup is at ${backupPath}.`
-				: 'Database migration failed; no backup was needed.',
-			{ cause }
-		);
+		try {
+			await migrate(db, { migrationsFolder });
+		} catch (cause) {
+			throw new Error(
+				backupPath
+					? `Database migration failed; the pre-migration backup is at ${backupPath}.`
+					: 'Database migration failed; no backup was needed.',
+				{ cause }
+			);
+		}
+	} catch (error) {
+		// Best effort: a full disk may refuse the marker too, and the original error matters more.
+		await mkdir(backupRoot, { recursive: true })
+			.then(() => recordFailure(marker, tag, at, backupPath, error as Error))
+			.catch(() => {});
+		throw error;
 	}
 	return { applied: pending, backup: backupPath };
 }
