@@ -91,6 +91,11 @@ New table `sponsor_settings`, single row `id = 1`, following `camera_settings`:
 
 Add the migration with the project's existing Drizzle migration flow. Startup migrations apply it.
 
+- The migration seeds the singleton row (`id = 1`). Two triggers, on insert and on update of `sponsor_settings`, bump
+  `broadcast_state.revision`. The publisher drops a publish whose revision did not change, so without them a save would
+  never reach Preview or on-air output.
+- `loadSponsorSettings` is read-only. It returns the default settings when the row is missing and never writes.
+
 **Add `s.sponsorSettings` to the table list in `collectUnusedAssets`.** This is required, or sponsor art is deleted
 after 14 days.
 
@@ -103,8 +108,9 @@ after 14 days.
     into a Show capture.
 - `buildBroadcastSnapshot` reads `sponsor_settings` (default row when missing) in its transaction.
 - `programSnapshot` passes `sponsor: latest.sponsor` through, the same way it passes `publications`/`liveControls`.
-- No full-snapshot validator exists on the client; only publications are validated. Update test fixtures and
-  snapshot factories that construct `BroadcastSnapshot` to include `sponsor`.
+- The client envelope decode is strict, so `sponsorCheck` is part of `snapshotCheck` in `src/lib/broadcast/types.ts`.
+  A snapshot without a well-formed `sponsor` is rejected. Update test fixtures and snapshot factories that construct
+  `BroadcastSnapshot` to include `sponsor`.
 
 ### Admin
 
