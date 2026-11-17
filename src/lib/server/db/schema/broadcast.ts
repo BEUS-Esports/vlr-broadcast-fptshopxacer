@@ -29,7 +29,7 @@ export const broadcastState = sqliteTable(
 		swapped: integer('swapped', { mode: 'boolean' }).notNull().default(false),
 		// Physical booth seating; independent of Team A/B and left/right presentation.
 		boothsSwapped: integer('booths_swapped', { mode: 'boolean' }).notNull().default(false),
-		lineupTeams: text('lineup_teams', { enum: ['both', 'team-a', 'team-b'] })
+		lineupTeams: text('lineup_teams', { enum: ['both', 'team-a', 'team-b', 'winner'] })
 			.$type<LineupTeams>()
 			.notNull()
 			.default('both'),

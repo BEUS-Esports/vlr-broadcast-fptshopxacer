@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import ManagementForm from '../management/ManagementForm.svelte';
+	import MapWinnerControl from './MapWinnerControl.svelte';
 	import {
 		broadcastScopes,
 		graphicIds,
@@ -90,6 +91,7 @@
 			{graphicLabels[graphic]}
 		</button>
 	</ManagementForm>
+	{#if graphic === 'player-lineup'}<MapWinnerControl {live} />{/if}
 	{#if graphic === 'player-stats' || graphic === 'mvp'}
 		<ManagementForm
 			action="?/controls"

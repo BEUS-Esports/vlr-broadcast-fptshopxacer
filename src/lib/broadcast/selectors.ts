@@ -62,8 +62,15 @@ export function lineupTeamVisible(snapshot: BroadcastSnapshot, entryId: string |
 		(snapshot.liveControls.lineupTeams === 'team-a' &&
 			entryId === snapshot.competition.teamAEntryId) ||
 		(snapshot.liveControls.lineupTeams === 'team-b' &&
-			entryId === snapshot.competition.teamBEntryId)
+			entryId === snapshot.competition.teamBEntryId) ||
+		(snapshot.liveControls.lineupTeams === 'winner' &&
+			entryId !== null &&
+			entryId === snapshot.game?.winnerEntryId)
 	);
+}
+
+export function gameWinnerTeam(snapshot: BroadcastSnapshot) {
+	return teamByEntryId(snapshot, snapshot.game?.winnerEntryId ?? null);
 }
 
 export function presentationTeams(snapshot: BroadcastSnapshot) {

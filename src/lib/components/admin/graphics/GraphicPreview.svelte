@@ -34,7 +34,9 @@
 	const renderMode = $derived(variant === 'live-data' ? 'preview-live' : 'preview');
 	let singleTeam = $state<'team-a' | 'team-b'>('team-a');
 	const previewSnapshot = $derived(
-		graphic === 'player-lineup'
+		// Winner mode is its own layout; only the plain team modes switch with the local A/B toggle.
+		graphic === 'player-lineup' &&
+			!(snapshot.liveControls.lineupTeams === 'winner' && variant !== 'lineup-both')
 			? {
 					...snapshot,
 					liveControls: {
