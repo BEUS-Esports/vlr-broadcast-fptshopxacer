@@ -1,0 +1,46 @@
+/* Loaded globally by the template registry; everything is scoped to this template. */
+@font-face {
+	font-family: 'Predator';
+	src: url('./assets/fonts/Predator-Regular.ttf') format('truetype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: block;
+}
+@font-face {
+	font-family: 'Predator';
+	src: url('./assets/fonts/Predator-Bold.ttf') format('truetype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: block;
+}
+@font-face {
+	font-family: 'Predator';
+	src: url('./assets/fonts/Predator-Black.ttf') format('truetype');
+	font-weight: 900;
+	font-style: normal;
+	font-display: block;
+}
+@font-face {
+	font-family: 'Predator';
+	src: url('./assets/fonts/Predator-BlackItalic.ttf') format('truetype');
+	font-weight: 900;
+	font-style: italic;
+	font-display: block;
+}
+
+[data-template='predator-roadshow-val'],
+.rs-root {
+	--rs-font: 'Predator', 'Arial Narrow', sans-serif;
+	--rs-panel: #000;
+	--rs-panel-soft: #000000d9;
+	--rs-line: #1cfffa;
+	--rs-plate-from: #2ff3f5;
+	--rs-plate-to: #01ffd5;
+	--rs-ink-dark: #04121a;
+	--rs-ink: #fff;
+	--rs-label: #35e2f2;
+	--rs-title-from: #9dffe6;
+	--rs-title-to: #2bf0b8;
+	--rs-attack: #ff4655;
+	--rs-defense: #1cfffa;
+}
