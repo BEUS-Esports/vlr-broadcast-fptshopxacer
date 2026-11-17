@@ -78,7 +78,7 @@ Always open the app by hostname. `https://<IP>` gives a certificate error, and t
 7. Prepare `./data` as your own user before the first start. The container runs as uid 1000, so `id -u` must print `1000`. If Docker has to create the directory itself, it is owned by root and the app cannot write to it.
    - Run `mkdir -p data/assets`.
    - To keep existing data, copy the database with `sqlite3 local.db ".backup data/broadcast.db"`. This is safe even while a dev server has `local.db` open.
-   - For a new event database, run `DATABASE_URL=file:data/broadcast.db pnpm db:migrate` instead. The app does not migrate on startup.
+   - For a new event database, leave `data/broadcast.db` absent. The app creates it and applies every migration on first start.
 
 ### Start, stop and logs
 
@@ -102,7 +102,17 @@ pnpm backup -- --output <new-directory> --app-stopped
 docker compose start app
 ```
 
-To upgrade: `git pull`, `docker compose stop app`, back up as above, then rehearse `DATABASE_URL=file:<copy>.db pnpm db:migrate` on a copy. Run it again with the exported `DATABASE_URL`, then `docker compose up -d --build`.
+To upgrade, between shows and never during one:
+
+```bash
+git pull
+docker compose up -d --build
+docker compose logs app | grep -i migrations   # empty when nothing was pending
+```
+
+On start the app applies pending migrations by itself. If the database already has data, it first backs up the database and assets to `data/backups/<time>-before-<migration>/` (the log shows it as `/app/data/backups/…`). If the backup or a migration fails, nothing is applied, the app exits and Docker keeps restarting it, and `docker compose logs app` names the backup. Restore with the [RHS runbook](./RHS-RUNBOOK.md). These backups are never pruned; delete old ones yourself. The encryption key is not copied into them; it stays in `data/settings.key`.
+
+Optional rehearsal: to preview what a migration changes on air (such as 0007 hiding shown graphics), copy the database with `sqlite3 data/broadcast.db ".backup <copy>.db"` and start the new build against the copy first.
 
 ### Network checks
 
@@ -112,7 +122,7 @@ To upgrade: `git pull`, `docker compose stop app`, back up as above, then rehear
 
 ## Backups
 
-Stopped-app backup: `pnpm backup -- --output <new-directory> --app-stopped`. For the Docker deployment, use the commands in [Backups and upgrades](#backups-and-upgrades), which target `data/broadcast.db`. Protect the encryption key separately. Follow the [RHS recovery runbook](./RHS-RUNBOOK.md) before event upgrades.
+Stopped-app backup: `pnpm backup -- --output <new-directory> --app-stopped`. For the Docker deployment, use the commands in [Backups and upgrades](#backups-and-upgrades), which target `data/broadcast.db`. Protect the encryption key separately. Upgrades back up automatically before migrating; restore with the [RHS recovery runbook](./RHS-RUNBOOK.md).
 
 ## Upgrading an existing installation
 
@@ -138,9 +148,9 @@ To upgrade:
 
 For the Docker deployment, follow [Backups and upgrades](#backups-and-upgrades). `.env` may still point at the development `local.db`.
 
-1. Back up the database and assets together.
-2. Stop the app and confirm `DATABASE_URL`.
-3. Rehearse `pnpm db:migrate` on a disposable copy.
-4. Apply the reviewed migrations during a planned event upgrade. Never use `db:push` on event data.
+1. Upgrade between shows, never during one.
+2. Confirm `DATABASE_URL` points at the event database.
+3. Start the new build. It backs up existing data to `data/backups/<time>-before-<migration>/`, then applies the reviewed migrations. If either step fails, it applies nothing and exits; the log names the backup.
+4. Optionally, start the new build against a copy of the database first to preview on-air effects. Never use `db:push` on event data.
 
 Verification runs on disposable databases; the local/event database has not been migrated by this phase.

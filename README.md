@@ -21,7 +21,7 @@ pnpm dev
 
 ## Rules
 
-- Change the schema only with reviewed migrations. Never `db:push` event data.
+- Change the schema only with reviewed migrations; the app applies them on startup after an automatic backup. Never `db:push` event data.
 - Run `pnpm check`, `pnpm build` and E2E one after another; they share generated files. Use `PLAYWRIGHT_CHANNEL=chrome` for installed Chrome.
 - Run one Node process. SSE and the live-provider session are process-local.
 - Management routes have no sign-in (trusted LAN only). `/gfx/live/*` output pages have no controls.
