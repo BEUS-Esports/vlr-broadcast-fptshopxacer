@@ -29,6 +29,7 @@ test('the composite output follows individual Show and Hide controls', async ({
 		await expect(lineup.locator(':scope > div')).toHaveCount(1);
 		await expect(individual.locator('[data-graphic="player-lineup"] > div')).toHaveCount(1);
 		await page.goto('/admin/graphics/map-veto');
+		page.once('dialog', (dialog) => dialog.accept()); // Player Lineup is already on air.
 		await save(page, 'Show Map Veto');
 		await expect(veto.locator(':scope > div')).toHaveCount(1);
 		await expect(lineup.locator(':scope > div')).toHaveCount(1);

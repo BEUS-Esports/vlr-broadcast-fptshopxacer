@@ -40,6 +40,37 @@ it('retains a dirty statistics row and reviewed identity when the saved lineup b
 	});
 });
 
+it('keeps the original revision when a refresh not caused by this page only moves the revision', async () => {
+	const props = {
+		revision: 3,
+		entries: [{ id: 'a', name: 'Alpha' }],
+		scoreboard: [{ entryId: 'a', playerId: 'p1', slot: 1, agentId: 'jett', kills: null }],
+		players: [{ id: 'p1', displayName: 'First player' }],
+		agents: [{ id: 'jett', displayName: 'Jett', isActive: true }],
+		provenance: {
+			importSource: null,
+			externalMatchId: null,
+			importedAt: null,
+			lastManualEditAt: null,
+			manuallyChangedPlayerIds: []
+		},
+		resultType: null
+	};
+	const view = render(PostGameEditor, props);
+	const kills = page.getByRole('textbox', { name: 'First player Kills', exact: true });
+	await kills.fill('12');
+	// Another operator saved the game; only a save from this page may rebase the draft.
+	await view.rerender({ ...props, revision: 4 });
+	await expect.element(kills).toHaveValue('12');
+	const payload = JSON.parse(
+		view.container.querySelector<HTMLInputElement>('input[name="payload"]')!.value
+	);
+	expect(payload).toMatchObject({
+		expectedGameRevision: 3,
+		players: [{ playerId: 'p1', entryId: 'a', kills: '12' }]
+	});
+});
+
 it('keeps an unsaved MVP candidate visible after their last eligible appearance is removed', async () => {
 	const props = {
 		revision: 2,

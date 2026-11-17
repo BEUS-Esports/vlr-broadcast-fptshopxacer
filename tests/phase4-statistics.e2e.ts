@@ -26,11 +26,17 @@ test('manual statistics, derived scopes, MVPs, and stale drafts survive navigati
 	await page.reload();
 	await expect(page.getByRole('textbox', { name: 'Alpha 1 Kills' })).toHaveValue('0');
 	await expect(page.getByRole('textbox', { name: 'Alpha 1 Deaths' })).toHaveValue('');
+	// Unsaved statistics survive a Game MVP save and can still be saved afterward.
+	await page.getByRole('textbox', { name: 'Bravo 1 Deaths' }).fill('7');
 	await page
 		.getByRole('region', { name: 'Game MVP' })
 		.getByRole('combobox', { name: 'Player' })
 		.selectOption({ label: 'Alpha 1' });
 	await save(page, 'Save Game MVP');
+	await expect(page.getByRole('textbox', { name: 'Bravo 1 Deaths' })).toHaveValue('7');
+	await save(page, 'Save post-game statistics');
+	await page.reload();
+	await expect(page.getByRole('textbox', { name: 'Bravo 1 Deaths' })).toHaveValue('7');
 	await scores(page, '13', '8');
 
 	await page.goto(`${match}?tab=statistics`);

@@ -3,6 +3,7 @@
 	import ManagementForm from '../management/ManagementForm.svelte';
 	import {
 		broadcastScopes,
+		graphicIds,
 		graphicLabels,
 		type GraphicId,
 		type BroadcastScope
@@ -13,6 +14,14 @@
 	let { graphic, live }: { graphic: GraphicId; live: BroadcastSnapshot } = $props();
 	const shown = $derived(live.controls.visibility[graphic]);
 	const published = $derived(live.publications[graphic]);
+	// In-Game is the HUD under everything else; every other graphic covers the screen.
+	const fullScreenOnAir = $derived(
+		graphic === 'in-game'
+			? []
+			: graphicIds.filter(
+					(id) => id !== graphic && id !== 'in-game' && live.controls.visibility[id]
+				)
+	);
 	const fieldLabels: Record<StatisticField, string> = {
 		kills: 'Kills',
 		deaths: 'Deaths',
@@ -69,6 +78,9 @@
 		action="?/controls"
 		recordDraft={false}
 		initial={{ expectedRevision: live.controlRevision, visibility: { [graphic]: !shown } }}
+		confirmMessage={!shown && fullScreenOnAir.length
+			? `${fullScreenOnAir.map((id) => graphicLabels[id]).join(', ')} ${fullScreenOnAir.length > 1 ? 'are' : 'is'} already on air. Show ${graphicLabels[graphic]} on top?`
+			: undefined}
 	>
 		<button
 			class="btn {shown ? 'preset-tonal-error' : 'preset-filled-success-500'}"

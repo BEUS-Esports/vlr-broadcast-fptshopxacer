@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
-import { building } from '$app/env';
+import { building, dev } from '$app/env';
 import { LOG_DIR, LOG_LEVEL } from '$app/env/private';
 import { startAssetCleanup } from '#lib/server/asset-cleanup.ts';
 import { isBroadcastMutation } from '#lib/server/broadcast/mutations.ts';
 import { broadcastPublisher } from '#lib/server/broadcast/publisher.ts';
 import { syncLiveBinding } from '#lib/server/live/runtime.ts';
 import { logger, logEvent, startFileLogging } from '#lib/server/logging.ts';
+import { beginShutdown } from '#lib/server/shutdown.ts';
 
 export const init: ServerInit = () => {
 	if (building) return;
@@ -22,6 +23,9 @@ export const init: ServerInit = () => {
 		await logger.flush();
 	};
 	process.once('sveltekit:shutdown', shutdown);
+	// adapter-node already handles these signals; in dev a listener would stop Ctrl+C from exiting.
+	if (!dev)
+		for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, beginShutdown);
 	import.meta.hot?.dispose(() => {
 		process.off('sveltekit:shutdown', shutdown);
 		void shutdown();

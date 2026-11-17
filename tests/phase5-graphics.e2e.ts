@@ -31,6 +31,8 @@ test('production graphics stay stable, transparent and read-only across live sel
 		.getByRole('combobox', { name: 'Game', exact: true })
 		.selectOption(game.split('/').pop()!);
 	await save(page, 'Take game live');
+	// Every graphic stays on air together, so accept each "already on air" confirmation.
+	page.on('dialog', (dialog) => dialog.accept());
 	for (const graphic of graphicIds) {
 		await page.goto(`/admin/graphics/${graphic}`);
 		await save(page, `Show ${graphicLabels[graphic]}`);

@@ -142,6 +142,17 @@
 			</AppBar.Trail>
 		</AppBar.Toolbar>
 	</AppBar>
+	{#if broadcast?.connection === 'reconnecting' || broadcast?.connection === 'disconnected'}
+		<p
+			role="alert"
+			aria-label="Server connection"
+			class="shrink-0 preset-filled-error-500 px-4 py-2 text-sm font-semibold"
+		>
+			{broadcast.connection === 'reconnecting'
+				? 'Server connection lost. Reconnecting… Saves will fail and on-air status may be out of date until it is back.'
+				: 'Server connection lost. Reload the page to reconnect.'}
+		</p>
+	{/if}
 
 	<div class="flex min-h-0 flex-1 flex-col md:flex-row">
 		<Navigation
