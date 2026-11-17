@@ -2,6 +2,7 @@
 	import type { BroadcastSnapshot } from '../../types';
 	import { presentationTeams, gameplaySide, teamScore } from '../../selectors';
 	import Identity from '../../primitives/Identity.svelte';
+	import SponsorLoop from '../../in-game/SponsorLoop.svelte';
 
 	let {
 		snapshot,
@@ -83,7 +84,12 @@
 					data-sponsor-safe-area
 					aria-label="Reserved sponsor logo loop"
 				>
-					{#if !blankMissing}<span>SPONSOR LOOP</span>{/if}
+					{#if snapshot.sponsor.loop.logos.length}
+						<SponsorLoop
+							logos={snapshot.sponsor.loop.logos}
+							intervalMs={snapshot.sponsor.loop.intervalMs}
+						/>
+					{:else if !blankMissing}<span>SPONSOR LOOP</span>{/if}
 				</div>{/if}
 		</div>
 

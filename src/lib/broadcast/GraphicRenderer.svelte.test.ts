@@ -536,3 +536,47 @@ it('themes the live HUD only for the roadshow template', async () => {
 		getComputedStyle(other.querySelector('.round-context, .rail-label')!).backgroundColor
 	).toMatch(/^rgba?\(16, 21, 29/);
 });
+
+it('strips sponsor for unsupported templates, including the live HUD', async () => {
+	const sponsorSnapshot = (slug: string): BroadcastSnapshot => {
+		const snapshot = bannerFixture();
+		const held = {
+			...preparedFixture(),
+			competition: snapshot.competition,
+			presentation: snapshot.presentation,
+			teams: snapshot.teams
+		};
+		const art = { backgroundPath: '/assets/banner.png', logoPath: null };
+		return {
+			...snapshot,
+			tournament: { id: 't', name: 'T', slug },
+			liveControls: { ...snapshot.liveControls, pause: { type: 'technical' } },
+			sponsor: {
+				banners: { ...emptySponsor.banners, technical: art },
+				loop: { logos: ['/assets/x.png'], intervalMs: 5000 }
+			},
+			controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+			publications: {
+				...snapshot.publications,
+				'in-game': { ...held, tournament: { id: 't', name: 'T', slug } }
+			}
+		};
+	};
+	for (const mode of ['program', 'preview-live'] as const) {
+		const stripped = render(GraphicRenderer, {
+			snapshot: sponsorSnapshot('beus-graph-test'),
+			graphic: 'in-game',
+			mode
+		});
+		expect(stripped.container.querySelector('[data-match-banner]')).not.toBeNull();
+		expect(stripped.container.querySelector('[data-sponsor-loop]')).toBeNull();
+		expect(stripped.container.querySelector('[data-banner-sponsor-background]')).toBeNull();
+		const supported = render(GraphicRenderer, {
+			snapshot: sponsorSnapshot('predator-roadshow-val'),
+			graphic: 'in-game',
+			mode
+		});
+		expect(supported.container.querySelector('[data-sponsor-loop]')).not.toBeNull();
+		expect(supported.container.querySelector('[data-banner-sponsor-background]')).not.toBeNull();
+	}
+});
