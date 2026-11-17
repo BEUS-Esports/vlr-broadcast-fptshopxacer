@@ -32,19 +32,28 @@ test('hands out seat links and swaps booths without touching Team A/B', async ({
 		/^https:\/\/vdo\.ninja\/\?view=BOOTH1_S1&/
 	);
 
+	// Links stay reachable as text where the Clipboard API is unavailable (plain-HTTP LAN).
+	await page.getByText('Show all player links').click();
+	await expect(page.getByLabel('All player links')).toHaveValue(
+		/BOOTH1_S1 {2}https:\/\/vdo\.ninja\/\?push=BOOTH1_S1&/
+	);
+
 	await tiles.first().getByRole('button', { name: 'Copy link' }).click();
 	const copied = new URL(await page.evaluate(() => navigator.clipboard.readText()));
 	expect(copied.searchParams.get('push')).toBe('BOOTH1_S1');
 	expect(copied.searchParams.get('room')).toBe('e2e_room');
 	expect(copied.searchParams.get('password')).toBe(password);
 
-	// Seating follows the live game's lineup.
-	await page.goto('/admin/graphics/player-lineup');
-	await page.getByRole('combobox', { name: 'Tournament', exact: true }).selectOption('pg-event');
-	await page.getByRole('combobox', { name: 'Match', exact: true }).selectOption('pg-match');
-	await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('pg-henrik');
-	await save(page, 'Take game live');
-	await page.goto('/admin/player-cameras');
+	// Seating follows the live game's lineup, even when another operator takes it live.
+	const graphics = await context.newPage();
+	await graphics.goto('/admin/graphics/player-lineup');
+	await graphics
+		.getByRole('combobox', { name: 'Tournament', exact: true })
+		.selectOption('pg-event');
+	await graphics.getByRole('combobox', { name: 'Match', exact: true }).selectOption('pg-match');
+	await graphics.getByRole('combobox', { name: 'Game', exact: true }).selectOption('pg-henrik');
+	await save(graphics, 'Take game live');
+	await graphics.close();
 	const booth1 = page.getByRole('region', { name: 'Booth 1' });
 	const booth2 = page.getByRole('region', { name: 'Booth 2' });
 	await expect(booth1.getByRole('heading', { level: 2 })).toContainText('Team A · Alpha');

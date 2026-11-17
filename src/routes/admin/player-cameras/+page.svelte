@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { getContext, onMount } from 'svelte';
+	import { refreshAll } from '$app/navigation';
+	import type { createBroadcastClient } from '#lib/broadcast/client.ts';
+	import { copyText } from '#lib/cameras/clipboard.ts';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import PlayerCameraPreview from '#lib/components/admin/cameras/PlayerCameraPreview.svelte';
 	import {
@@ -21,9 +25,37 @@
 	);
 	const connectedCount = $derived(seatIds.filter((id) => connected[id]).length);
 
+	// Follow live selection, lineup and booth changes made from other pages or PCs.
+	const broadcastClient = getContext<ReturnType<typeof createBroadcastClient>>('broadcast-client');
+	onMount(() => {
+		let revision = `${data.controlRevision}:${data.dataRevision}`;
+		let refreshing = false;
+		let queued = false;
+		async function refresh() {
+			queued = true;
+			if (refreshing) return;
+			refreshing = true;
+			try {
+				do {
+					queued = false;
+					await refreshAll();
+				} while (queued);
+			} finally {
+				refreshing = false;
+			}
+		}
+		return broadcastClient.subscribe((state) => {
+			if (!state.snapshot) return;
+			const next = `${state.snapshot.controlRevision}:${state.snapshot.dataRevision}`;
+			if (next === revision) return;
+			revision = next;
+			void refresh();
+		});
+	});
+
 	async function copy(text: string, title: string) {
 		try {
-			await navigator.clipboard.writeText(text);
+			await copyText(text);
 			toaster.success({ title });
 		} catch {
 			toaster.error({ title: 'Could not copy to the clipboard' });
@@ -173,6 +205,20 @@
 					<button type="button" class="btn preset-tonal" disabled>Open director room</button>
 				{/if}
 			</div>
+			{#if room}
+				<details>
+					<summary class="cursor-pointer text-sm">Show all player links</summary>
+					<label class="label mt-2">
+						<span class="sr-only">All player links</span>
+						<textarea
+							class="textarea font-mono text-xs"
+							rows="10"
+							readonly
+							value={allLinks()}
+							onfocus={(event) => event.currentTarget.select()}></textarea>
+					</label>
+				</details>
+			{/if}
 		</section>
 
 		<section class="admin-editor" aria-label="Fixed seat links">

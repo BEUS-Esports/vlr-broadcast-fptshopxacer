@@ -12,6 +12,7 @@ export const load: PageServerLoad = async () => {
 	return {
 		cameras,
 		controlRevision: snapshot.controlRevision,
+		dataRevision: snapshot.dataRevision,
 		boothsSwapped: snapshot.liveControls.boothsSwapped,
 		booths: boothViews(snapshot)
 	};
