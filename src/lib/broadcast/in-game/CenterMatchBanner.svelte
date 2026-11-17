@@ -107,18 +107,18 @@
 		height: 178px;
 		box-sizing: border-box;
 		pointer-events: none;
-		color: #f7f4eb;
+		color: var(--hud-ink, #f7f4eb);
 		background: linear-gradient(125deg, #141b26f7, #090d14f4);
-		border-top: 2px solid #465160;
+		border-top: 2px solid var(--hud-line, #465160);
 		border-bottom: 5px solid var(--accent);
 		clip-path: polygon(20px 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
-		font-family: Bahnschrift, 'Arial Narrow', sans-serif;
+		font-family: var(--hud-font-display, Bahnschrift), 'Arial Narrow', sans-serif;
 	}
 	.match-banner[data-side='attack'] {
-		--accent: #248bff;
+		--accent: var(--hud-attack, #248bff);
 	}
 	.match-banner[data-side='defense'] {
-		--accent: #ff4655;
+		--accent: var(--hud-defense, #ff4655);
 	}
 	.match-banner.ceremony {
 		animation: reveal 160ms ease-out both;

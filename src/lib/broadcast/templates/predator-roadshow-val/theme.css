@@ -44,3 +44,142 @@
 	--rs-attack: #ff4655;
 	--rs-defense: #1cfffa;
 }
+
+/* ---- Shared live HUD theme (InGameHud, PlayerCard, CenterMatchBanner, native InGame) ----
+ * The HUD is not template-owned. It reads these --hud-* properties with its old values as
+ * fallbacks; the overrides below only add frame art and must stay scoped to this template. */
+[data-template='predator-roadshow-val'] {
+	--hud-font: 'Predator', 'Arial Narrow', sans-serif;
+	--hud-font-display: 'Predator';
+	--hud-panel: #000000d9;
+	--hud-ink: #fff;
+	--hud-muted: #9fdfe6;
+	--hud-line: #1cfffa66;
+	--hud-accent: #1cfffa;
+	--hud-attack: #ff4655;
+	--hud-defense: #1cfffa;
+	--hud-neutral: #8a9aa0;
+}
+
+/* Scorebar: PSD strip centred at the top; team rails sit on its team plates. */
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .top-wrap::before {
+	content: '';
+	position: absolute;
+	left: 448px;
+	top: 0;
+	width: 1024px;
+	height: 126px;
+	background: url('./assets/scorebar.webp') 0 0 / 100% 100% no-repeat;
+}
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail {
+	top: 0;
+	width: 340px;
+	height: 126px;
+	padding: 0 0 0 26px;
+	gap: 18px;
+	background: none;
+	border: 0;
+	clip-path: none;
+}
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail[data-position='left'] {
+	left: 448px;
+	justify-content: flex-start;
+}
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail[data-position='right'] {
+	right: 448px;
+	padding: 0 26px 0 0;
+	justify-content: flex-start;
+	flex-direction: row-reverse;
+}
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail[data-position] .identity {
+	flex-direction: row;
+	text-align: left;
+	max-width: none;
+	gap: 22px;
+	--asset-width: 84px;
+	--asset-height: 84px;
+}
+[data-template='predator-roadshow-val']
+	[aria-label='In-Game']
+	.team-rail[data-position='right']
+	.identity {
+	flex-direction: row-reverse;
+	text-align: right;
+}
+/* No ellipsis: the shared HUD cannot run the fit helper, so long names wrap to two lines. */
+[data-template='predator-roadshow-val']
+	[aria-label='In-Game']
+	.team-rail[data-position]
+	.identity
+	strong {
+	flex: none;
+	width: 200px;
+	max-width: 200px;
+	overflow: hidden;
+	white-space: normal;
+	text-overflow: clip;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	font: 900 24px/1.05 var(--hud-font);
+}
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail[data-side='attack'] {
+	border-bottom: 4px solid var(--hud-attack);
+}
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail[data-side='defense'] {
+	border-bottom: 4px solid var(--hud-defense);
+}
+/* Series wins sit under the name so the logo stays on the strip's logo box. */
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .team-rail .win-dots {
+	position: absolute;
+	bottom: 16px;
+}
+[data-template='predator-roadshow-val']
+	[aria-label='In-Game']
+	.team-rail[data-position='left']
+	.win-dots {
+	left: 132px;
+}
+[data-template='predator-roadshow-val']
+	[aria-label='In-Game']
+	.team-rail[data-position='right']
+	.win-dots {
+	right: 132px;
+}
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .center-mark {
+	display: none;
+}
+[data-template='predator-roadshow-val'] [data-live-hud] .score {
+	top: 26px;
+	min-width: 70px;
+	padding: 0;
+	background: none;
+	font: 900 60px/1.25 var(--hud-font);
+}
+[data-template='predator-roadshow-val'] [data-live-hud] .score[data-position='left'] {
+	left: 792px;
+}
+[data-template='predator-roadshow-val'] [data-live-hud] .score[data-position='right'] {
+	right: 792px;
+}
+[data-template='predator-roadshow-val'] [data-live-hud] .round-context {
+	top: 132px;
+	border: 1px solid var(--hud-line);
+}
+
+/* Match bug: black plate, cyan edge. */
+[data-template='predator-roadshow-val'] [aria-label='In-Game'] .match-bug {
+	background: linear-gradient(180deg, #000000e6, #002a30e6);
+	border-left: 4px solid var(--hud-accent);
+}
+
+/* Pause / ceremony banner: cyan header strip over a dark body (league 5.3 idea). */
+[data-template='predator-roadshow-val'] .match-banner.match-banner {
+	background:
+		linear-gradient(180deg, var(--rs-plate-from), var(--rs-plate-to)) 0 0 / 100% 10px no-repeat,
+		linear-gradient(180deg, #000000f0, #062c33f0);
+	border: 0;
+	border-bottom: 5px solid var(--accent);
+	clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
+}

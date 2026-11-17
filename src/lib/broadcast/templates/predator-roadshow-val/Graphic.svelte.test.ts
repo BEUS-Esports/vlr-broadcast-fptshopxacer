@@ -191,3 +191,18 @@ it('shows 13–0 for the advancing team when no score is saved', () => {
 	expect(view.container.querySelector('[data-entry-id="a"] [data-score]')?.textContent).toBe('0');
 	expect(view.container.textContent).not.toMatch(/forfeit|walkover/i);
 });
+
+it('renders the in-game scorebar when no live data is connected', () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'in-game' });
+	const scorebar = view.container.querySelector('[aria-label="In-Game"]')!;
+	expect(scorebar.querySelectorAll('.team-rail')).toHaveLength(2);
+	expect(scorebar.textContent).toContain('Team a');
+	expect(scorebar.textContent).toContain('Saved map');
+});
+
+it.each(graphicIds)('reserves the data-source area only on In-Game (%s)', (graphic) => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic });
+	const reserved = view.container.querySelector('[data-attribution-safe-area]');
+	if (graphic === 'in-game') expect(reserved).not.toBeNull();
+	else expect(reserved).toBeNull();
+});

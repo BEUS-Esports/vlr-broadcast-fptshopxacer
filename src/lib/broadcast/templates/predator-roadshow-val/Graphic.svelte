@@ -10,6 +10,8 @@
 	import MapVeto from './MapVeto.svelte';
 	import AgentSelect from './AgentSelect.svelte';
 	import PostGame from './PostGame.svelte';
+	// The live HUD embeds this same scorebar; theme.css styles both for this template.
+	import InGame from '../test/InGame.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 </script>
@@ -35,18 +37,19 @@
 		<AgentSelect {snapshot} />
 	{:else if graphic === 'post-game'}
 		<PostGame {snapshot} />
+	{:else if graphic === 'in-game'}
+		<InGame {snapshot} />
 	{:else}
 		<p class="pending">{graphicLabels[graphic]}</p>
 	{/if}
 </section>
 
-<footer
-	class={{ 'in-game': graphic === 'in-game', top: graphic === 'agent-select' }}
-	data-attribution-safe-area
-	aria-label="Reserved data source attribution"
->
-	{#if dev}<span>DATA SOURCE</span>{/if}
-</footer>
+<!-- Only the In-Game HUD reserves a data-source area; full-screen graphics stay clean. -->
+{#if graphic === 'in-game'}
+	<footer data-attribution-safe-area aria-label="Reserved data source attribution">
+		{#if dev}<span>DATA SOURCE</span>{/if}
+	</footer>
+{/if}
 
 <style>
 	.rs-root {
@@ -95,22 +98,13 @@
 	}
 	footer {
 		position: absolute;
-		right: 48px;
-		top: 1004px;
+		top: 1014px;
+		right: 30px;
 		width: 270px;
 		height: 28px;
 		text-align: right;
 		color: var(--rs-label, #35e2f2);
 		font: 700 11px/28px var(--rs-font, sans-serif);
 		letter-spacing: 0.16em;
-	}
-	/* Agent Select fills the bottom band; Spectra attribution renders top-right anyway. */
-	footer.top {
-		top: 0;
-		right: 30px;
-	}
-	footer.in-game {
-		top: 1014px;
-		right: 30px;
 	}
 </style>
