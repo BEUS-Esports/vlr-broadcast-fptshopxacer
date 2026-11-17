@@ -5,6 +5,7 @@
 	import { gameplaySide, teamByEntryId } from '../selectors';
 	import { CEREMONY_VISIBLE_MS, ceremonyLabels } from '../in-game-controls';
 	import Asset from '../primitives/Asset.svelte';
+	import type { SponsorBannerKind } from '../sponsor';
 
 	let { snapshot, clock = null }: { snapshot: BroadcastSnapshot; clock?: BroadcastClock | null } =
 		$props();
@@ -31,6 +32,10 @@
 				? 'TACTICAL TIMEOUT'
 				: 'TECHNICAL PAUSE'
 	);
+	const kind = $derived<SponsorBannerKind>(
+		freshCeremony ? freshCeremony.type : pause.type === 'tactical' ? 'tactical' : 'technical'
+	);
+	const art = $derived(snapshot.sponsor.banners[kind]);
 	const bannerKey = $derived(
 		freshCeremony ? `ceremony-${freshCeremony.sequence}` : `${pause.type}-${entryId ?? ''}`
 	);
@@ -70,6 +75,13 @@
 			data-reduced-motion={prefersReducedMotion.current}
 			aria-label="Match banner"
 		>
+			{#if art.backgroundPath}
+				<div
+					class="sponsor-background"
+					data-banner-sponsor-background
+					style:background-image={`url("${art.backgroundPath}")`}
+				></div>
+			{/if}
 			<div class="banner-content">
 				{#if team}
 					{#if team.logoWhitePath || team.logoPath || team.logoBlackPath}
@@ -91,6 +103,11 @@
 					{/if}
 				</div>
 			</div>
+			{#if art.logoPath}
+				<div class="sponsor-logo" data-banner-sponsor-logo>
+					<Asset path={art.logoPath} label="Sponsor" blankMissing />
+				</div>
+			{/if}
 		</section>
 	{/key}
 {/if}
@@ -126,7 +143,15 @@
 	.match-banner.ceremony.departing {
 		animation: conceal 140ms ease-in forwards;
 	}
+	.sponsor-background {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		background: center / cover no-repeat;
+	}
 	.banner-content {
+		position: relative;
+		z-index: 1;
 		height: 100%;
 		display: flex;
 		align-items: center;
@@ -135,6 +160,15 @@
 		padding: 0 38px;
 		--asset-width: 82px;
 		--asset-height: 82px;
+	}
+	.sponsor-logo {
+		position: absolute;
+		z-index: 1;
+		right: 24px;
+		top: 50%;
+		transform: translateY(-50%);
+		--asset-width: 110px;
+		--asset-height: 56px;
 	}
 	.copy {
 		min-width: 0;
