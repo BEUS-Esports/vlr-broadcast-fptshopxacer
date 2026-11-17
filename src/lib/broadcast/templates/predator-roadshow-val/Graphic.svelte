@@ -4,6 +4,7 @@
 	import type { GraphicTemplateProps } from '../../templates';
 	import { dev } from '$app/env';
 	import Header from './Header.svelte';
+	import PlayerLineup from './PlayerLineup.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
 </script>
@@ -17,6 +18,8 @@
 				<p>No game selected</p>
 			</div>
 		{/if}
+	{:else if graphic === 'player-lineup'}
+		<PlayerLineup {snapshot} />
 	{:else}
 		<p class="pending">{graphicLabels[graphic]}</p>
 	{/if}
