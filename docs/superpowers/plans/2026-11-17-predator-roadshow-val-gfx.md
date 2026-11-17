@@ -5,6 +5,7 @@
 **Goal:** Render every broadcast graphic in the FPT Shop x Predator League Roadshow look. Add a Map Winner display mode to the Lineup graphic.
 
 **Architecture:**
+
 - A new template folder, `src/lib/broadcast/templates/predator-roadshow-val/`. It is picked up by the existing `import.meta.glob` registry and selected by slug prefix.
 - Map Winner is a new `lineupTeams` value, `'winner'`, threaded through the existing control path.
 - The shared live HUD is themed through CSS custom properties plus a stylesheet scoped to `[data-template="predator-roadshow-val"]`.
@@ -30,21 +31,23 @@
 
 ## Review Focus
 
-1. **A long team or player name** (for example "9G CHARLINGTON", "Robo Trái Cây") or Vietnamese diacritics on stacked lines. Expected: ellipsis or font-fit inside the plate, never overflowing the frame or clipping diacritics. *Test:* Task 10's overflow assertion.
-2. **Map winner chosen and then the operator changes game.** The server already resets `lineupTeams` to `'both'` on a game change. Expected: the button is unpressed and the new game's result is shown. *Test:* Task 2, server test.
-3. **Missing images** (player portrait, team logo, agent or map art is `null`). Expected: the frame still renders with a neutral fill; no broken-image icon. *Test:* Task 3 render-each-graphic test using null asset paths.
-4. **A game with a forfeit or walkover result.** `winnerEntryId` is set but scores may be null. Expected: the Map Winner info shows the winner and "Forfeit" or "Walkover" instead of a score. *Test:* Task 2, component test.
-5. **The roadshow theme leaking into other templates' HUD.** Expected: the `test` template's live HUD computed colours are unchanged. *Test:* Task 9.
+1. **A long team or player name** (for example "9G CHARLINGTON", "Robo Trái Cây") or Vietnamese diacritics on stacked lines. Expected: ellipsis or font-fit inside the plate, never overflowing the frame or clipping diacritics. _Test:_ Task 10's overflow assertion.
+2. **Map winner chosen and then the operator changes game.** The server already resets `lineupTeams` to `'both'` on a game change. Expected: the button is unpressed and the new game's result is shown. _Test:_ Task 2, server test.
+3. **Missing images** (player portrait, team logo, agent or map art is `null`). Expected: the frame still renders with a neutral fill; no broken-image icon. _Test:_ Task 3 render-each-graphic test using null asset paths.
+4. **A game with a forfeit or walkover result.** `winnerEntryId` is set but scores may be null. Expected: the Map Winner info shows the winner and "Forfeit" or "Walkover" instead of a score. _Test:_ Task 2, component test.
+5. **The roadshow theme leaking into other templates' HUD.** Expected: the `test` template's live HUD computed colours are unchanged. _Test:_ Task 9.
 
 ---
 
 ### Task 1: Slug-prefix template resolution
 
 **Files:**
+
 - Modify: `src/lib/broadcast/template-resolution.ts`
 - Test: `src/lib/broadcast/template-resolution.test.ts`
 
 **Interfaces:**
+
 - Produces: `resolveTemplate(slug, templates)` resolves in this order:
   1. an exact own key;
   2. the longest own key `k` where `slug.startsWith(k + '-')`;
@@ -65,6 +68,7 @@
 ### Task 2: `winner` lineup option, from server to admin control
 
 **Files:**
+
 - Modify:
   - `src/lib/broadcast/controls.ts:3`
   - `src/lib/server/db/schema/broadcast.ts:32`
@@ -79,6 +83,7 @@
   - `src/lib/components/admin/graphics/MapWinnerControl.svelte.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `lineupTeams = ['both', 'team-a', 'team-b', 'winner'] as const`.
   - `gameWinnerTeam(snapshot: BroadcastSnapshot): BroadcastTeam | null` in `selectors.ts`. It returns `teamByEntryId(snapshot, snapshot.game?.winnerEntryId ?? null)`.
@@ -117,6 +122,7 @@ Steps:
 ### Task 3: Template shell, assets, fonts and shared test snapshot
 
 **Files:**
+
 - Create:
   - `src/lib/broadcast/templates/predator-roadshow-val/Graphic.svelte`
   - `.../predator-roadshow-val/theme.css`
@@ -128,23 +134,25 @@ Steps:
 - Modify: `src/lib/broadcast/templates/test/Pregame.svelte.test.ts`, which imports `preparedSnapshot` from `../test-snapshot`.
 
 **Interfaces:**
+
 - Produces:
   - `Header.svelte` props: `{ title?: string }`. With no `title` it shows the Roadshow lockup; with `title` (e.g. `'WINNER'`, `'MVP'`) it shows a large italic Predator Black title in place of the lockup. The Predator logo (left) and FPT Shop logo (right) are always shown.
   - `Graphic.svelte` dispatches on `graphic` exactly like `beus-graph-test/Graphic.svelte`. For graphics without a component yet it renders a placeholder `<p>`. With no selection it renders a `WAITING FOR MATCH` empty state.
   - `labels.ts` exports `statLabels: Record<StatisticField, { en: string; vi: string }>`:
 
-    | Field | en | vi |
-    |-|-|-|
-    | kills | `KILLS` | `Hạ gục` |
-    | deaths | `DEATHS` | `Chết` |
-    | assists | `ASSISTS` | `Hỗ trợ` |
-    | performanceScore | `ACS` | `Điểm chiến đấu trung bình` |
-    | trades | `TRADES` | `Hạ gục đổi mạng` |
-    | firstBloods | `FIRST BLOODS` | `Hạ gục đầu tiên` |
-    | plants | `PLANTS` | `Cài Spike` |
-    | defuses | `DEFUSES` | `Gỡ Spike` |
+    | Field            | en             | vi                          |
+    | ---------------- | -------------- | --------------------------- |
+    | kills            | `KILLS`        | `Hạ gục`                    |
+    | deaths           | `DEATHS`       | `Chết`                      |
+    | assists          | `ASSISTS`      | `Hỗ trợ`                    |
+    | performanceScore | `ACS`          | `Điểm chiến đấu trung bình` |
+    | trades           | `TRADES`       | `Hạ gục đổi mạng`           |
+    | firstBloods      | `FIRST BLOODS` | `Hạ gục đầu tiên`           |
+    | plants           | `PLANTS`       | `Cài Spike`                 |
+    | defuses          | `DEFUSES`      | `Gỡ Spike`                  |
 
     It also exports `vetoLabels = { ban: 'CẤM BẢN ĐỒ', pick: 'CHỌN BẢN ĐỒ', decider: 'BẢN ĐỒ QUYẾT ĐỊNH' }` and `sideLabels = { attack: 'CÔNG', defense: 'THỦ' }`.
+
   - `theme.css` is imported once from `Graphic.svelte`'s `<script>` (bundled globally by the eager glob). It contains:
     - `@font-face` for family `Predator` at weights 400, 700, 900, and 900 italic;
     - palette custom properties on `[data-template="predator-roadshow-val"]`. Sample exact values from the PSDs; starting points: `--rs-panel: #000`, `--rs-line: #1fe6f0`, `--rs-plate-from: #2ff3f5`, `--rs-plate-to: #00d9b0`, `--rs-ink-dark: #04121a`, `--rs-ink: #fff`, `--rs-label: #2fe0f0`.
@@ -161,6 +169,7 @@ Steps:
   - `LOGO/*.png`.
 
   Downscale to the size each graphic uses. Prefer WebP when it's under the PNG size. Copy the four TTFs. Check that the total `assets/` size is under 6 MB.
+
 - [ ] **Step 2: Write the failing test** `Graphic.svelte.test.ts`:
   - `it.each(graphicIds)('renders %s with and without a selection')` mounts `Graphic` with `preparedSnapshot()` and with `{ ...preparedSnapshot(), selection: null }`, and expects no throw. With no selection, the text contains `WAITING FOR MATCH`.
   - `it('resolves stop slugs to this template')`: `resolveGraphicTemplate('predator-roadshow-val-dong-nai').id === 'predator-roadshow-val'`.
@@ -174,6 +183,7 @@ Steps:
 **Files:** Create `predator-roadshow-val/PlayerLineup.svelte` and `predator-roadshow-val/PlayerCard.svelte` (portrait card: grid, portrait, fade, optional role/agent icon, name plate). Wire both in `Graphic.svelte`. Test: `predator-roadshow-val/Graphic.svelte.test.ts`.
 
 **Interfaces:**
+
 - Consumes: `lineupForTeam` and `lineupTeamVisible` (Task 2), and `gameWinnerTeam`.
 - Produces: `PlayerCard` props `{ name: string | null; tag: string | null; portraitPath: string | null; iconPath?: string | null; size?: 'lineup' | 'feature' }`. Tasks 5 and 6 reuse it.
 
@@ -197,6 +207,7 @@ Steps:
 **Files:** Create `predator-roadshow-val/PlayerStats.svelte`, `predator-roadshow-val/MVP.svelte` and `predator-roadshow-val/StatPanel.svelte`. Wire them in `Graphic.svelte`. Test: the same test file.
 
 **Interfaces:**
+
 - Consumes: `PlayerCard` (Task 4), `statLabels` (Task 3), `playerInScope`, `statisticMetric`, `selectedMvp`, and `controls.playerStats` / `controls.mvpFields`.
 - Produces: `StatPanel` props `{ statistics: PlayerStatisticsView | null; fields: StatisticField[]; scope: BroadcastScope; compare?: PlayerStatisticsView | null }`. Without `compare` it renders a two-column grid like `1_roadshow`. With `compare` it renders the three-column table like `2_roadshow` (left value, label, right value).
 
@@ -278,6 +289,7 @@ Steps:
 ### Task 9: In-Game fallback and live HUD theming
 
 **Files:**
+
 - Create: `predator-roadshow-val/InGame.svelte`, and wire it.
 - Modify:
   - `src/lib/broadcast/live/InGameHud.svelte` (style block, from line 130)
@@ -289,6 +301,7 @@ Steps:
   - `src/lib/broadcast/GraphicRenderer.svelte.test.ts`
 
 **Interfaces:**
+
 - Produces, as custom properties read by the shared components, each defaulting to today's literal via `var(--hud-x, <current value>)`:
   - `--hud-font`, `--hud-font-display`
   - `--hud-panel`, `--hud-panel-strong`
@@ -315,6 +328,7 @@ Steps:
 ### Task 10: Visual verification and operator docs
 
 **Files:**
+
 - Create: `tests/roadshow-visuals.e2e.ts`
 - Modify: `docs/BROADCAST-OPERATIONS.md`
 

@@ -73,6 +73,7 @@ Source material: `design_reference/` (gitignored, local only). See its `README.m
   - FPT Shop pill, top right
 
   This matches `reference_img/0_roadshow_*` and the `COUNTDOWN.psd` composite. Map Winner replaces the centre lockup with a large "WINNER" title.
+
 - Decorative pieces are exported from the PSDs to PNG (or WebP) and committed under the template's `assets/` folder, imported via Vite: card frames, cyan corner brackets, grid fills, gradient plates, panel frames, scorebar strip, logos. Useful sources:
   - `compare.psd`: player card frame, stat panel, name plate
   - `POSTMATCH.psd`: two-panel layout, side header bars
@@ -90,21 +91,22 @@ Source material: `design_reference/` (gitignored, local only). See its `README.m
   - cyan headline labels
 
   Sample exact values from the PSDs.
+
 - Labels follow the LoL roadshow convention: an English headline (K/D/A, DAMAGE…) with a small Vietnamese subtitle ("Hạ gục / Chết / Hỗ trợ"). Map Veto actions use Vietnamese as in the league reference (CẤM BẢN ĐỒ / CHỌN BẢN ĐỒ / BẢN ĐỒ QUYẾT ĐỊNH).
 
 ### Per graphic (what to show; layout is the builder's)
 
-| Graphic | Reuse | Content |
-|-|-|-|
-| Player Lineup | `0_roadshow_Lineup` | 5 portrait cards (grid fill, gradient fade, "TAG NAME" plate), big team logo + name bottom-left; Both = two rows or two halves, builder's call |
-| Map Winner | `6_league_Map Winner` concept on the Lineup layout | as Lineup, winner team only, "WINNER" title instead of the Roadshow lockup |
-| Player Stats (single) | `1_roadshow_MVP + Player Stats` | stat grid panel (selected fields, English + VN subtitle), agent full portrait panel in place of "PICK" champion splash, player card with team logo chip |
-| Player Stats (H2H) | `2_roadshow_Head2Head` | two player cards flanking a centre stat table; agent icons in the "PICK" row |
-| MVP | `1_roadshow_MVP` | as single Player Stats with an "MVP" title |
-| Map Veto | ideas from `3_league_Map Veto` | row of map tiles: ban = dimmed with ban mark, pick = map image + acting team, decider; team tag + action under each |
-| Agent Select | ideas from `4_league_Agent Select` | bottom strip: two team blocks of 5 agent portraits + player names, team logo ends, map name centre, side (Thủ/Công) labels |
-| In-Game (no live data) | `1024 x 126` scorebar, ideas from `5.x_league_HUD` | template's own `InGame.svelte`; keep every existing data element and position contract (attribution safe area, camera areas) |
-| In-Game (live HUD) + pause / ceremony banners | `1024 x 126`, `PLAYER NAME.psd`, ideas from `5.x_league_HUD`, `5.3`/`5.4` | **themed, not replaced** (see below) |
+| Graphic                                       | Reuse                                                                     | Content                                                                                                                                                 |
+| --------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Player Lineup                                 | `0_roadshow_Lineup`                                                       | 5 portrait cards (grid fill, gradient fade, "TAG NAME" plate), big team logo + name bottom-left; Both = two rows or two halves, builder's call          |
+| Map Winner                                    | `6_league_Map Winner` concept on the Lineup layout                        | as Lineup, winner team only, "WINNER" title instead of the Roadshow lockup                                                                              |
+| Player Stats (single)                         | `1_roadshow_MVP + Player Stats`                                           | stat grid panel (selected fields, English + VN subtitle), agent full portrait panel in place of "PICK" champion splash, player card with team logo chip |
+| Player Stats (H2H)                            | `2_roadshow_Head2Head`                                                    | two player cards flanking a centre stat table; agent icons in the "PICK" row                                                                            |
+| MVP                                           | `1_roadshow_MVP`                                                          | as single Player Stats with an "MVP" title                                                                                                              |
+| Map Veto                                      | ideas from `3_league_Map Veto`                                            | row of map tiles: ban = dimmed with ban mark, pick = map image + acting team, decider; team tag + action under each                                     |
+| Agent Select                                  | ideas from `4_league_Agent Select`                                        | bottom strip: two team blocks of 5 agent portraits + player names, team logo ends, map name centre, side (Thủ/Công) labels                              |
+| In-Game (no live data)                        | `1024 x 126` scorebar, ideas from `5.x_league_HUD`                        | template's own `InGame.svelte`; keep every existing data element and position contract (attribution safe area, camera areas)                            |
+| In-Game (live HUD) + pause / ceremony banners | `1024 x 126`, `PLAYER NAME.psd`, ideas from `5.x_league_HUD`, `5.3`/`5.4` | **themed, not replaced** (see below)                                                                                                                    |
 
 ### Live HUD theming
 
@@ -113,7 +115,7 @@ Source material: `design_reference/` (gitignored, local only). See its `README.m
 - Their hard-coded colours and fonts become CSS custom properties whose defaults are today's values, so every other template renders unchanged.
 - The roadshow template ships a global `theme.css`, scoped to `[data-template="predator-roadshow-val"]` (the attribute `GraphicRenderer` already sets). It sets those properties and adds frame art through overrides of the existing class names. It holds the `@font-face` rules too, so the HUD gets the Predator font.
 - No HUD logic or markup changes. The coupling to class names is accepted and covered by the screenshot check.
-| Post-Game | `POSTMATCH.psd` + ideas from `8_league_PostMatch` | team bars with score, per-player rows (agent, name, K/D, kills), per-team MVP card |
+  | Post-Game | `POSTMATCH.psd` + ideas from `8_league_PostMatch` | team bars with score, per-player rows (agent, name, K/D, kills), per-team MVP card |
 
 Animations: short entrance animations, as in `beus-graph-test`, honouring `prefers-reduced-motion`.
 
