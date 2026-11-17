@@ -7,6 +7,8 @@ import type {
 	BroadcastPreparedSnapshot,
 	BroadcastScopeView
 } from '#lib/broadcast/types.ts';
+import { resolveSponsor } from '#lib/broadcast/sponsor.ts';
+import { loadSponsorSettings } from '#lib/server/settings/sponsors.ts';
 import { broadcastScopes } from '#lib/broadcast/controls.ts';
 import { aggregateStatistics, loadStatisticsGames } from '../services/statistics-aggregation';
 import { deriveSeriesResult } from '../services/series-results';
@@ -41,10 +43,11 @@ const agentFields = {
 export async function buildBroadcastSnapshot(): Promise<BroadcastSnapshot> {
 	await db.insert(s.broadcastState).values({ id: 1 }).onConflictDoNothing();
 	return db.transaction(async (tx) => {
+		const sponsor = resolveSponsor(await loadSponsorSettings(tx));
 		const [state] = await tx.select().from(s.broadcastState).where(eq(s.broadcastState.id, 1));
 		const prepared = await buildBroadcastPreparedSnapshot(tx, state);
 		const publications = validatedPublications(state.publications);
-		return { ...prepared, publications };
+		return { ...prepared, publications, sponsor };
 	});
 }
 

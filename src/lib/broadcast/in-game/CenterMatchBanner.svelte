@@ -5,6 +5,7 @@
 	import { gameplaySide, teamByEntryId } from '../selectors';
 	import { CEREMONY_VISIBLE_MS, ceremonyLabels } from '../in-game-controls';
 	import Asset from '../primitives/Asset.svelte';
+	import type { SponsorBannerKind } from '../sponsor';
 
 	let { snapshot, clock = null }: { snapshot: BroadcastSnapshot; clock?: BroadcastClock | null } =
 		$props();
@@ -31,6 +32,10 @@
 				? 'TACTICAL TIMEOUT'
 				: 'TECHNICAL PAUSE'
 	);
+	const kind = $derived<SponsorBannerKind>(
+		freshCeremony ? freshCeremony.type : pause.type === 'tactical' ? 'tactical' : 'technical'
+	);
+	const art = $derived(snapshot.sponsor.banners[kind]);
 	const bannerKey = $derived(
 		freshCeremony ? `ceremony-${freshCeremony.sequence}` : `${pause.type}-${entryId ?? ''}`
 	);
@@ -70,6 +75,13 @@
 			data-reduced-motion={prefersReducedMotion.current}
 			aria-label="Match banner"
 		>
+			{#if art.backgroundPath}
+				<div
+					class="sponsor-background"
+					data-banner-sponsor-background
+					style:background-image={`url("${art.backgroundPath}")`}
+				></div>
+			{/if}
 			<div class="banner-content">
 				{#if team}
 					{#if team.logoWhitePath || team.logoPath || team.logoBlackPath}
@@ -91,6 +103,11 @@
 					{/if}
 				</div>
 			</div>
+			{#if art.logoPath}
+				<div class="sponsor-logo" data-banner-sponsor-logo>
+					<Asset path={art.logoPath} label="Sponsor" blankMissing />
+				</div>
+			{/if}
 		</section>
 	{/key}
 {/if}
@@ -98,6 +115,12 @@
 <style>
 	.match-banner {
 		--accent: #c0c8d3;
+		--sponsor-logo-width: 110px;
+		--sponsor-logo-height: 56px;
+		/* Logo straddles the top edge: these bound the notch the clip-path opens for it. */
+		--sponsor-notch-left: calc(50% - var(--sponsor-logo-width) / 2);
+		--sponsor-notch-right: calc(50% + var(--sponsor-logo-width) / 2);
+		--sponsor-notch-top: calc(var(--sponsor-logo-height) / -2);
 		position: absolute;
 		z-index: 20;
 		left: 50%;
@@ -126,7 +149,15 @@
 	.match-banner.ceremony.departing {
 		animation: conceal 140ms ease-in forwards;
 	}
+	.sponsor-background {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		background: center / cover no-repeat;
+	}
 	.banner-content {
+		position: relative;
+		z-index: 1;
 		height: 100%;
 		display: flex;
 		align-items: center;
@@ -135,6 +166,32 @@
 		padding: 0 38px;
 		--asset-width: 82px;
 		--asset-height: 82px;
+	}
+	/* With a logo, open a notch above the top edge so its upper half is not clipped. */
+	.match-banner:has(.sponsor-logo) {
+		clip-path: polygon(
+			20px 0,
+			var(--sponsor-notch-left) 0,
+			var(--sponsor-notch-left) var(--sponsor-notch-top),
+			var(--sponsor-notch-right) var(--sponsor-notch-top),
+			var(--sponsor-notch-right) 0,
+			100% 0,
+			calc(100% - 20px) 100%,
+			0 100%
+		);
+	}
+	/* Text keeps clear of the logo's lower half. */
+	.match-banner:has(.sponsor-logo) .banner-content {
+		padding-top: calc(var(--sponsor-logo-height) / 2 + 6px);
+	}
+	.sponsor-logo {
+		position: absolute;
+		z-index: 0;
+		left: 50%;
+		top: 0;
+		transform: translate(-50%, -50%);
+		--asset-width: var(--sponsor-logo-width);
+		--asset-height: var(--sponsor-logo-height);
 	}
 	.copy {
 		min-width: 0;

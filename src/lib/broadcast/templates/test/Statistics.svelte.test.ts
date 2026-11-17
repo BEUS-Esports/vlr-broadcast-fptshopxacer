@@ -3,6 +3,7 @@ import { render } from 'vitest-browser-svelte';
 import Graphic from './Graphic.svelte';
 import type { BroadcastSnapshot } from '../../types';
 import { defaultVisibility, defaultPlayerStats, graphicIds } from '../../controls';
+import { emptySponsor } from '../../sponsor';
 
 function preparedSnapshot(): BroadcastSnapshot {
 	const team = (entryId: string) => ({
@@ -40,6 +41,7 @@ function preparedSnapshot(): BroadcastSnapshot {
 			pause: { type: 'none' },
 			ceremony: null
 		},
+		sponsor: emptySponsor,
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications'],

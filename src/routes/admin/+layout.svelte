@@ -16,6 +16,7 @@
 		ClipboardList,
 		Aperture,
 		Award,
+		Megaphone,
 		Settings2
 	} from '@lucide/svelte';
 	import { graphicIds, graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
@@ -40,6 +41,7 @@
 	const tournamentsActive = $derived(page.url.pathname.startsWith('/admin/tournaments/'));
 	const tournamentsListActive = $derived(page.url.pathname === '/admin/tournaments');
 	const playerCamerasActive = $derived(page.url.pathname === '/admin/player-cameras');
+	const sponsorsActive = $derived(page.url.pathname === '/admin/sponsors');
 
 	const navGroups = $derived([
 		{
@@ -69,6 +71,12 @@
 					label: 'Player Cameras',
 					active: playerCamerasActive,
 					icon: Aperture
+				},
+				{
+					href: resolve('/admin/sponsors'),
+					label: 'Sponsors',
+					active: sponsorsActive,
+					icon: Megaphone
 				}
 			]
 		},

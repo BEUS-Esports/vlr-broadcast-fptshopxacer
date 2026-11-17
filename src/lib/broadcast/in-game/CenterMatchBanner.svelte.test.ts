@@ -5,6 +5,7 @@ import CenterMatchBanner from './CenterMatchBanner.svelte';
 import { defaultPlayerStats, defaultVisibility, graphicIds } from '../controls';
 import { CEREMONY_VISIBLE_MS, ceremonyLabels, ceremonyTypes } from '../in-game-controls';
 import type { BroadcastPreparedSnapshot, BroadcastPublications, BroadcastSnapshot } from '../types';
+import { emptySponsor } from '../sponsor';
 function preparedFixture(): BroadcastPreparedSnapshot {
 	const scope = {
 		statistics: { scope: 'game' as const, gamesTotal: 0, gamesContributing: 0, players: [] },
@@ -88,6 +89,7 @@ function fixture(): BroadcastSnapshot {
 			logoWhitePath: null,
 			logoBlackPath: null
 		})),
+		sponsor: emptySponsor,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 }
@@ -357,4 +359,196 @@ it('keeps reconnect reveal and exit tied to the original ceremony deadline', asy
 	await vi.advanceTimersByTimeAsync(140);
 	await tick();
 	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
+});
+
+// Scoped-style hashes, empty `{#if}` anchors and the whitespace beside them are not markup the
+// banner owns; elements and attributes are what must not change.
+const markup = (view: { container: HTMLElement }) =>
+	view.container
+		.querySelector('[data-match-banner]')
+		?.outerHTML.replace(/ ?svelte-[a-z0-9]+|<!---->/g, '')
+		.replace(/>\s+</g, '><');
+
+const art = (backgroundPath: string | null, logoPath: string | null) => ({
+	backgroundPath,
+	logoPath
+});
+
+it('no art means unchanged markup', () => {
+	const snapshot = fixture();
+	snapshot.teams[0].logoWhitePath = '/alpha.svg';
+	snapshot.liveControls.pause = { type: 'tactical', entryId: 'a', pendingTechnical: false };
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	expect(markup(view)).toMatchInlineSnapshot(
+		`"<section aria-label="Match banner" class="match-banner" data-match-banner="tactical" data-entry-id="a" data-side="attack" data-reduced-motion="false"><div class="banner-content"><span class="asset"><img class="" src="/alpha.svg" alt="Local Alpha"></span><div class="copy"><h2 class="">TACTICAL TIMEOUT</h2><div class="team"><strong class="">A</strong><span class="">Local Alpha</span><small class="">ATK</small></div></div></div></section>"`
+	);
+});
+
+it('renders the art of the shown banner kind', () => {
+	const snapshot = fixture();
+	snapshot.liveControls.pause = { type: 'technical' };
+	snapshot.sponsor = {
+		...emptySponsor,
+		banners: {
+			...emptySponsor.banners,
+			technical: art('/assets/a.png', '/assets/b.png'),
+			tactical: art('/assets/other.png', '/assets/other-logo.png')
+		}
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	const background = view.container.querySelector<HTMLElement>('[data-banner-sponsor-background]');
+	const logo = view.container.querySelector('[data-banner-sponsor-logo]');
+	expect(background?.style.backgroundImage).toBe('url("/assets/a.png")');
+	expect(logo?.querySelector('img')?.getAttribute('src')).toBe('/assets/b.png');
+	expect(view.container.querySelector('h2')?.textContent).toBe('TECHNICAL PAUSE');
+});
+
+it('renders each art element only when its path is set', () => {
+	const snapshot = fixture();
+	snapshot.liveControls.pause = { type: 'technical' };
+	snapshot.sponsor = {
+		...emptySponsor,
+		banners: { ...emptySponsor.banners, technical: art(null, '/assets/b.png') }
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	expect(view.container.querySelector('[data-banner-sponsor-background]')).toBeNull();
+	expect(view.container.querySelector('[data-banner-sponsor-logo]')).not.toBeNull();
+});
+
+it('ceremony uses its own slot', async () => {
+	vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+	vi.setSystemTime(10000);
+	const snapshot = fixture();
+	snapshot.sponsor = {
+		...emptySponsor,
+		banners: {
+			...emptySponsor.banners,
+			clutch: art('/assets/clutch.png', '/assets/clutch-logo.png')
+		}
+	};
+	snapshot.liveControls.ceremony = {
+		type: 'clutch',
+		entryId: 'a',
+		triggeredAt: 9000,
+		sequence: 1
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	expect(
+		view.container.querySelector<HTMLElement>('[data-banner-sponsor-background]')?.style
+			.backgroundImage
+	).toBe('url("/assets/clutch.png")');
+	expect(view.container.querySelector('[data-banner-sponsor-logo]')).not.toBeNull();
+	await view.rerender({
+		snapshot: {
+			...snapshot,
+			liveControls: {
+				...snapshot.liveControls,
+				ceremony: { type: 'round-win', entryId: 'a', triggeredAt: 9500, sequence: 2 }
+			}
+		}
+	});
+	expect(view.container.textContent).toContain('ROUND WIN');
+	expect(view.container.querySelector('[data-banner-sponsor-background]')).toBeNull();
+	expect(view.container.querySelector('[data-banner-sponsor-logo]')).toBeNull();
+});
+
+it('keeps label, team logo and name', () => {
+	const snapshot = fixture();
+	snapshot.teams[0].logoWhitePath = '/alpha.svg';
+	snapshot.liveControls.pause = { type: 'tactical', entryId: 'a', pendingTechnical: false };
+	snapshot.sponsor = {
+		...emptySponsor,
+		banners: { ...emptySponsor.banners, tactical: art('/assets/a.png', '/assets/b.png') }
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	const banner = view.container.querySelector('[data-match-banner]')!;
+	expect(banner.querySelector('h2')?.textContent).toBe('TACTICAL TIMEOUT');
+	expect(banner.querySelector('strong')?.textContent).toBe('A');
+	expect(banner.querySelector('.team span')?.textContent).toBe('Local Alpha');
+	expect(banner.querySelector('.banner-content img')?.getAttribute('src')).toBe('/alpha.svg');
+	const background = banner.querySelector('[data-banner-sponsor-background]')!;
+	const content = banner.querySelector('.banner-content')!;
+	expect(
+		background.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING
+	).toBeTruthy();
+	expect(banner.firstElementChild).toBe(background);
+});
+
+it('art update does not restart the ceremony window', async () => {
+	vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+	vi.setSystemTime(10000);
+	const snapshot = fixture();
+	snapshot.sponsor = {
+		...emptySponsor,
+		banners: { ...emptySponsor.banners, clutch: art('/assets/one.png', null) }
+	};
+	snapshot.liveControls.ceremony = {
+		type: 'clutch',
+		entryId: 'a',
+		triggeredAt: 8000,
+		sequence: 4
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	const background = () =>
+		view.container.querySelector<HTMLElement>('[data-banner-sponsor-background]');
+	expect(background()?.style.backgroundImage).toBe('url("/assets/one.png")');
+	await vi.advanceTimersByTimeAsync(1000);
+	await view.rerender({
+		snapshot: {
+			...snapshot,
+			sponsor: {
+				...emptySponsor,
+				banners: { ...emptySponsor.banners, clutch: art('/assets/two.png', null) }
+			}
+		}
+	});
+	expect(background()?.style.backgroundImage).toBe('url("/assets/two.png")');
+	// Deadline stays 8000 + CEREMONY_VISIBLE_MS; the clock is at 11000, so 3000ms remain.
+	await vi.advanceTimersByTimeAsync(CEREMONY_VISIBLE_MS - 2000 - 1000 - 1);
+	await tick();
+	expect(view.container.querySelector('[data-match-banner]')).not.toBeNull();
+	await vi.advanceTimersByTimeAsync(1);
+	await tick();
+	expect(view.container.querySelector('[data-match-banner]')).toBeNull();
+});
+
+it('keeps text above the sponsor logo and centres the logo on the top edge', () => {
+	const snapshot = fixture();
+	snapshot.liveControls.pause = { type: 'technical' };
+	snapshot.sponsor = {
+		...emptySponsor,
+		banners: { ...emptySponsor.banners, technical: art(null, '/assets/b.png') }
+	};
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	const content = view.container.querySelector<HTMLElement>('.banner-content')!;
+	const logo = view.container.querySelector<HTMLElement>('[data-banner-sponsor-logo]')!;
+	expect(Number(getComputedStyle(logo).zIndex)).toBeLessThan(
+		Number(getComputedStyle(content).zIndex)
+	);
+	// Half the logo sits above the banner's top edge, horizontally centred.
+	const bannerEl = content.parentElement!;
+	const banner = bannerEl.getBoundingClientRect();
+	const logoBox = logo.getBoundingClientRect();
+	expect(logoBox.top).toBeLessThan(banner.top);
+	expect(logoBox.bottom).toBeGreaterThan(banner.top);
+	// Centred on the inner top edge, i.e. within the banner's 2px top border.
+	expect(Math.abs(logoBox.top + logoBox.height / 2 - banner.top)).toBeLessThanOrEqual(3);
+	expect(
+		Math.abs(logoBox.left + logoBox.width / 2 - (banner.left + banner.width / 2))
+	).toBeLessThanOrEqual(1);
+	// The text is pushed down by the logo's inner half, and the clip shape opens above the edge.
+	expect(Number.parseFloat(getComputedStyle(content).paddingTop)).toBeGreaterThanOrEqual(
+		logoBox.height / 2
+	);
+	expect(getComputedStyle(bannerEl).clipPath).toMatch(/[(, ]-\d/);
+});
+
+it('adds no text padding or clip notch when there is no logo', () => {
+	const snapshot = fixture();
+	snapshot.liveControls.pause = { type: 'technical' };
+	const view = render(CenterMatchBanner, { snapshot, clock: { now: Date.now } });
+	const content = view.container.querySelector<HTMLElement>('.banner-content')!;
+	expect(getComputedStyle(content).paddingRight).toBe('38px');
+	expect(getComputedStyle(content).paddingTop).toBe('0px');
+	expect(getComputedStyle(content.parentElement!).clipPath).not.toMatch(/[(, ]-\d/);
 });

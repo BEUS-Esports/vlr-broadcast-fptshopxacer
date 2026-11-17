@@ -6,6 +6,7 @@
 	import type { BroadcastClock } from './client';
 	import { programSnapshot } from './selectors';
 	import { resolveGraphicTemplate } from './templates';
+	import { filterSponsor } from './sponsor';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
 	import {
 		externalGame,
@@ -37,6 +38,9 @@
 	);
 	const template = $derived(resolveGraphicTemplate(rendered?.tournament?.slug));
 	const Template = $derived(template.component);
+	const presented = $derived(
+		rendered && { ...rendered, sponsor: filterSponsor(rendered.sponsor, template.sponsor) }
+	);
 	const liveGame = $derived(
 		rendered && graphic === 'in-game' && mode !== 'preview'
 			? externalGame(rendered, telemetry, mode === 'preview-live' ? 'preview' : 'program')
@@ -52,9 +56,9 @@
 			: 'local'
 	);
 	const agentSnapshot = $derived(
-		rendered && graphic === 'agent-select'
-			? withObservedAgents(rendered, telemetry, resources)
-			: rendered
+		presented && graphic === 'agent-select'
+			? withObservedAgents(presented, telemetry, resources)
+			: presented
 	);
 	const reportScope = $derived(
 		graphic === 'post-game'
@@ -75,18 +79,18 @@
 	data-control-revision={rendered?.controlRevision ?? 0}
 	data-data-revision={rendered?.dataRevision ?? 0}
 >
-	{#if rendered}
+	{#if rendered && presented}
 		<div transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}>
 			{#if (liveGame && telemetry) || (mode === 'preview-live' && graphic === 'in-game')}
 				<InGameHud
-					snapshot={rendered}
+					snapshot={presented}
 					live={liveGame}
 					status={telemetry?.status ?? null}
 					{resources}
 					identity={liveIdentity}
 				/>
 			{:else if mode !== 'preview-live'}
-				<Template snapshot={agentSnapshot ?? rendered} {graphic} />
+				<Template snapshot={agentSnapshot ?? presented} {graphic} />
 				{#if reportScope && rendered.scopes[reportScope].usesSpectra}
 					<ProviderAttribution
 						status={{
@@ -95,11 +99,11 @@
 						}}
 					/>
 				{/if}
-				{#if graphic === 'agent-select' && agentSnapshot !== rendered && telemetry}<ProviderAttribution
+				{#if graphic === 'agent-select' && agentSnapshot !== presented && telemetry}<ProviderAttribution
 						status={telemetry.status}
 					/>{/if}
 			{/if}
 		</div>
 	{/if}
-	{#if rendered && graphic === 'in-game'}<CenterMatchBanner snapshot={rendered} {clock} />{/if}
+	{#if presented && graphic === 'in-game'}<CenterMatchBanner snapshot={presented} {clock} />{/if}
 </div>

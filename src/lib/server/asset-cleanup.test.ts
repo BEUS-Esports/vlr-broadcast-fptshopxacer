@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as s from '#lib/server/db/schema/index.ts';
+import { defaultSponsorConfig } from '#lib/broadcast/sponsor.ts';
 import {
 	withManagementFixture,
 	withTwoConnections
@@ -132,6 +133,24 @@ it('protects archived profiles, inactive catalogue artwork, ability icons and he
 		await collectUnusedAssets(start + 30 * day);
 		expect(await db.select().from(s.assetDeletionQueue)).toEqual([]);
 		for (const path of paths) expect(await assetExists(path)).toBe(true);
+	});
+});
+
+it('keeps sponsor-referenced assets', async () => {
+	await withManagementFixture(async ({ db, directory }) => {
+		vi.stubEnv('ASSET_DIR', join(directory, 'assets'));
+		const { saveUpload, assetExists } = await import('./assets');
+		const background = (await saveUpload(image()))!;
+		const logo = (await saveUpload(image()))!;
+		const banners = structuredClone(defaultSponsorConfig.banners);
+		banners.default.backgroundPath = background;
+		await db.update(s.sponsorSettings).set({ banners, loopLogos: [logo] });
+		const { collectUnusedAssets } = await import('./asset-cleanup');
+		await collectUnusedAssets(start);
+		await collectUnusedAssets(start + 14 * day);
+		expect(await assetExists(background)).toBe(true);
+		expect(await assetExists(logo)).toBe(true);
+		expect(await db.select().from(s.assetDeletionQueue)).toEqual([]);
 	});
 });
 

@@ -121,3 +121,21 @@ it('forward upgrades an existing Phase 6 singleton without changing its held pub
 		await removeTestDatabase(directory, client);
 	}
 });
+
+it('strictly rejects a malformed sponsor block', async () => {
+	await withManagementFixture(async () => {
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		const snapshot = await buildBroadcastSnapshot();
+		const decode = (sponsor: unknown) =>
+			decodeBroadcastSnapshot(JSON.stringify({ ...snapshot, sponsor }));
+		expect(decode(snapshot.sponsor)).toEqual({ ...snapshot, sponsor: snapshot.sponsor });
+		const { banners, loop } = snapshot.sponsor;
+		// The default slot is never sponsorable, so an extra banner key is not part of the contract.
+		expect(
+			decode({ banners: { ...banners, default: { backgroundPath: null, logoPath: null } }, loop })
+		).toBeNull();
+		expect(decode({ banners, loop: { ...loop, logos: [42] } })).toBeNull();
+		expect(decode({ banners, loop: { logos: [], intervalMs: 1.5 } })).toBeNull();
+		expect(decode({ banners })).toBeNull();
+	});
+});

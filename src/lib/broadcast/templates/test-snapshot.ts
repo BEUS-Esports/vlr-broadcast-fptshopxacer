@@ -1,4 +1,5 @@
 import type { BroadcastSnapshot } from '../types';
+import { emptySponsor } from '../sponsor';
 import { defaultVisibility, defaultPlayerStats, graphicIds } from '../controls';
 
 /** Test-only fixture: a selected game with teams a/b, partial lineups and one veto pick/ban. */
@@ -38,6 +39,7 @@ export function preparedSnapshot(): BroadcastSnapshot {
 			pause: { type: 'none' },
 			ceremony: null
 		},
+		sponsor: emptySponsor,
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications'],

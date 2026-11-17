@@ -1,5 +1,10 @@
 import { sql } from 'drizzle-orm';
 import { check, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+	defaultSponsorConfig,
+	SPONSOR_INTERVAL_DEFAULT_MS,
+	type SponsorConfig
+} from '#lib/broadcast/sponsor.ts';
 import { createdAtColumn, revisionColumn, updatedAtColumn } from './common';
 
 export const providerSettings = sqliteTable(
@@ -72,5 +77,26 @@ export const cameraSettings = sqliteTable(
 	(table) => [
 		check('camera_settings_singleton_check', sql`${table.id} = 1`),
 		check('camera_settings_revision_check', sql`${table.revision} > 0`)
+	]
+);
+
+export const sponsorSettings = sqliteTable(
+	'sponsor_settings',
+	{
+		id: integer('id').primaryKey().default(1),
+		revision: revisionColumn(),
+		banners: text('banners', { mode: 'json' })
+			.$type<SponsorConfig['banners']>()
+			.notNull()
+			.default(defaultSponsorConfig.banners),
+		loopLogos: text('loop_logos', { mode: 'json' }).$type<string[]>().notNull().default([]),
+		loopIntervalMs: integer('loop_interval_ms').notNull().default(SPONSOR_INTERVAL_DEFAULT_MS),
+		createdAt: createdAtColumn(),
+		updatedAt: updatedAtColumn()
+	},
+	(table) => [
+		check('sponsor_settings_singleton_check', sql`${table.id} = 1`),
+		check('sponsor_settings_revision_check', sql`${table.revision} > 0`),
+		check('sponsor_settings_interval_check', sql`${table.loopIntervalMs} between 2000 and 60000`)
 	]
 );

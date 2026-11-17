@@ -9,6 +9,7 @@ it('recognizes management POST attempts including refresh, excluding navigation 
 		'/admin/resources',
 		'/admin/graphics',
 		'/admin/player-cameras',
+		'/admin/sponsors',
 		'/admin/tournaments/[tournamentId]',
 		'/admin/games/[gameId]',
 		'/admin/matches/[matchId]'

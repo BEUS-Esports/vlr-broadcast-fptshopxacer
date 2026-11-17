@@ -86,8 +86,12 @@ export function collectGraphicAssetUrls(
 	collect(snapshot);
 	const held = programSnapshot(snapshot, graphic);
 	if (held) collect(held);
-	if (graphic === 'in-game')
+	if (graphic === 'in-game') {
 		for (const weapon of resources?.weapons ?? []) add(weapon.displayIconPath);
+		for (const art of Object.values(snapshot.sponsor.banners))
+			add(art.backgroundPath, art.logoPath);
+		add(...snapshot.sponsor.loop.logos);
+	}
 	return [...urls];
 }
 

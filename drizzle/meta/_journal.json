@@ -120,6 +120,13 @@
       "when": 1794883817321,
       "tag": "0016_camera_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1794927928419,
+      "tag": "0017_sponsor_settings",
+      "breakpoints": true
     }
   ]
 }
