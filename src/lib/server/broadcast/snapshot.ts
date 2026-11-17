@@ -56,11 +56,12 @@ export async function buildBroadcastPreparedSnapshot(
 	state: typeof s.broadcastState.$inferSelect
 ): Promise<BroadcastPreparedSnapshot> {
 	const snapshot: BroadcastPreparedSnapshot = {
-		version: 4,
+		version: 5,
 		controlRevision: state.controlRevision,
 		dataRevision: state.dataRevision,
 		liveControls: {
 			swapped: state.swapped,
+			boothsSwapped: state.boothsSwapped,
 			lineupTeams: state.lineupTeams,
 			currentAttackersEntryId: state.currentAttackersEntryId,
 			pause: state.pause,
@@ -72,6 +73,7 @@ export async function buildBroadcastPreparedSnapshot(
 		game: null,
 		competition: { teamAEntryId: null, teamBEntryId: null },
 		presentation: { leftEntryId: null, rightEntryId: null },
+		booths: { booth1EntryId: null, booth2EntryId: null },
 		sides: {
 			preparedAttackersEntryId: null,
 			preparedDefendersEntryId: null,
@@ -205,6 +207,10 @@ export async function buildBroadcastPreparedSnapshot(
 	snapshot.presentation = {
 		leftEntryId: state.swapped ? match.teamBEntryId : match.teamAEntryId,
 		rightEntryId: state.swapped ? match.teamAEntryId : match.teamBEntryId
+	};
+	snapshot.booths = {
+		booth1EntryId: state.boothsSwapped ? match.teamBEntryId : match.teamAEntryId,
+		booth2EntryId: state.boothsSwapped ? match.teamAEntryId : match.teamBEntryId
 	};
 	const attackers = state.currentAttackersEntryId ?? game.startingAttackersEntryId;
 	snapshot.sides = {

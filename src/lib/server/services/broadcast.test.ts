@@ -215,3 +215,50 @@ it('persists shared controls, rejects stale writes, rolls back invalid picks, an
 		}).toEqual(before);
 	});
 });
+
+it('flips booths independently of presentation and keeps it across game changes', async () => {
+	await withTwoConnections(async ({ db }) => {
+		await db.insert(schema.games).values([
+			{ id: 'g1', matchId: 'match', number: 1, name: 'First' },
+			{ id: 'g2', matchId: 'match', number: 2, name: 'Second' }
+		]);
+		const service = await import('./broadcast');
+		let state = await service.updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g1' });
+		state = await service.updateBroadcastState({
+			expectedRevision: state.controlRevision,
+			visibility: { 'player-stats': true }
+		});
+		state = await service.updateBroadcastState({
+			expectedRevision: state.controlRevision,
+			boothsSwapped: true
+		});
+		expect(state).toMatchObject({ boothsSwapped: true, swapped: false });
+		state = await service.updateBroadcastState({
+			expectedRevision: state.controlRevision,
+			visibility: { 'player-stats': false }
+		});
+		state = await service.updateBroadcastState({
+			expectedRevision: state.controlRevision,
+			selectedGameId: 'g2'
+		});
+		expect(state).toMatchObject({ selectedGameId: 'g2', boothsSwapped: true, swapped: false });
+		expect(await service.getBroadcastState()).toMatchObject({ boothsSwapped: true });
+	});
+});
+
+it('rejects stale and non-boolean booth flips', async () => {
+	await withTwoConnections(async () => {
+		const service = await import('./broadcast');
+		const state = await service.updateBroadcastState({ expectedRevision: 1, boothsSwapped: true });
+		await expect(
+			service.updateBroadcastState({ expectedRevision: 1, boothsSwapped: false })
+		).rejects.toMatchObject({ code: 'stale' });
+		await expect(
+			service.updateBroadcastState({
+				expectedRevision: state.controlRevision,
+				boothsSwapped: 'yes'
+			} as unknown as Parameters<typeof service.updateBroadcastState>[0])
+		).rejects.toMatchObject({ code: 'invalid' });
+		expect(await service.getBroadcastState()).toEqual(state);
+	});
+});

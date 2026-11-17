@@ -4,6 +4,8 @@ export function isBroadcastMutation(request: Request, routeId: string | null): b
 		request.method === 'POST' &&
 		routeId !== null &&
 		routeId !== '/admin/resources/sync' &&
-		/^\/admin\/(teams|players|resources|tournaments|matches|games|graphics)(?:\/|$)/.test(routeId)
+		/^\/admin\/(teams|players|resources|tournaments|matches|games|graphics|player-cameras)(?:\/|$)/.test(
+			routeId
+		)
 	);
 }

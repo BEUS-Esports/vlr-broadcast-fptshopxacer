@@ -123,7 +123,7 @@ it.each(['decryption', 'validation'])(
 			vi.resetModules();
 			const reloaded = await import('./providers');
 			await expect(reloaded.loadProviderSettings()).rejects.toThrow(
-				failure === 'decryption' ? 'Could not decrypt provider settings' : 'valid HTTP or HTTPS'
+				failure === 'decryption' ? 'Could not decrypt saved settings' : 'valid HTTP or HTTPS'
 			);
 			expect(await readFile(file, 'utf8')).toBe(original);
 		});

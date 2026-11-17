@@ -8,6 +8,7 @@ it('recognizes management POST attempts including refresh, excluding navigation 
 		'/admin/players',
 		'/admin/resources',
 		'/admin/graphics',
+		'/admin/player-cameras',
 		'/admin/tournaments/[tournamentId]',
 		'/admin/games/[gameId]',
 		'/admin/matches/[matchId]'
@@ -22,6 +23,12 @@ it('recognizes management POST attempts including refresh, excluding navigation 
 	expect(isBroadcastMutation(new Request('http://localhost/admin/teams'), '/admin/teams')).toBe(
 		false
 	);
-	for (const route of [null, '/unrelated', '/admin/resources/sync', '/admin/teams-extra'])
+	for (const route of [
+		null,
+		'/unrelated',
+		'/admin/resources/sync',
+		'/admin/teams-extra',
+		'/admin/player-cameras-extra'
+	])
 		expect(isBroadcastMutation(request, route)).toBe(false);
 });

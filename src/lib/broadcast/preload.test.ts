@@ -13,11 +13,12 @@ function fixture(): BroadcastSnapshot {
 		mvpPlayerId: 'p'
 	};
 	return {
-		version: 4,
+		version: 5,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: false,
+			boothsSwapped: false,
 			lineupTeams: 'both',
 			currentAttackersEntryId: null,
 			pause: { type: 'none' },
@@ -54,6 +55,7 @@ function fixture(): BroadcastSnapshot {
 		},
 		competition: { teamAEntryId: 'a', teamBEntryId: null },
 		presentation: { leftEntryId: 'a', rightEntryId: null },
+		booths: { booth1EntryId: 'a', booth2EntryId: null },
 		sides: {
 			preparedAttackersEntryId: null,
 			preparedDefendersEntryId: null,

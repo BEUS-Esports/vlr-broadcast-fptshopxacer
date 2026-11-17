@@ -58,3 +58,19 @@ export const providerSettings = sqliteTable(
 		)
 	]
 );
+
+export const cameraSettings = sqliteTable(
+	'camera_settings',
+	{
+		id: integer('id').primaryKey().default(1),
+		revision: revisionColumn(),
+		room: text('room').notNull().default(''),
+		passwordEncrypted: text('password_encrypted'),
+		createdAt: createdAtColumn(),
+		updatedAt: updatedAtColumn()
+	},
+	(table) => [
+		check('camera_settings_singleton_check', sql`${table.id} = 1`),
+		check('camera_settings_revision_check', sql`${table.revision} > 0`)
+	]
+);

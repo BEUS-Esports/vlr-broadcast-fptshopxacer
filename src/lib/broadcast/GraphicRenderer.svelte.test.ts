@@ -16,11 +16,12 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 		mvpPlayerId: null
 	};
 	return {
-		version: 4,
+		version: 5,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: false,
+			boothsSwapped: false,
 			lineupTeams: 'both',
 			currentAttackersEntryId: null,
 			pause: { type: 'none' },
@@ -49,6 +50,7 @@ function preparedFixture(): BroadcastPreparedSnapshot {
 		},
 		competition: { teamAEntryId: null, teamBEntryId: null },
 		presentation: { leftEntryId: null, rightEntryId: null },
+		booths: { booth1EntryId: null, booth2EntryId: null },
 		sides: {
 			preparedAttackersEntryId: null,
 			preparedDefendersEntryId: null,

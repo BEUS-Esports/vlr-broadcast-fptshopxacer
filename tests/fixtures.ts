@@ -10,7 +10,7 @@ export const test = base.extend<{ broadcastIsolation: void }>({
 			const db = createClient({ url: process.env.DATABASE_URL! });
 			const reset = () =>
 				db.execute({
-					sql: `UPDATE broadcast_state SET selected_game_id = NULL, swapped = 0,
+					sql: `UPDATE broadcast_state SET selected_game_id = NULL, swapped = 0, booths_swapped = 0,
 					current_attackers_entry_id = NULL, visibility = ?, publications = '{}',
 					player_stats = ?, mvp_scope = 'game', lineup_teams = 'both', mvp_fields = ?, pause = '{"type":"none"}', ceremony = NULL,
 					control_revision = control_revision + 1, revision = revision + 1 WHERE id = 1`,

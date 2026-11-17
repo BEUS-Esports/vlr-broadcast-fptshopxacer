@@ -27,6 +27,8 @@ export const broadcastState = sqliteTable(
 		dataRevision: revisionColumn(),
 		controlRevision: integer('control_revision').notNull().default(1),
 		swapped: integer('swapped', { mode: 'boolean' }).notNull().default(false),
+		// Physical booth seating; independent of Team A/B and left/right presentation.
+		boothsSwapped: integer('booths_swapped', { mode: 'boolean' }).notNull().default(false),
 		lineupTeams: text('lineup_teams', { enum: ['both', 'team-a', 'team-b'] })
 			.$type<LineupTeams>()
 			.notNull()
@@ -75,6 +77,7 @@ export const broadcastState = sqliteTable(
 		check('broadcast_singleton_check', sql`${table.id} = 1`),
 		check('broadcast_revision_check', sql`${table.dataRevision} > 0`),
 		check('broadcast_swapped_check', sql`${table.swapped} in (0, 1)`),
+		check('broadcast_booths_swapped_check', sql`${table.boothsSwapped} in (0, 1)`),
 		check('broadcast_mvp_scope_check', sql`${table.mvpScope} in ('game', 'match', 'tournament')`)
 	]
 );

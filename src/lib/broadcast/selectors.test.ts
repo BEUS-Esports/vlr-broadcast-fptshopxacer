@@ -76,3 +76,29 @@ it('keeps competition ownership, presentation order and prepared/current sides i
 		expect(statisticMetric(null, 'kills', 'game')).toEqual({ value: null, coverage: 'none' });
 	});
 });
+
+it('rebuilds on-air booths from the live booth flag, like presentation', async () => {
+	await withManagementFixture(async ({ db }) => {
+		const s = await import('#lib/server/db/schema/index.ts');
+		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'One' });
+		const { updateBroadcastState } = await import('#lib/server/services/broadcast.ts');
+		const { buildBroadcastSnapshot } = await import('#lib/server/broadcast/snapshot.ts');
+		const { programSnapshot } = await import('./selectors');
+		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
+		const { publications, ...captured } = await buildBroadcastSnapshot();
+		const latest = {
+			...captured,
+			liveControls: { ...captured.liveControls, boothsSwapped: true },
+			booths: { booth1EntryId: 'entry-b', booth2EntryId: 'entry-a' },
+			controls: {
+				...captured.controls,
+				visibility: { ...captured.controls.visibility, 'in-game': true }
+			},
+			publications: { ...publications, 'in-game': captured }
+		};
+		expect(programSnapshot(latest, 'in-game')?.booths).toEqual({
+			booth1EntryId: 'entry-b',
+			booth2EntryId: 'entry-a'
+		});
+	});
+});

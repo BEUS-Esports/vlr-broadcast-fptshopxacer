@@ -27,6 +27,10 @@ export function programSnapshot(
 			leftEntryId: latest.liveControls.swapped ? teamBEntryId : teamAEntryId,
 			rightEntryId: latest.liveControls.swapped ? teamAEntryId : teamBEntryId
 		},
+		booths: {
+			booth1EntryId: latest.liveControls.boothsSwapped ? teamBEntryId : teamAEntryId,
+			booth2EntryId: latest.liveControls.boothsSwapped ? teamAEntryId : teamBEntryId
+		},
 		sides: {
 			...prepared.sides,
 			attackersEntryId: attackers,

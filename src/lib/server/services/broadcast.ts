@@ -30,6 +30,7 @@ export type BroadcastUpdate = {
 	expectedRevision: number;
 	selectedGameId?: string | null;
 	swapped?: boolean;
+	boothsSwapped?: boolean;
 	lineupTeams?: LineupTeams;
 	currentAttackersEntryId?: string | null;
 	visibility?: Partial<GraphicVisibility>;
@@ -103,6 +104,8 @@ export async function getBroadcastState() {
 export async function updateBroadcastState(input: BroadcastUpdate) {
 	if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1)
 		throw new SaveError('invalid', 'A valid broadcast revision is required.');
+	if (input.boothsSwapped !== undefined && typeof input.boothsSwapped !== 'boolean')
+		throw new SaveError('invalid', 'Choose whether the booths are swapped.');
 	return db.transaction(async (tx) => {
 		await initialize(tx);
 		const [current] = await tx
@@ -128,6 +131,8 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			selectedGameId,
 			// Presentation order is an explicit operator override, not game-owned state.
 			swapped: input.swapped ?? current.swapped,
+			// Booth seating is a physical fact: kept across game changes and never blocked by graphics.
+			boothsSwapped: input.boothsSwapped ?? current.boothsSwapped,
 			lineupTeams:
 				input.lineupTeams === undefined
 					? changedGame

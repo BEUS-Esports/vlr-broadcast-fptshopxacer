@@ -14,6 +14,7 @@
 		ChartNoAxesCombined,
 		Crosshair,
 		ClipboardList,
+		Aperture,
 		Award,
 		Settings2
 	} from '@lucide/svelte';
@@ -38,6 +39,7 @@
 	const resourcesActive = $derived(page.url.pathname === '/admin/resources');
 	const tournamentsActive = $derived(page.url.pathname.startsWith('/admin/tournaments/'));
 	const tournamentsListActive = $derived(page.url.pathname === '/admin/tournaments');
+	const playerCamerasActive = $derived(page.url.pathname === '/admin/player-cameras');
 
 	const navGroups = $derived([
 		{
@@ -61,6 +63,12 @@
 					label: 'Tournaments',
 					active: tournamentsActive || tournamentsListActive,
 					icon: Trophy
+				},
+				{
+					href: resolve('/admin/player-cameras'),
+					label: 'Player Cameras',
+					active: playerCamerasActive,
+					icon: Aperture
 				}
 			]
 		},
