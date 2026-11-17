@@ -3,6 +3,7 @@ import { ceremonyTypes } from './in-game-controls';
 import {
 	defaultSponsorConfig,
 	emptyArt,
+	emptySponsor,
 	filterSponsor,
 	resolveSponsor,
 	type SponsorConfig
@@ -64,5 +65,14 @@ describe('filterSponsor', () => {
 		expect(noLoop.banners).toEqual(sponsor.banners);
 
 		expect(filterSponsor(sponsor, { banners: true, loop: true })).toBe(sponsor);
+	});
+});
+
+describe('shared defaults', () => {
+	it('are deeply frozen', () => {
+		expect(Object.isFrozen(emptySponsor.banners)).toBe(true);
+		expect(Object.isFrozen(emptySponsor.banners.flawless)).toBe(true);
+		expect(Object.isFrozen(defaultSponsorConfig.banners.default)).toBe(true);
+		expect(Object.isFrozen(defaultSponsorConfig.loopLogos)).toBe(true);
 	});
 });

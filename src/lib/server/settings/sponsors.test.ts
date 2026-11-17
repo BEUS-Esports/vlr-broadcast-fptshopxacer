@@ -142,3 +142,20 @@ it('bumps broadcast dataRevision on save', async () => {
 		).toHaveLength(1);
 	});
 });
+
+it('returns copies so mutating a loaded config never touches the shared defaults', async () => {
+	await withManagementFixture(async ({ db }) => {
+		const { loadSponsorSettings } = await import('./sponsors');
+		const loaded = await loadSponsorSettings();
+		loaded.banners.default.logoPath = '/assets/changed.png';
+		loaded.loopLogos.push('/assets/changed.png');
+		expect(defaultSponsorConfig.banners.default.logoPath).toBeNull();
+		expect(defaultSponsorConfig.loopLogos).toEqual([]);
+		await db.delete(s.sponsorSettings);
+		const fallback = await loadSponsorSettings();
+		fallback.banners.default.logoPath = '/assets/changed.png';
+		fallback.loopLogos.push('/assets/changed.png');
+		expect(defaultSponsorConfig.banners.default.logoPath).toBeNull();
+		expect(defaultSponsorConfig.loopLogos).toEqual([]);
+	});
+});

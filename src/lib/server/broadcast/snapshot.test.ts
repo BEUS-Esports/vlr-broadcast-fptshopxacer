@@ -307,7 +307,7 @@ it('upgrades saved v4 captures to v5 instead of dropping them', async () => {
 		const { validatedPublications } = await import('#lib/broadcast/types.ts');
 		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the live envelope.
-		const { publications, ...current } = await buildBroadcastSnapshot();
+		const { publications, sponsor, ...current } = await buildBroadcastSnapshot();
 		const { booths, ...rest } = current;
 		const { boothsSwapped, ...liveControls } = current.liveControls;
 		expect({ booths, boothsSwapped }).toEqual({
@@ -316,5 +316,18 @@ it('upgrades saved v4 captures to v5 instead of dropping them', async () => {
 		});
 		const v4 = { ...rest, version: 4, liveControls };
 		expect(validatedPublications({ 'in-game': v4 })['in-game']).toEqual(current);
+	});
+});
+
+it('includes resolved sponsor', async () => {
+	await withManagementFixture(async () => {
+		const { defaultSponsorConfig } = await import('#lib/broadcast/sponsor.ts');
+		const { saveSponsorSettings } = await import('../settings/sponsors');
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		const logo = '/assets/00000000-0000-4000-8000-000000000001.png';
+		const next = structuredClone(defaultSponsorConfig);
+		next.banners.default.logoPath = logo;
+		await saveSponsorSettings(next, 1);
+		expect((await buildBroadcastSnapshot()).sponsor.banners.flawless.logoPath).toBe(logo);
 	});
 });

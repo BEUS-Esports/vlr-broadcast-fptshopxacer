@@ -85,9 +85,10 @@ it('rebuilds on-air booths from the live booth flag, like presentation', async (
 		const { buildBroadcastSnapshot } = await import('#lib/server/broadcast/snapshot.ts');
 		const { programSnapshot } = await import('./selectors');
 		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
-		const { publications, ...captured } = await buildBroadcastSnapshot();
+		const { publications, sponsor, ...captured } = await buildBroadcastSnapshot();
 		const latest = {
 			...captured,
+			sponsor,
 			liveControls: { ...captured.liveControls, boothsSwapped: true },
 			booths: { booth1EntryId: 'entry-b', booth2EntryId: 'entry-a' },
 			controls: {
@@ -101,6 +102,36 @@ it('rebuilds on-air booths from the live booth flag, like presentation', async (
 			booth2EntryId: 'entry-a'
 		});
 	});
+});
+
+it('programSnapshot passes latest sponsor through', async () => {
+	const { preparedSnapshot } = await import('./templates/test-snapshot');
+	const { programSnapshot } = await import('./selectors');
+	const complete = preparedSnapshot();
+	const base = {
+		...complete,
+		tournament: { id: 't', name: 'Test', slug: 'test' },
+		match: {
+			id: 'm',
+			label: 'Match',
+			bestOf: 1,
+			scoreA: 0,
+			scoreB: 0,
+			resultType: null,
+			winnerEntryId: null
+		}
+	};
+	const { publications, sponsor: _, ...captured } = base;
+	void publications;
+	void _;
+	const sponsor = { ...base.sponsor, loop: { logos: ['/assets/x.png'], intervalMs: 5000 } };
+	const latest = {
+		...base,
+		sponsor,
+		controls: { ...base.controls, visibility: { ...base.controls.visibility, 'in-game': true } },
+		publications: { ...base.publications, 'in-game': captured }
+	};
+	expect(programSnapshot(latest, 'in-game')?.sponsor).toBe(latest.sponsor);
 });
 
 it('shows only the saved game winner in winner mode', async () => {

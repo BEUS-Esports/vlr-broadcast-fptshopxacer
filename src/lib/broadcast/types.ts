@@ -13,6 +13,7 @@ import {
 	type BroadcastPauseState,
 	type BroadcastCeremonyEvent
 } from './in-game-controls';
+import { sponsorBannerSlots, type BroadcastSponsor } from './sponsor';
 
 export type BroadcastPlayer = {
 	playerId: string;
@@ -140,7 +141,10 @@ export type BroadcastPublications = Record<
 	import('./controls').GraphicId,
 	BroadcastPreparedSnapshot | null
 >;
-export type BroadcastSnapshot = BroadcastPreparedSnapshot & { publications: BroadcastPublications };
+export type BroadcastSnapshot = BroadcastPreparedSnapshot & {
+	publications: BroadcastPublications;
+	sponsor: BroadcastSponsor;
+};
 
 export type BroadcastStreamCursor = {
 	epoch: string;
@@ -433,8 +437,19 @@ export function validatedPublications(value: unknown): BroadcastPublications {
 	) as BroadcastPublications;
 }
 
+const sponsorArt = object({ backgroundPath: text, logoPath: text });
+const sponsorCheck = object({
+	banners: object(
+		Object.fromEntries(
+			sponsorBannerSlots.filter((slot) => slot !== 'default').map((slot) => [slot, sponsorArt])
+		)
+	),
+	loop: object({ logos: array(string), intervalMs: integer })
+});
+
 const snapshotCheck = object({
 	...preparedFields,
+	sponsor: sponsorCheck,
 	publications: object(
 		Object.fromEntries(graphicIds.map((id) => [id, nullable(isBroadcastPublication)]))
 	)

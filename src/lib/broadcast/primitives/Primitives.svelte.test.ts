@@ -6,6 +6,7 @@ import ResourceCard from './ResourceCard.svelte';
 import ScoreHeader from './ScoreHeader.svelte';
 import type { BroadcastSnapshot } from '../types';
 import { defaultVisibility, defaultPlayerStats } from '../controls';
+import { emptySponsor } from '../sponsor';
 
 it('shows missing and failed assets, resets on a new identity, and preserves zero and coverage', async () => {
 	const identity = render(Identity, {
@@ -76,6 +77,7 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 			pause: { type: 'none' },
 			ceremony: null
 		},
+		sponsor: emptySponsor,
 		publications: {
 			'player-lineup': null,
 			'player-stats': null,

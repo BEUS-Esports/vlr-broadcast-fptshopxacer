@@ -26,16 +26,25 @@ export const SPONSOR_INTERVAL_MIN_MS = 2000;
 export const SPONSOR_INTERVAL_MAX_MS = 60000;
 export const SPONSOR_INTERVAL_DEFAULT_MS = 5000;
 
-export const emptyArt: SponsorArt = { backgroundPath: null, logoPath: null };
+/** Shared process-wide defaults are frozen so accidental mutation throws instead of corrupting them. */
+function deepFreeze<T>(value: T): T {
+	if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+		Object.values(value).forEach(deepFreeze);
+		Object.freeze(value);
+	}
+	return value;
+}
 
-export const defaultSponsorConfig: SponsorConfig = {
+export const emptyArt: SponsorArt = Object.freeze({ backgroundPath: null, logoPath: null });
+
+export const defaultSponsorConfig: SponsorConfig = deepFreeze({
 	banners: Object.fromEntries(sponsorBannerSlots.map((slot) => [slot, { ...emptyArt }])) as Record<
 		SponsorBannerSlot,
 		SponsorArt
 	>,
 	loopLogos: [],
 	loopIntervalMs: SPONSOR_INTERVAL_DEFAULT_MS
-};
+});
 
 /** Each art field falls back independently to the `default` slot. */
 export function resolveSponsor(config: SponsorConfig): BroadcastSponsor {
@@ -56,7 +65,7 @@ export function resolveSponsor(config: SponsorConfig): BroadcastSponsor {
 	return { banners, loop: { logos: config.loopLogos, intervalMs: config.loopIntervalMs } };
 }
 
-export const emptySponsor: BroadcastSponsor = resolveSponsor(defaultSponsorConfig);
+export const emptySponsor: BroadcastSponsor = deepFreeze(resolveSponsor(defaultSponsorConfig));
 
 export function filterSponsor(
 	sponsor: BroadcastSponsor,

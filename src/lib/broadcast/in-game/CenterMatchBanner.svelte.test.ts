@@ -5,6 +5,7 @@ import CenterMatchBanner from './CenterMatchBanner.svelte';
 import { defaultPlayerStats, defaultVisibility, graphicIds } from '../controls';
 import { CEREMONY_VISIBLE_MS, ceremonyLabels, ceremonyTypes } from '../in-game-controls';
 import type { BroadcastPreparedSnapshot, BroadcastPublications, BroadcastSnapshot } from '../types';
+import { emptySponsor } from '../sponsor';
 function preparedFixture(): BroadcastPreparedSnapshot {
 	const scope = {
 		statistics: { scope: 'game' as const, gamesTotal: 0, gamesContributing: 0, players: [] },
@@ -88,6 +89,7 @@ function fixture(): BroadcastSnapshot {
 			logoWhitePath: null,
 			logoBlackPath: null
 		})),
+		sponsor: emptySponsor,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 }

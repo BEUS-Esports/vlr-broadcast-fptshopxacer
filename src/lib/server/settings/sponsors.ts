@@ -59,7 +59,7 @@ function rowToSettings(row: typeof sponsorSettings.$inferSelect): SponsorSetting
 	return {
 		revision: row.revision,
 		// Merge over defaults so a stored row missing a slot never breaks resolveSponsor.
-		banners: { ...defaultSponsorConfig.banners, ...row.banners },
+		banners: { ...structuredClone(defaultSponsorConfig.banners), ...row.banners },
 		loopLogos: row.loopLogos,
 		loopIntervalMs: row.loopIntervalMs
 	};
@@ -70,7 +70,7 @@ export async function loadSponsorSettings(
 	connection: typeof db | Transaction = db
 ): Promise<SponsorSettings> {
 	const [row] = await connection.select().from(sponsorSettings).where(eq(sponsorSettings.id, 1));
-	return row ? rowToSettings(row) : { ...defaultSponsorConfig, revision: 1 };
+	return row ? rowToSettings(row) : { ...structuredClone(defaultSponsorConfig), revision: 1 };
 }
 
 export async function saveSponsorSettings(
