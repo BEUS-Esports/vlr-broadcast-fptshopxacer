@@ -105,6 +105,7 @@ test('Roadshow template renders every graphic inside the canvas', async ({ page,
 		await output.route('**/api/broadcast/events', (route) => {
 			const capture = { ...fixture };
 			Reflect.deleteProperty(capture, 'publications');
+			Reflect.deleteProperty(capture, 'sponsor');
 			const snapshot = {
 				...fixture,
 				controls: {

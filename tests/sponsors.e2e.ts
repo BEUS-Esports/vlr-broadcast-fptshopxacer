@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { readdir } from 'node:fs/promises';
 import { createClient } from '@libsql/client';
 import { test } from './fixtures';
 import { defaultSponsorConfig } from '../src/lib/broadcast/sponsor';
@@ -17,16 +18,34 @@ const fixtures = new Map<string, Fixture>();
 async function fixture(page: Page, slug: string) {
 	const cached = fixtures.get(slug);
 	if (cached) return cached;
-	const tournament = await prepareTournament(page, `Sponsor ${slug}`, [1]);
-	const match = await createMatch(page, tournament, `Sponsor ${slug}`, 1);
-	const game = await createGame(page, match);
-	const created = {
-		tournamentId: tournament.split('/').pop()!,
-		matchId: match.split('/').pop()!,
-		gameId: game.split('/').pop()!
-	};
 	const db = createClient({ url: process.env.DATABASE_URL! });
 	try {
+		// A restarted worker has an empty cache, but the unique slug already exists in the database.
+		const existing = (
+			await db.execute({
+				sql: `SELECT t.id AS tournament_id, m.id AS match_id, g.id AS game_id
+					FROM tournaments t JOIN matches m ON m.tournament_id = t.id JOIN games g ON g.match_id = m.id
+					WHERE t.slug = ? LIMIT 1`,
+				args: [slug]
+			})
+		).rows[0];
+		if (existing) {
+			const reused = {
+				tournamentId: String(existing.tournament_id),
+				matchId: String(existing.match_id),
+				gameId: String(existing.game_id)
+			};
+			fixtures.set(slug, reused);
+			return reused;
+		}
+		const tournament = await prepareTournament(page, `Sponsor ${slug}`, [1]);
+		const match = await createMatch(page, tournament, `Sponsor ${slug}`, 1);
+		const game = await createGame(page, match);
+		const created = {
+			tournamentId: tournament.split('/').pop()!,
+			matchId: match.split('/').pop()!,
+			gameId: game.split('/').pop()!
+		};
 		const entries = (
 			await db.execute({
 				sql: 'SELECT team_a_entry_id, team_b_entry_id FROM matches WHERE id = ?',
@@ -43,11 +62,11 @@ async function fixture(page: Page, slug: string) {
 			],
 			'write'
 		);
+		fixtures.set(slug, created);
+		return created;
 	} finally {
 		db.close();
 	}
-	fixtures.set(slug, created);
-	return created;
 }
 
 /** Takes the template's game live, shows In-Game and returns the on-air output page. */
@@ -170,4 +189,24 @@ test('invalid upload keeps config', async ({ page }) => {
 	await page.reload();
 	await expect(clutch).toContainText('Uses Tournament Banner');
 	await expect(clutch.getByRole('img')).toHaveCount(0);
+});
+
+test('failed banner save removes the already-uploaded background', async ({ page }) => {
+	await page.goto('/admin/sponsors');
+	const clutch = page.getByRole('form', { name: 'Clutch', exact: true });
+	const before = await readdir(process.env.ASSET_DIR!);
+	await clutch.locator('input[name="background"]').setInputFiles(image('background.png'));
+	await clutch.locator('input[name="logo"]').setInputFiles({
+		name: 'logo.txt',
+		mimeType: 'text/plain',
+		buffer: Buffer.from('not an image')
+	});
+	await clutch.getByRole('button', { name: 'Save banner', exact: true }).click();
+	await expect(page.getByRole('alert')).toContainText('Use a PNG, JPEG, or WebP image.');
+
+	await page.reload();
+	await expect(clutch).toContainText('Uses Tournament Banner');
+	await expect(clutch.getByRole('img')).toHaveCount(0);
+	// The valid background was stored before the logo was rejected, so it must have been rolled back.
+	expect(await readdir(process.env.ASSET_DIR!)).toEqual(before);
 });

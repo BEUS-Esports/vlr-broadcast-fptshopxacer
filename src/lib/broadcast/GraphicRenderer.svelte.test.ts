@@ -580,3 +580,40 @@ it('strips sponsor for unsupported templates, including the live HUD', async () 
 		expect(supported.container.querySelector('[data-banner-sponsor-background]')).not.toBeNull();
 	}
 });
+
+it('hides the sponsor loop in the live HUD unless Spectra is attributed to a supporter', () => {
+	const snapshot: BroadcastSnapshot = {
+		...preparedFixture(),
+		tournament: { id: 't', name: 'T', slug: 'predator-roadshow-val' },
+		sponsor: { ...emptySponsor, loop: { logos: ['/assets/x.png'], intervalMs: 5000 } },
+		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+	};
+	const hud = (provider: 'spectra' | 'gstack', attribution: 'required' | 'supporter') =>
+		render(GraphicRenderer, {
+			snapshot,
+			graphic: 'in-game',
+			mode: 'preview-live',
+			telemetry: {
+				version: 1,
+				stream: { epoch: 'epoch', sequence: 1 },
+				state: liveGameFixture({ provider, selectedGameId: null }),
+				status: liveSessionFixture({ provider, selectedGameId: null, attribution })
+			}
+		}).container;
+	for (const [provider, attribution, shown] of [
+		['spectra', 'required', false],
+		['spectra', 'supporter', true],
+		['gstack', 'required', true]
+	] as const) {
+		const container = hud(provider, attribution);
+		expect(container.querySelector('[data-live-hud]'), `${provider}/${attribution}`).not.toBeNull();
+		expect(
+			container.querySelector('[data-sponsor-loop]') !== null,
+			`${provider}/${attribution}`
+		).toBe(shown);
+		expect(
+			container.querySelector('[data-sponsor-safe-area]') !== null,
+			`${provider}/${attribution}`
+		).toBe(shown);
+	}
+});

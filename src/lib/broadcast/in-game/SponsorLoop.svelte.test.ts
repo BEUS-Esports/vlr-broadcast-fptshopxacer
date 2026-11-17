@@ -103,3 +103,10 @@ it('reduced motion swaps logos without a crossfade', async () => {
 	await vi.advanceTimersByTimeAsync(5000);
 	expect(sources(view)).toEqual([b]);
 });
+
+it('a failed logo leaves no placeholder on air', async () => {
+	const view = render(SponsorLoop, { logos: ['/missing-sponsor-logo.png'], intervalMs: 5000 });
+	await vi.waitFor(() => expect(view.container.querySelector('img')).toBeNull());
+	expect(view.container.querySelector('[role="img"]')).toBeNull();
+	expect(loop(view)).not.toBeNull();
+});

@@ -24,7 +24,7 @@
 		<!-- A one-item keyed each lets the outgoing logo keep its own value while it fades out. -->
 		{#each [logos[shown]] as logo (logo)}
 			<div class="logo" transition:fade={{ duration: prefersReducedMotion.current ? 0 : 300 }}>
-				<Asset path={logo} label="Sponsor logo" />
+				<Asset path={logo} label="Sponsor logo" blankMissing />
 			</div>
 		{/each}
 	</div>
