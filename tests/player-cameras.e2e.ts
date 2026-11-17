@@ -13,6 +13,10 @@ test('hands out seat links and swaps booths without touching Team A/B', async ({
 
 	// Fresh install: labels exist, but no room means no links and no previews.
 	await page.goto('/admin/player-cameras');
+	// The suite runs on http://localhost: secure here, but not for other LAN machines.
+	await expect(page.getByRole('region', { name: 'Connection security' })).toContainText(
+		'Works on this PC only'
+	);
 	const tiles = page.locator('[data-seat]');
 	await expect(tiles).toHaveCount(10);
 	await expect(tiles.first()).toContainText('BOOTH1_S1');

@@ -129,7 +129,12 @@ Fixed-slot help: "push=BOOTH1_S1 — keep the push parameter unchanged"
   treats `{ action: 'view-connection', value }` as connected/disconnected. Keyed by seat ID so
   swapping booths never remounts iframes — only labels move.
 - Changing room or password asks for confirmation ("Every handed-out player link stops working").
-- Copy uses the Clipboard API with a toast (existing `toaster.ts`).
+- Copy uses the Clipboard API with a toast (existing `toaster.ts`), falling back to a selected
+  textarea and a visible link list where the Clipboard API is unavailable (plain-HTTP LAN).
+- Connection security status from `window.isSecureContext`: VDO.Ninja iframes only work in a
+  secure context (HTTPS or localhost), and an iframe is secure only if its parent page is. HTTPS →
+  OK; `http://localhost` → warning (works on this PC only; an OBS/vMix PC on `http://<LAN-IP>`
+  loses every camera, as happened in the LoL app); plain HTTP elsewhere → error.
 
 ## Verification
 

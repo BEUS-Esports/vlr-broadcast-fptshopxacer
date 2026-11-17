@@ -3,6 +3,7 @@
 	import { refreshAll } from '$app/navigation';
 	import type { createBroadcastClient } from '#lib/broadcast/client.ts';
 	import { copyText } from '#lib/cameras/clipboard.ts';
+	import { pageSecurity, type PageSecurity } from '#lib/cameras/security.ts';
 	import ManagementForm from '#lib/components/admin/management/ManagementForm.svelte';
 	import PlayerCameraPreview from '#lib/components/admin/cameras/PlayerCameraPreview.svelte';
 	import {
@@ -24,6 +25,12 @@
 		Object.fromEntries(seatIds.map((id) => [id, false])) as Record<SeatId, boolean>
 	);
 	const connectedCount = $derived(seatIds.filter((id) => connected[id]).length);
+
+	// Browser-only fact; unknown during server rendering.
+	let security = $state<PageSecurity | null>(null);
+	onMount(() => {
+		security = pageSecurity(location.protocol, window.isSecureContext);
+	});
 
 	// Follow live selection, lineup and booth changes made from other pages or PCs.
 	const broadcastClient = getContext<ReturnType<typeof createBroadcastClient>>('broadcast-client');
@@ -79,6 +86,37 @@
 			{connectedCount}/10 feeds connected
 		</p>
 	</header>
+
+	{#if security}
+		<section
+			aria-label="Connection security"
+			class={[
+				'space-y-1 card p-4',
+				security === 'https' && 'preset-tonal-success',
+				security === 'local-only' && 'preset-tonal-warning',
+				security === 'insecure' && 'preset-tonal-error'
+			]}
+		>
+			{#if security === 'https'}
+				<p class="font-semibold">Served over HTTPS</p>
+				<p class="text-sm">VDO.Ninja cameras can load on every machine that opens this app.</p>
+			{:else if security === 'local-only'}
+				<p class="font-semibold">Works on this PC only (localhost)</p>
+				<p class="text-sm">
+					Other machines that open this app over http:// — such as the OBS or vMix PC loading HUD
+					outputs — are not a secure context, so VDO.Ninja cameras will not load there. Serve the
+					app over HTTPS for LAN use.
+				</p>
+			{:else}
+				<p class="font-semibold">Not secure (plain HTTP)</p>
+				<p class="text-sm">
+					VDO.Ninja only loads cameras on HTTPS or localhost pages, so previews here and HUD cameras
+					on this machine stay blank. Serve the app over HTTPS, or open it on the server PC via
+					localhost.
+				</p>
+			{/if}
+		</section>
+	{/if}
 
 	{#if !room}
 		<p class="card preset-tonal-warning p-4">
