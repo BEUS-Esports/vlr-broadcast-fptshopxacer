@@ -70,6 +70,36 @@ it('defaults v5 controls and independently persists canonical field lists and li
 	});
 });
 
+it('persists the map winner lineup mode and resets it on game change', async () => {
+	await withManagementFixture(async ({ db }) => {
+		await db.insert(s.games).values([
+			{
+				id: 'g',
+				matchId: 'match',
+				number: 1,
+				name: 'Held',
+				resultType: 'forfeit',
+				winnerEntryId: 'entry-a'
+			},
+			{ id: 'g2', matchId: 'match', number: 2, name: 'Next' }
+		]);
+		const service = await import('../services/broadcast');
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		let state = await service.updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
+		state = await service.updateBroadcastState({
+			expectedRevision: state.controlRevision,
+			lineupTeams: 'winner'
+		});
+		expect(state.lineupTeams).toBe('winner');
+		expect((await buildBroadcastSnapshot()).liveControls.lineupTeams).toBe('winner');
+		state = await service.updateBroadcastState({
+			expectedRevision: state.controlRevision,
+			selectedGameId: 'g2'
+		});
+		expect(state.lineupTeams).toBe('both');
+	});
+});
+
 it('validates player and MVP fields independently and captures new choices only on Show', async () => {
 	await withManagementFixture(async ({ db }) => {
 		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'Held' });

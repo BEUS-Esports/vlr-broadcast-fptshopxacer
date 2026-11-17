@@ -62,8 +62,22 @@ export function lineupTeamVisible(snapshot: BroadcastSnapshot, entryId: string |
 		(snapshot.liveControls.lineupTeams === 'team-a' &&
 			entryId === snapshot.competition.teamAEntryId) ||
 		(snapshot.liveControls.lineupTeams === 'team-b' &&
-			entryId === snapshot.competition.teamBEntryId)
+			entryId === snapshot.competition.teamBEntryId) ||
+		(snapshot.liveControls.lineupTeams === 'winner' &&
+			entryId !== null &&
+			entryId === snapshot.game?.winnerEntryId)
 	);
+}
+
+/** Forfeits and walkovers save no score; broadcast shows the advancing team 13–0 instead. */
+export function displayGameScore(snapshot: BroadcastSnapshot, entryId: string | null) {
+	const saved = teamScore(snapshot, entryId, 'game');
+	if (saved !== null || !snapshot.game?.winnerEntryId || entryId === null) return saved;
+	return entryId === snapshot.game.winnerEntryId ? 13 : 0;
+}
+
+export function gameWinnerTeam(snapshot: BroadcastSnapshot) {
+	return teamByEntryId(snapshot, snapshot.game?.winnerEntryId ?? null);
 }
 
 export function presentationTeams(snapshot: BroadcastSnapshot) {

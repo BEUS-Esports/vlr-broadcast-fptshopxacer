@@ -497,3 +497,32 @@ it('removes the banner immediately on hide and never retains an outgoing slot on
 	await view.rerender({ snapshot: shown, graphic: 'in-game' });
 	expect(view.container.querySelectorAll('[data-match-banner]')).toHaveLength(1);
 });
+
+it('themes the live HUD only for the roadshow template', async () => {
+	const hud = async (slug: string) => {
+		const prepared = { ...preparedFixture(), tournament: { id: 't', name: 'T', slug } };
+		const snapshot = {
+			...prepared,
+			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+		};
+		const view = render(GraphicRenderer, { snapshot, graphic: 'in-game', mode: 'preview-live' });
+		await document.fonts.ready;
+		return view.container.querySelector<HTMLElement>('[data-live-hud]')!;
+	};
+	const roadshow = await hud('predator-roadshow-val-dong-nai');
+	expect(getComputedStyle(roadshow).fontFamily).toContain('Predator');
+	// Long names never ellipsize under the roadshow theme.
+	const clipped = [
+		...roadshow.querySelectorAll('article header strong, article .agent span, .team-rail strong')
+	];
+	expect(clipped.length).toBeGreaterThan(0);
+	for (const el of clipped) {
+		expect(getComputedStyle(el).textOverflow).toBe('clip');
+		expect(getComputedStyle(el).webkitLineClamp).toBe('none');
+	}
+	const other = await hud('other');
+	expect(getComputedStyle(other).fontFamily).not.toContain('Predator');
+	expect(
+		getComputedStyle(other.querySelector('.round-context, .rail-label')!).backgroundColor
+	).toMatch(/^rgba?\(16, 21, 29/);
+});

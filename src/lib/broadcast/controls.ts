@@ -1,6 +1,6 @@
 import { statisticFields, type StatisticField } from '#lib/statistics/fields.ts';
 
-export const lineupTeams = ['both', 'team-a', 'team-b'] as const;
+export const lineupTeams = ['both', 'team-a', 'team-b', 'winner'] as const;
 export type LineupTeams = (typeof lineupTeams)[number];
 export const graphicIds = [
 	'player-lineup',

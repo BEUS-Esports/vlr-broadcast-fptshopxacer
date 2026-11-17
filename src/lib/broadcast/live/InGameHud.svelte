@@ -80,7 +80,11 @@
 			class="rail"
 			data-position={position}
 			data-side={side ?? 'neutral'}
-			style:--live-side={side === 'attack' ? '#248bff' : side === 'defense' ? '#ff4655' : '#97a2b0'}
+			style:--live-side={side === 'attack'
+				? 'var(--hud-attack, #248bff)'
+				: side === 'defense'
+					? 'var(--hud-defense, #ff4655)'
+					: 'var(--hud-neutral, #97a2b0)'}
 		>
 			<div class="rail-label">
 				<strong>{label}</strong><span
@@ -135,9 +139,9 @@
 		height: 1080px;
 		overflow: hidden;
 		pointer-events: none;
-		color: #f7f4eb;
+		color: var(--hud-ink, #f7f4eb);
 		font:
-			14px/1.2 'Segoe UI',
+			14px/1.2 var(--hud-font, 'Segoe UI'),
 			sans-serif;
 	}
 	.round-context {
@@ -148,7 +152,7 @@
 		display: flex;
 		gap: 12px;
 		padding: 5px 10px;
-		background: #10151de0;
+		background: var(--hud-panel, #10151de0);
 		font-size: 11px;
 		letter-spacing: 0.08em;
 	}
@@ -165,9 +169,9 @@
 		min-width: 40px;
 		text-align: center;
 		font:
-			800 28px/1 Bahnschrift,
+			800 28px/1 var(--hud-font-display, Bahnschrift),
 			sans-serif;
-		background: #10151df2;
+		background: var(--hud-panel, #10151df2);
 	}
 	.score[data-position='left'] {
 		left: 858px;
@@ -193,15 +197,15 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 6px 10px;
-		background: #10151de0;
+		background: var(--hud-panel, #10151de0);
 		border-bottom: 2px solid var(--live-side);
 		font:
-			700 11px/1 'Segoe UI',
+			700 11px/1 var(--hud-font, 'Segoe UI'),
 			sans-serif;
 		letter-spacing: 0.06em;
 	}
 	.rail-label span {
-		color: #b0bac6;
+		color: var(--hud-muted, #b0bac6);
 	}
 	.rail[data-position='right'] :global(article) {
 		flex-direction: row-reverse;
@@ -216,7 +220,7 @@
 		display: flex;
 		gap: 4px;
 		padding: 7px;
-		background: #10151de0;
+		background: var(--hud-panel, #10151de0);
 	}
 	.history-teams,
 	.history-round {
@@ -238,14 +242,14 @@
 	.history-round small {
 		grid-row: 2;
 		font-size: 7px;
-		color: #b0bac6;
+		color: var(--hud-muted, #b0bac6);
 	}
 	.history-round b {
 		grid-column: 1;
 		grid-row: 2;
 		width: 16px;
 		text-align: center;
-		border-bottom: 2px solid #97a2b0;
+		border-bottom: 2px solid var(--hud-muted, #97a2b0);
 	}
 	.history-round b[data-winner-position='left'] {
 		grid-row: 1;

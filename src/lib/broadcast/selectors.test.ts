@@ -102,3 +102,37 @@ it('rebuilds on-air booths from the live booth flag, like presentation', async (
 		});
 	});
 });
+
+it('shows only the saved game winner in winner mode', async () => {
+	const { preparedSnapshot } = await import('./templates/test-snapshot');
+	const { lineupTeamVisible, gameWinnerTeam } = await import('./selectors');
+	const base = preparedSnapshot();
+	const s = {
+		...base,
+		liveControls: { ...base.liveControls, lineupTeams: 'winner' as const },
+		game: { ...base.game!, winnerEntryId: 'a' }
+	};
+	expect(lineupTeamVisible(s, 'a')).toBe(true);
+	expect(lineupTeamVisible(s, 'b')).toBe(false);
+	expect(gameWinnerTeam(s)?.entryId).toBe('a');
+	const none = { ...s, game: { ...s.game, winnerEntryId: null } };
+	expect(lineupTeamVisible(none, 'a')).toBe(false);
+	expect(lineupTeamVisible(none, 'b')).toBe(false);
+	expect(gameWinnerTeam(none)).toBeNull();
+});
+
+it('shows saved game scores, or 13–0 for the advancing team when none is saved', async () => {
+	const { preparedSnapshot } = await import('./templates/test-snapshot');
+	const { displayGameScore } = await import('./selectors');
+	const base = preparedSnapshot();
+	const saved = { ...base, game: { ...base.game!, scoreA: 13, scoreB: 9, winnerEntryId: 'a' } };
+	expect(displayGameScore(saved, 'a')).toBe(13);
+	expect(displayGameScore(saved, 'b')).toBe(9);
+	const walkover = {
+		...base,
+		game: { ...base.game!, scoreA: null, scoreB: null, winnerEntryId: 'b' }
+	};
+	expect(displayGameScore(walkover, 'b')).toBe(13);
+	expect(displayGameScore(walkover, 'a')).toBe(0);
+	expect(displayGameScore(base, 'a')).toBeNull();
+});

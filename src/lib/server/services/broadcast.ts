@@ -237,7 +237,7 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 		)
 			throw new SaveError('invalid', 'Presentation swap must be a boolean.');
 		if (!lineupTeams.includes(state.lineupTeams))
-			throw new SaveError('invalid', 'Choose both teams, team A, or team B.');
+			throw new SaveError('invalid', 'Choose both teams, team A, team B, or the map winner.');
 		if (
 			state.currentAttackersEntryId !== null &&
 			(!selected ||

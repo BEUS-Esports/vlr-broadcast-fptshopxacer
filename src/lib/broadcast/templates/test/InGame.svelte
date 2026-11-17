@@ -109,18 +109,18 @@
 		box-sizing: border-box;
 		overflow: hidden;
 		pointer-events: none;
-		color: #f7f4eb;
+		color: var(--hud-ink, #f7f4eb);
 		font:
-			15px/1.2 'Segoe UI',
+			15px/1.2 var(--hud-font, 'Segoe UI'),
 			sans-serif;
 		--gfx-bg: #090c11;
-		--gfx-panel: #10151df2;
-		--gfx-line: #303947;
-		--gfx-muted: #97a2b0;
-		--gfx-ink: #f7f4eb;
-		--gfx-accent: #63e6d7;
-		--gfx-attack: #248bff;
-		--gfx-defense: #ff4655;
+		--gfx-panel: var(--hud-panel, #10151df2);
+		--gfx-line: var(--hud-line, #303947);
+		--gfx-muted: var(--hud-muted, #97a2b0);
+		--gfx-ink: var(--hud-ink, #f7f4eb);
+		--gfx-accent: var(--hud-accent, #63e6d7);
+		--gfx-attack: var(--hud-attack, #248bff);
+		--gfx-defense: var(--hud-defense, #ff4655);
 	}
 
 	.top-wrap {
@@ -140,7 +140,7 @@
 		gap: 14px;
 		padding: 0 22px;
 		background: linear-gradient(180deg, #141b26f7, #090d14f4);
-		border-top: 2px solid #465160;
+		border-top: 2px solid var(--hud-line, #465160);
 		border-bottom: 3px solid var(--gfx-line);
 	}
 
@@ -187,7 +187,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font:
-			800 17px/1 Bahnschrift,
+			800 17px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.045em;
@@ -244,8 +244,8 @@
 		place-items: center;
 		overflow: hidden;
 		color: var(--gfx-muted);
-		background: linear-gradient(135deg, #10151dd9, #171e28bf);
-		border: 1px solid #465160;
+		background: linear-gradient(135deg, var(--hud-panel, #10151dd9), #171e28bf);
+		border: 1px solid var(--hud-line, #465160);
 		clip-path: polygon(
 			12px 0,
 			100% 0,
@@ -258,7 +258,7 @@
 
 	.sponsor-slot span {
 		font:
-			800 10px/1 Bahnschrift,
+			800 10px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.16em;
@@ -292,7 +292,7 @@
 
 	.match-bug strong {
 		font:
-			800 18px/1 Bahnschrift,
+			800 18px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.045em;
@@ -303,7 +303,7 @@
 		margin-top: 7px;
 		color: var(--gfx-muted);
 		font:
-			700 11px/1 Bahnschrift,
+			700 11px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.12em;
@@ -314,7 +314,7 @@
 		margin: 13px 0 0;
 		color: var(--gfx-accent);
 		font:
-			900 29px/0.95 Bahnschrift,
+			900 29px/0.95 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.055em;
@@ -329,7 +329,7 @@
 		transform: translateX(-50%);
 		color: var(--gfx-muted);
 		font:
-			700 12px/1 Bahnschrift,
+			700 12px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.12em;
