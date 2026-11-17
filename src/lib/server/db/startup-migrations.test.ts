@@ -1,7 +1,7 @@
 import { createClient, type Client } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -112,8 +112,7 @@ it('does not migrate when the backup fails', async () => {
 	expect(await appliedCount()).toBe(tags.length - 1);
 });
 
-it('rolls back a failing migration and keeps the backup', async () => {
-	await migrate(db, { migrationsFolder: realFolder });
+async function brokenFolder() {
 	const broken = await folder('broken', (copy) => ({
 		...copy,
 		entries: [
@@ -131,6 +130,44 @@ it('rolls back a failing migration and keeps the backup', async () => {
 		join(broken, '9999_broken.sql'),
 		'CREATE TABLE broken_one (id integer);\n--> statement-breakpoint\nCREATE TABL broken_two (id integer);'
 	);
+	return broken;
+}
+
+const times = (...isos: string[]) => {
+	const dates = isos.map((iso) => new Date(iso));
+	return () => dates.shift()!;
+};
+
+it('reuses the backup when an unchanged database retries a failed migration', async () => {
+	await migrate(db, { migrationsFolder: realFolder });
+	const migrationsFolder = await brokenFolder();
+	const now = times('2026-11-17T01:00:00.000Z', '2026-11-17T01:01:00.000Z');
+	const first = await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(
+		(error: Error) => error.message
+	);
+	const second = await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(
+		(error: Error) => error.message
+	);
+	expect(second).toBe(first);
+	expect(await readdir(backupRoot)).toEqual(['2026-11-17T01-00-00-000Z-before-9999_broken']);
+});
+
+it('backs up again when the database changed since the last backup', async () => {
+	await migrate(db, { migrationsFolder: realFolder });
+	const migrationsFolder = await brokenFolder();
+	const now = times('2026-11-17T01:00:00.000Z', '2026-11-17T01:01:00.000Z');
+	await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(() => {});
+	await db.insert(schema.teams).values({ id: 'newer', name: 'Newer', tag: 'N' });
+	await migrateOnStartup(db, { migrationsFolder, backupRoot, now }).catch(() => {});
+	expect(await readdir(backupRoot)).toEqual([
+		'2026-11-17T01-00-00-000Z-before-9999_broken',
+		'2026-11-17T01-01-00-000Z-before-9999_broken'
+	]);
+});
+
+it('rolls back a failing migration and keeps the backup', async () => {
+	await migrate(db, { migrationsFolder: realFolder });
+	const broken = await brokenFolder();
 	const failure = migrateOnStartup(db, { migrationsFolder: broken, backupRoot });
 	await expect(failure).rejects.toThrow(/the pre-migration backup is at .*before-9999_broken/);
 	const error: Error = await failure.then(
