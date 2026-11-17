@@ -58,13 +58,14 @@ export type BroadcastScopeView = {
 	mvpPlayerId: string | null;
 };
 export type BroadcastPreparedSnapshot = {
-	version: 4;
+	version: 5;
 	/** Optimistic-lock revision for operator broadcast controls only. */
 	controlRevision: number;
 	/** Persisted invalidation revision for prepared tournament/match/game data. */
 	dataRevision: number;
 	liveControls: {
 		swapped: boolean;
+		boothsSwapped: boolean;
 		lineupTeams: LineupTeams;
 		currentAttackersEntryId: string | null;
 		pause: BroadcastPauseState;
@@ -93,6 +94,8 @@ export type BroadcastPreparedSnapshot = {
 		| null;
 	competition: { teamAEntryId: string | null; teamBEntryId: string | null };
 	presentation: { leftEntryId: string | null; rightEntryId: string | null };
+	/** Physical seating: Booth 1 holds Team A unless `liveControls.boothsSwapped`. */
+	booths: { booth1EntryId: string | null; booth2EntryId: string | null };
 	sides: {
 		preparedAttackersEntryId: string | null;
 		preparedDefendersEntryId: string | null;
@@ -227,11 +230,12 @@ const result = {
 	winnerEntryId: text
 };
 const preparedFields = {
-	version: oneOf(4),
+	version: oneOf(5),
 	controlRevision: (v: unknown) => integer(v) && (v as number) > 0,
 	dataRevision: (v: unknown) => integer(v) && (v as number) > 0,
 	liveControls: object({
 		swapped: boolean,
+		boothsSwapped: boolean,
 		lineupTeams: oneOf(...lineupTeams),
 		currentAttackersEntryId: text,
 		pause: isBroadcastPauseState,
@@ -262,6 +266,7 @@ const preparedFields = {
 	),
 	competition: object({ teamAEntryId: text, teamBEntryId: text }),
 	presentation: object({ leftEntryId: text, rightEntryId: text }),
+	booths: object({ booth1EntryId: text, booth2EntryId: text }),
 	sides: object({
 		preparedAttackersEntryId: text,
 		preparedDefendersEntryId: text,
@@ -332,6 +337,20 @@ const preparedFields = {
 	})
 };
 const preparedCheck = object(preparedFields);
+// Versions before 5 carry no booth assignment.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- omit the v5-only field.
+const { booths, ...legacyFields } = preparedFields;
+const legacyPreparedV4Check = object({
+	...legacyFields,
+	version: oneOf(4),
+	liveControls: object({
+		swapped: boolean,
+		lineupTeams: oneOf(...lineupTeams),
+		currentAttackersEntryId: text,
+		pause: isBroadcastPauseState,
+		ceremony: isBroadcastCeremonyEvent
+	})
+});
 const legacyControls = object({
 	visibility: object(Object.fromEntries(graphicIds.map((id) => [id, boolean]))),
 	playerStats: object({
@@ -343,13 +362,13 @@ const legacyControls = object({
 	mvpScope: oneOf(...broadcastScopes)
 });
 const legacyPreparedV2Check = object({
-	...preparedFields,
+	...legacyFields,
 	version: oneOf(2),
 	liveControls: object({ swapped: boolean, currentAttackersEntryId: text }),
 	controls: legacyControls
 });
 const legacyPreparedV3Check = object({
-	...preparedFields,
+	...legacyFields,
 	version: oneOf(3),
 	liveControls: object({
 		swapped: boolean,
@@ -362,23 +381,32 @@ const legacyPreparedV3Check = object({
 
 function persistedPublication(value: unknown): BroadcastPreparedSnapshot | null {
 	if (isBroadcastPublication(value)) return value;
-	const v2 = legacyPreparedV2Check(value);
-	if (!v2 && !legacyPreparedV3Check(value)) return null;
+	const v4 = legacyPreparedV4Check(value);
+	const v2 = !v4 && legacyPreparedV2Check(value);
+	if (!v4 && !v2 && !legacyPreparedV3Check(value)) return null;
 	const old = value as BroadcastPreparedSnapshot;
-	const upgraded: BroadcastPreparedSnapshot = {
-		...old,
-		version: 4,
-		liveControls: {
-			...old.liveControls,
-			...(v2 ? { pause: { type: 'none' } as BroadcastPauseState, ceremony: null } : {}),
-			lineupTeams: 'both'
-		},
-		controls: {
-			...old.controls,
-			playerStats: { ...old.controls.playerStats, fields: [...statisticFields] },
-			mvpFields: [...statisticFields]
-		}
+	const booths = {
+		booth1EntryId: old.competition.teamAEntryId,
+		booth2EntryId: old.competition.teamBEntryId
 	};
+	const upgraded: BroadcastPreparedSnapshot = v4
+		? { ...old, version: 5, liveControls: { ...old.liveControls, boothsSwapped: false }, booths }
+		: {
+				...old,
+				version: 5,
+				liveControls: {
+					...old.liveControls,
+					...(v2 ? { pause: { type: 'none' } as BroadcastPauseState, ceremony: null } : {}),
+					lineupTeams: 'both',
+					boothsSwapped: false
+				},
+				booths,
+				controls: {
+					...old.controls,
+					playerStats: { ...old.controls.playerStats, fields: [...statisticFields] },
+					mvpFields: [...statisticFields]
+				}
+			};
 	return isBroadcastPublication(upgraded) ? upgraded : null;
 }
 

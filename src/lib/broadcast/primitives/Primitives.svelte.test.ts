@@ -65,11 +65,12 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 		mvpPlayerId: null
 	};
 	const snapshot: BroadcastSnapshot = {
-		version: 4,
+		version: 5,
 		controlRevision: 1,
 		dataRevision: 1,
 		liveControls: {
 			swapped: true,
+			boothsSwapped: false,
 			lineupTeams: 'both',
 			currentAttackersEntryId: 'b',
 			pause: { type: 'none' },
@@ -99,6 +100,7 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 		},
 		competition: { teamAEntryId: 'a', teamBEntryId: 'b' },
 		presentation: { leftEntryId: 'b', rightEntryId: 'a' },
+		booths: { booth1EntryId: 'a', booth2EntryId: 'b' },
 		sides: {
 			preparedAttackersEntryId: 'a',
 			preparedDefendersEntryId: 'b',

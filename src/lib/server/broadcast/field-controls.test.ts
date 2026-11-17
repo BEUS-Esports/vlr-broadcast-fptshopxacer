@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { removeTestDatabase } from '../testing/management-fixture';
 import { eq } from 'drizzle-orm';
 
-it('defaults v4 controls and independently persists canonical field lists and live lineup teams', async () => {
+it('defaults v5 controls and independently persists canonical field lists and live lineup teams', async () => {
 	await withManagementFixture(async ({ db }) => {
 		await db.insert(s.games).values([
 			{ id: 'g', matchId: 'match', number: 1, name: 'Held' },
@@ -24,7 +24,7 @@ it('defaults v4 controls and independently persists canonical field lists and li
 			visibility: { 'player-lineup': true, mvp: true }
 		});
 		const snapshot = await buildBroadcastSnapshot();
-		expect(snapshot.version).toBe(4);
+		expect(snapshot.version).toBe(5);
 		expect(snapshot.liveControls.lineupTeams).toBe('both');
 		expect(snapshot.controls.playerStats.fields).toHaveLength(8);
 		const held = snapshot.publications.mvp;
@@ -164,7 +164,7 @@ it('backfills a populated pre-C database without changing saved selections or he
 	}
 });
 
-it('strictly decodes v4 and upgrades valid persisted v2/v3 without changing captured content or revisions', async () => {
+it('strictly decodes v5 and upgrades valid persisted v2/v3 without changing captured content or revisions', async () => {
 	await withManagementFixture(async ({ db }) => {
 		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'Held' });
 		const { updateBroadcastState } = await import('../services/broadcast');
@@ -177,13 +177,15 @@ it('strictly decodes v4 and upgrades valid persisted v2/v3 without changing capt
 		const { decodeBroadcastSnapshot, validatedPublications } =
 			await import('../../broadcast/types');
 		const snapshot = await buildBroadcastSnapshot();
-		expect(snapshot.version).toBe(4);
+		expect(snapshot.version).toBe(5);
 		const held = snapshot.publications.mvp!;
 		await db.update(s.games).set({ name: 'Newer saved game' }).where(eq(s.games.id, 'g'));
 		for (const version of [2, 3]) {
 			const legacy = JSON.parse(JSON.stringify(held));
 			legacy.version = version;
 			delete legacy.liveControls.lineupTeams;
+			delete legacy.liveControls.boothsSwapped;
+			delete legacy.booths;
 			delete legacy.controls.playerStats.fields;
 			delete legacy.controls.mvpFields;
 			if (version === 2) {

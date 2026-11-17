@@ -277,5 +277,44 @@ it('emits a complete empty snapshot without inventing preparation', async () => 
 			result: false
 		});
 		expect(snapshot.scopes.tournament.candidates).toEqual([]);
+		expect(snapshot.booths).toEqual({ booth1EntryId: null, booth2EntryId: null });
+		expect(snapshot.liveControls.boothsSwapped).toBe(false);
+	});
+});
+
+it('derives booths from Team A/B and the booth flag only', async () => {
+	await withManagementFixture(async ({ db }) => {
+		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'One' });
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		const { updateBroadcastState } = await import('../services/broadcast');
+		const state = await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
+		const before = await buildBroadcastSnapshot();
+		expect(before.booths).toEqual({ booth1EntryId: 'entry-a', booth2EntryId: 'entry-b' });
+		await updateBroadcastState({ expectedRevision: state.controlRevision, boothsSwapped: true });
+		const after = await buildBroadcastSnapshot();
+		expect(after.liveControls.boothsSwapped).toBe(true);
+		expect(after.booths).toEqual({ booth1EntryId: 'entry-b', booth2EntryId: 'entry-a' });
+		expect(after.competition).toEqual(before.competition);
+		expect(after.presentation).toEqual(before.presentation);
+	});
+});
+
+it('upgrades saved v4 captures to v5 instead of dropping them', async () => {
+	await withManagementFixture(async ({ db }) => {
+		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'One' });
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		const { updateBroadcastState } = await import('../services/broadcast');
+		const { validatedPublications } = await import('#lib/broadcast/types.ts');
+		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the live envelope.
+		const { publications, ...current } = await buildBroadcastSnapshot();
+		const { booths, ...rest } = current;
+		const { boothsSwapped, ...liveControls } = current.liveControls;
+		expect({ booths, boothsSwapped }).toEqual({
+			booths: { booth1EntryId: 'entry-a', booth2EntryId: 'entry-b' },
+			boothsSwapped: false
+		});
+		const v4 = { ...rest, version: 4, liveControls };
+		expect(validatedPublications({ 'in-game': v4 })['in-game']).toEqual(current);
 	});
 });
