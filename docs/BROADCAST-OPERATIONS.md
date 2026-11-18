@@ -73,6 +73,7 @@ At runtime:
 - Before upgrading to the version with bundle import, run `pnpm db:duplicates`. It lists team and player names, tags and Riot IDs that differ only by case or by spaces around `#`. The startup migration adds unique indexes and refuses to apply over such duplicates, so fix them first. The script reads `DATABASE_URL` from the host's `.env` (`file:local.db`), not the compose database, so for the compose deployment run `DATABASE_URL=file:data/broadcast.db pnpm db:duplicates` from the repo on the host, with the app stopped (or against a backup copy).
 - Run **one Node process**. SSE delivery is process-local, so several workers or replicas would need shared pub/sub.
 - Prepared graphic captures are stored in the database and survive restarts.
+- After deploying a new build, refresh every OBS browser source and open admin page. Output pages validate the live snapshot strictly, so one left open across a deploy that changed the snapshot shape stops updating.
 - Authentication is deferred for trusted-LAN operation. Output pages have no controls, but anyone who can reach the management routes can write.
 
 ## Linux HTTPS deployment (Docker + Caddy)
