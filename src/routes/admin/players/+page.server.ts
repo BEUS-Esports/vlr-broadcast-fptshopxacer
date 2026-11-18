@@ -3,6 +3,7 @@ import { asc } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { players } from '#lib/server/db/schema/index.ts';
 import { removeAsset, saveUpload } from '#lib/server/assets.ts';
+import { bundleImportActions } from '#lib/server/import/actions.ts';
 import { field, formError } from '#lib/server/services/form-error.ts';
 import { removeProfile, savePlayer } from '#lib/server/services/profiles.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,6 +17,7 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
+	...bundleImportActions,
 	save: async ({ request }) => {
 		const form = await request.formData();
 		let uploaded: string | null = null;
