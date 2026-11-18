@@ -162,7 +162,7 @@
 							? player.playerId && player.playerId === saved?.player?.playerId
 							: player.providerSlot === slot || (player.providerSlot === null && index === slot - 1)
 					) ?? null}
-				<PlayerCard {saved} live={player} {resources} />
+				<PlayerCard {saved} live={player} {resources} mirrored={position === 'right'} />
 			{/each}
 		</div>
 	{/each}
@@ -359,9 +359,6 @@
 	}
 	.rail[data-position='right'] {
 		left: 1592px;
-	}
-	.rail[data-position='right'] :global(:is(article, article header, article footer)) {
-		flex-direction: row-reverse;
 	}
 	.history {
 		position: absolute;

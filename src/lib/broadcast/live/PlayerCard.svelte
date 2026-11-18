@@ -20,11 +20,14 @@
 	let {
 		saved,
 		live,
-		resources
+		resources,
+		mirrored = false
 	}: {
 		saved: BroadcastSnapshot['lineups'][number] | undefined;
 		live: LivePlayerState | null;
 		resources: LiveResources | null;
+		/** Right-rail card: every row reads from the outer (right) edge inward. */
+		mirrored?: boolean;
 	} = $props();
 	const catalogAgent = $derived(
 		resourceByName(resources?.agents ?? [], live?.agent ?? saved?.agent?.displayName ?? null)
@@ -65,6 +68,7 @@
 <article
 	class:dead={live?.alive === false}
 	class:observed={live?.observed === true}
+	class:mirrored
 	data-player-id={saved?.player?.playerId ?? ''}
 	data-health-available={live?.health !== null && live?.health !== undefined}
 >
@@ -178,6 +182,31 @@
 		border: 1px solid var(--hud-line, #596370);
 		border-left: 3px solid var(--live-side, var(--hud-muted, #97a2b0));
 		clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
+	}
+	/* Exact mirror of the left-rail card: reverse every row and move edge decoration. */
+	article.mirrored {
+		flex-direction: row-reverse;
+		border-left: 1px solid var(--hud-line, #596370);
+		border-right: 3px solid var(--live-side, var(--hud-muted, #97a2b0));
+		clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+	}
+	.mirrored
+		:is(header, footer, .vitals, .loadout, .abilities, .ability, .charges, .ultimate, .pips) {
+		flex-direction: row-reverse;
+	}
+	.mirrored header strong {
+		text-align: right;
+	}
+	.mirrored .loadout {
+		margin-left: 0;
+		margin-right: auto;
+	}
+	.mirrored .kda {
+		margin-left: 0;
+		margin-right: 10px;
+	}
+	.mirrored .health-track span {
+		margin-left: auto;
 	}
 	/* Dead: name, credits and K/D/A only; height stays so rails never jump. */
 	article.dead {

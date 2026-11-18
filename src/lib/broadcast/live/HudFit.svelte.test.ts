@@ -174,3 +174,83 @@ it('hides shield text with no armor and on dead cards', async () => {
 	expect(view.container.querySelector('.shield')).toBeNull();
 	expect(view.container.querySelector('.enhanced')).toBeNull();
 });
+
+it('mirrors the right rail card exactly against the left one', async () => {
+	const host = await themed();
+	const resources: LiveResources = {
+		agents: [
+			{
+				id: 'jett',
+				key: 'jett',
+				displayName: 'Jett',
+				roleName: null,
+				displayIconPath: icon,
+				fullPortraitPath: null,
+				bustPortraitPath: null,
+				roleIconPath: null,
+				abilities: (['grenade', 'ability1', 'ability2', 'ultimate'] as const).map((slot) => ({
+					slot,
+					displayName: slot,
+					displayIconPath: icon
+				}))
+			}
+		],
+		weapons: [{ key: 'vandal', displayName: 'Vandal', displayIconPath: icon }]
+	};
+	const player = (side: number) =>
+		livePlayerFixture({
+			providerSlot: 1,
+			observedName: 'Player',
+			agent: 'Jett',
+			weapon: 'Vandal',
+			alive: true,
+			health: 60,
+			credits: 3100,
+			shield: { raw: 'Heavy', kind: 'heavy', current: null, extra: null },
+			ultimate: { ready: false, current: 3, required: 8 },
+			abilities: {
+				grenade: { current: 1, capacity: 2 },
+				ability1: { current: 1, capacity: 1 },
+				ability2: { current: 0, capacity: 1 }
+			},
+			providerKey: `p${side}`
+		});
+	const live = liveGameFixture();
+	live.teams[0].players = [player(0)];
+	live.teams[1].players = [player(1)];
+	render(InGameHud, {
+		target: host,
+		props: { snapshot: preparedSnapshot(), live, status: null, resources, identity: 'provider' }
+	});
+	await new Promise((r) => setTimeout(r, 50));
+	const [left, right] = [...host.querySelectorAll('.rail')].map((rail) =>
+		rail.querySelector('article')!
+	);
+	const outer = (card: Element, selector: string, mirrored: boolean) => {
+		const c = card.getBoundingClientRect();
+		const box = card.querySelector(selector)!.getBoundingClientRect();
+		return mirrored
+			? [c.right - box.right, c.right - box.left]
+			: [box.left - c.left, box.right - c.left];
+	};
+	for (const selector of [
+		'.agent',
+		'.ultimate :is(.asset, img)',
+		'.pips',
+		'header strong',
+		'[data-health]',
+		'.shield',
+		'.health-track span',
+		'.abilities',
+		'.ability',
+		'.loadout',
+		'.credits'
+	]) {
+		const [a, b] = [outer(left, selector, false), outer(right, selector, true)];
+		expect(Math.abs(a[0] - b[0]), `${selector} near edge`).toBeLessThanOrEqual(1.5);
+		expect(Math.abs(a[1] - b[1]), `${selector} far edge`).toBeLessThanOrEqual(1.5);
+	}
+	const style = (card: Element) => getComputedStyle(card);
+	expect(style(left).borderLeftWidth).toBe(style(right).borderRightWidth);
+	host.remove();
+});
