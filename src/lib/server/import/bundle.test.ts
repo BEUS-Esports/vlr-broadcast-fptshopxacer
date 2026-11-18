@@ -129,7 +129,7 @@ describe('readBundle images', () => {
 		expect(parsed.problems).toEqual([]);
 	});
 
-	it('reports unsupported and oversized images', () => {
+	it('reports unsupported images and passes oversized ones through', () => {
 		const big = new Uint8Array(BUNDLE_LIMITS.imageBytes + 1);
 		const parsed = readBundle(
 			zip({
@@ -139,7 +139,9 @@ describe('readBundle images', () => {
 			})
 		);
 		expect(parsed.portraits).toEqual([]);
-		expect(parsed.logos.black).toEqual([]);
+		expect(parsed.logos.black.map((image) => [image.path, image.bytes.length])).toEqual([
+			['team_logos/black/huge.png', big.length]
+		]);
 		expect(parsed.problems).toEqual([
 			{
 				level: 'error',
@@ -147,14 +149,28 @@ describe('readBundle images', () => {
 				row: null,
 				field: null,
 				message: 'Use a PNG, JPEG, or WebP image.'
-			},
-			{
-				level: 'error',
-				file: 'team_logos/black/huge.png',
-				row: null,
-				field: null,
-				message: 'Images must be 10 MB or smaller.'
 			}
 		]);
+	});
+
+	it('ignores logo folders named after Object.prototype keys', () => {
+		const parsed = readBundle(
+			zip({
+				'teams.csv': enc('a\n1\n'),
+				'team_logos/constructor/a.png': png,
+				'team_logos/__proto__/a.png': png
+			})
+		);
+		expect(parsed.logos).toEqual({ normal: [], white: [], black: [] });
+		expect(parsed.problems).toEqual([]);
+	});
+
+	it('rejects a root sheet with images inside a folder', () => {
+		expect(
+			failure(zip({ 'teams.csv': enc('a\n1\n'), 'bundle/team_logos/normal/A.png': png })).message
+		).toBe('Put the bundle files either at the top of the zip or inside one folder, not both.');
+		expect(
+			failure(zip({ 'teams.csv': enc('a\n1\n'), 'bundle/player_images/A.png': png })).message
+		).toBe('Put the bundle files either at the top of the zip or inside one folder, not both.');
 	});
 });

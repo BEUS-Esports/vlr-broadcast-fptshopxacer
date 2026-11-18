@@ -91,10 +91,13 @@ function stripWrapper(names: string[]) {
 	const first = split[0]?.[0] ?? '';
 	if (!IMAGE_DIRS.has(first.toLowerCase()) && split.every((s) => s.length > 1 && s[0] === first))
 		return (name: string) => name.slice(first.length + 1);
-	const sheetInFolder = split.some(
-		(s) => s.length === 2 && !IMAGE_DIRS.has(s[0].toLowerCase()) && SHEET.test(s[1])
+	const inFolder = split.some(
+		(s) =>
+			s.length > 1 &&
+			!IMAGE_DIRS.has(s[0].toLowerCase()) &&
+			((s.length === 2 && SHEET.test(s[1])) || IMAGE_DIRS.has(s[1].toLowerCase()))
 	);
-	if (sheetInFolder)
+	if (inFolder)
 		throw invalid(
 			'Put the bundle files either at the top of the zip or inside one folder, not both.'
 		);
@@ -128,13 +131,11 @@ export function readBundle(bytes: Uint8Array): ParsedBundle {
 			segments.length === 3 &&
 			segments[1].toLowerCase();
 		const isPortrait = segments[0].toLowerCase() === 'player_images' && segments.length === 2;
-		if (!isPortrait && !(variant && variant in result.logos)) continue;
+		if (!isPortrait && !(variant && Object.hasOwn(result.logos, variant))) continue;
 		const base = segments[segments.length - 1];
 		const problem = (message: string) =>
 			result.problems.push({ level: 'error', file: name, row: null, field: null, message });
 		if (!IMAGE.test(base)) problem('Use a PNG, JPEG, or WebP image.');
-		else if (files[name].length > BUNDLE_LIMITS.imageBytes)
-			problem('Images must be 10 MB or smaller.');
 		else {
 			const image = {
 				path: name,
