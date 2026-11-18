@@ -68,7 +68,7 @@ Applied to every row. Each problem is reported with its file, row number (spread
 
 Holding the upload in the browser instead of on the server means no temp files, no expiry, and no server state between steps (my call).
 
-**Commit failure:** if the transaction fails, already-written image files become unreferenced. The existing asset cleanup (`collectUnusedAssets` / `startAssetCleanup`) removes them after its 14-day grace period. No extra rollback code is needed. Teams and players are inserted only in `profiles.ts`, so the duplicate checks have one entry point.
+**Commit failure:** if the transaction fails, the images written for this import are deleted with `removeAsset`, the same pattern the team and player save actions use. The 14-day asset cleanup remains the backstop if the process dies mid-commit. Teams and players are inserted only in `profiles.ts`, so the duplicate checks have one entry point.
 
 ## Database change
 
