@@ -278,7 +278,7 @@
 		flex: 1;
 		min-height: 0;
 		display: grid;
-		grid-template-columns: 220px minmax(0, 1fr);
+		grid-template-columns: 140px minmax(0, 1fr);
 		align-items: center;
 		background: var(--gfx-panel);
 		border-bottom: 3px solid var(--gfx-accent);
@@ -286,7 +286,7 @@
 
 	.event-logo {
 		height: 100px;
-		margin: 0 18px;
+		margin: 0 14px;
 		border-right: 2px solid var(--gfx-line);
 		background: var(--hud-event-logo, none) center / contain no-repeat;
 	}
@@ -299,7 +299,7 @@
 		text-align: center;
 		color: var(--gfx-ink);
 		font:
-			900 56px/1 var(--hud-font-display, Bahnschrift),
+			900 44px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
 		letter-spacing: 0.02em;

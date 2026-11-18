@@ -54,6 +54,16 @@
 			label={agent?.displayName ?? live?.agent ?? ''}
 			blankMissing
 		/><span>{agent?.displayName ?? live?.agent ?? ''}</span>
+		{#if ultimateText || ultimateArtwork?.displayIconPath}<span
+				class:ready={live?.ultimate.ready === true}
+				class="ultimate"
+				aria-label="Ultimate"
+				>{#if ultimateArtwork?.displayIconPath}<Asset
+						path={ultimateArtwork.displayIconPath}
+						label={ultimateArtwork.displayName}
+						blankMissing
+					/>{/if}{ultimateText ?? ''}</span
+			>{/if}
 	</div>
 	<div class="details">
 		<header>
@@ -64,10 +74,10 @@
 						class="hp"
 						data-health>{live.health}<small>&nbsp;HP</small></strong
 					>{/if}
-				{#if live?.extraHealth !== null && live?.extraHealth !== undefined}<span class="enhanced"
-						>+{live.extraHealth}</span
+				{#if live?.alive !== false && live?.extraHealth !== null && live?.extraHealth !== undefined}<span
+						class="enhanced">+{live.extraHealth}</span
 					>{/if}
-				{#if live?.shield.kind && live.shield.kind !== 'unknown'}<span
+				{#if live?.alive !== false && live?.shield.kind && live.shield.kind !== 'unknown' && live.shield.kind !== 'none'}<span
 						class="shield"
 						data-shield-kind={live.shield.kind}
 						>{live.shield.kind === 'regen' ? 'REGEN' : live.shield.kind.toUpperCase()}{live.shield
@@ -75,8 +85,8 @@
 							? ` ${live.shield.current}`
 							: ''}</span
 					>{/if}
-				{#if live?.shield.extra !== null && live?.shield.extra !== undefined}<span class="enhanced"
-						>+{live.shield.extra} SH</span
+				{#if live?.alive !== false && live?.shield.extra !== null && live?.shield.extra !== undefined}<span
+						class="enhanced">+{live.shield.extra} SH</span
 					>{/if}
 			</span>
 		</header>
@@ -109,16 +119,6 @@
 							{/if}</span
 						>{/if}{/each}
 			</div>
-			{#if ultimateText || ultimateArtwork?.displayIconPath}<span
-					class:ready={live?.ultimate.ready === true}
-					class="ultimate"
-					aria-label="Ultimate"
-					>{#if ultimateArtwork?.displayIconPath}<Asset
-							path={ultimateArtwork.displayIconPath}
-							label={ultimateArtwork.displayName}
-							blankMissing
-						/>{/if}{ultimateText ?? ''}</span
-				>{/if}
 			<span class="loadout">
 				{#if weapon?.displayIconPath}<Asset
 						path={weapon.displayIconPath}
@@ -177,7 +177,7 @@
 	.dead .agent {
 		filter: grayscale(1);
 	}
-	.agent span {
+	.agent > span {
 		display: block;
 		overflow: hidden;
 		white-space: nowrap;
@@ -210,14 +210,16 @@
 	.loadout {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 6px;
+		min-width: 0;
 		margin-left: auto;
 		color: #c4cbd5;
-		font-size: 13px;
+		font-size: 12px;
+		white-space: nowrap;
 	}
 	.loadout :global(.asset) {
-		width: 80px;
-		height: 22px;
+		width: 52px;
+		height: 18px;
 	}
 	.credits {
 		font-variant-numeric: tabular-nums;
@@ -263,17 +265,17 @@
 	footer {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 6px;
+		min-width: 0;
 	}
 	.abilities {
 		display: flex;
-		gap: 9px;
+		gap: 5px;
 	}
 	.ability {
 		display: flex;
 		align-items: center;
-		gap: 3px;
-		min-width: 27px;
+		gap: 2px;
 		font-size: 9px;
 		color: var(--hud-muted, #b0bac6);
 	}
@@ -294,15 +296,22 @@
 		background: var(--hud-ink, #f7f4eb);
 		border-color: var(--hud-ink, #f7f4eb);
 	}
-	.ability :global(.asset),
-	.ultimate :global(.asset) {
-		width: 20px;
-		height: 20px;
+	.ability :global(.asset) {
+		width: 18px;
+		height: 18px;
 	}
+	.ultimate :global(.asset) {
+		width: 14px;
+		height: 14px;
+	}
+	/* League layout: ult sits under the portrait on the card's outer edge. */
 	.ultimate {
 		display: flex;
 		align-items: center;
-		gap: 3px;
+		justify-content: center;
+		gap: 2px;
+		margin-top: 2px;
+		white-space: nowrap;
 		font:
 			700 9px/1 var(--hud-font, 'Segoe UI'),
 			sans-serif;

@@ -113,11 +113,12 @@
 			</div>{/if}
 	{/each}
 
+	<!-- One line inside the timer width: spike state replaces the round label while it matters. -->
 	<div class="round-context">
-		{#if live?.roundNumber !== null && live?.roundNumber !== undefined}<span
-				>ROUND {live.roundNumber}</span
-			>{/if}{#if live && live.spike.state !== 'unknown' && live.spike.state !== 'carried'}<strong
+		{#if live && live.spike.state !== 'unknown' && live.spike.state !== 'carried'}<strong
 				>{live.spike.state.toUpperCase()}</strong
+			>{:else if live?.roundNumber !== null && live?.roundNumber !== undefined}<span
+				>ROUND {live.roundNumber}</span
 			>{/if}
 	</div>
 
@@ -233,7 +234,7 @@
 		box-sizing: border-box;
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
 		padding: 0 10px;
 		background: var(--hud-panel, #10151df2);
 		border-bottom: 3px solid var(--live-side);
@@ -250,15 +251,15 @@
 	}
 	.team-rail .logo {
 		flex: none;
-		--asset-width: 48px;
-		--asset-height: 48px;
+		--asset-width: 40px;
+		--asset-height: 40px;
 	}
 	.team-rail strong {
 		min-width: 0;
 		overflow: hidden;
 		white-space: nowrap;
 		font:
-			800 26px/1 var(--hud-font-display, Bahnschrift),
+			800 22px/1 var(--hud-font-display, Bahnschrift),
 			sans-serif;
 		text-transform: uppercase;
 	}
@@ -362,7 +363,9 @@
 		left: 50%;
 		/* y 82-132: under the win dots, above the game's plant/defuse banner (y ~135). */
 		top: 82px;
-		max-width: 1100px;
+		/* Centred x 480-1440: clear of the minimap and kill feed. */
+		max-width: 960px;
+		overflow: hidden;
 		box-sizing: border-box;
 		transform: translateX(-50%);
 		display: flex;
@@ -379,13 +382,21 @@
 		font-size: 9px;
 	}
 	.history-teams {
+		flex: none;
 		padding-right: 5px;
+	}
+	.history-teams strong {
+		max-width: 56px;
+		overflow: hidden;
+		white-space: nowrap;
 	}
 	.history-teams strong:last-child {
 		grid-row: 3;
 	}
+	/* Overtime squeezes rounds instead of widening the strip. */
 	.history-round {
-		width: 18px;
+		flex: 0 1 18px;
+		min-width: 10px;
 	}
 	.history-round small {
 		grid-row: 2;
