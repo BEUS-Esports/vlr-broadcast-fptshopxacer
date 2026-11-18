@@ -15,6 +15,14 @@
 	const shown = $derived(live.controls.visibility[graphic]);
 	const published = $derived(live.publications[graphic]);
 	const onComposite = $derived(live.composite.visibility[graphic]);
+	const compositePublished = $derived(live.composite.publications[graphic]);
+	const newerThan = (capture: NonNullable<typeof published>) =>
+		live.dataRevision > capture.dataRevision ||
+		(graphic === 'player-stats' &&
+			JSON.stringify(live.controls.playerStats) !== JSON.stringify(capture.controls.playerStats)) ||
+		(graphic === 'mvp' &&
+			(live.controls.mvpScope !== capture.controls.mvpScope ||
+				JSON.stringify(live.controls.mvpFields) !== JSON.stringify(capture.controls.mvpFields)));
 	const fieldLabels: Record<StatisticField, string> = {
 		kills: 'Kills',
 		deaths: 'Deaths',
@@ -39,14 +47,14 @@
 		<p>
 			Published data revision {published.dataRevision} · publication {published.controlRevision}
 		</p>
-		{#if live.dataRevision > published.dataRevision || (graphic === 'player-stats' && JSON.stringify(live.controls.playerStats) !== JSON.stringify(published.controls.playerStats)) || (graphic === 'mvp' && (live.controls.mvpScope !== published.controls.mvpScope || JSON.stringify(live.controls.mvpFields) !== JSON.stringify(published.controls.mvpFields)))}
+		{#if newerThan(published)}
 			<p role="status" class="text-warning-600-400">
 				Preview contains newer saved data or controls. Update to publish.
 			</p>
 		{/if}
 	{/if}
 	{#if shown && !published}<p role="alert">
-			Published content is unavailable. Hide this graphic, then Show again to capture saved data.
+			Published content is unavailable. Use Update to capture saved data.
 		</p>{/if}
 	{#if graphic === 'player-lineup'}
 		<div role="group" aria-label="Lineup display" class="flex flex-wrap gap-2">
@@ -198,7 +206,8 @@
 					</fieldset>
 				{/if}
 				<p class="text-sm">
-					Saving content controls updates Preview. On-air content remains published until Update.
+					Saving content controls updates Preview. On-air content remains published until Update or
+					Update Live.
 				</p>
 				<button class="btn preset-filled-primary-500" disabled={!live.selection}
 					>Save {graphicLabels[graphic]} controls</button
@@ -249,4 +258,12 @@
 			</ManagementForm>
 		{/if}
 	</div>
+	{#if onComposite && compositePublished && newerThan(compositePublished)}
+		<p role="status" class="text-warning-600-400">
+			Preview contains newer saved data or controls. Update Live to publish.
+		</p>
+	{/if}
+	{#if onComposite && !compositePublished}<p role="alert">
+			Published content is unavailable. Use Update Live to capture saved data.
+		</p>{/if}
 </section>

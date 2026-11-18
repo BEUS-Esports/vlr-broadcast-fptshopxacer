@@ -63,5 +63,23 @@ it('blocks Map winner while Lineup is on air with a result that is not published
 		}
 	});
 	expect(button(view).disabled).toBe(true);
-	expect(view.container.textContent).toContain('Update Player Lineup to publish the result first');
+	expect(view.container.textContent?.replace(/\s+/g, ' ')).toContain(
+		'Use Update or Update Live on Player Lineup to publish the result first'
+	);
+});
+
+it('blocks Map winner while Lineup is live on the composite with a stale capture', () => {
+	const live = withGame({ scoreA: 13, scoreB: 9, resultType: 'normal', winnerEntryId: 'a' });
+	const published = { ...live, game: { ...live.game!, winnerEntryId: null } };
+	const view = render(MapWinnerControl, {
+		live: {
+			...live,
+			composite: {
+				visibility: { ...live.composite.visibility, 'player-lineup': true },
+				publications: { ...live.composite.publications, 'player-lineup': published }
+			}
+		}
+	});
+	expect(button(view).disabled).toBe(true);
+	expect(view.container.textContent).toContain('Update Live on Player Lineup');
 });

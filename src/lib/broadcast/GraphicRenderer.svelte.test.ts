@@ -749,3 +749,43 @@ it('hides the program wrapper until play and keeps previews visible', async () =
 	});
 	expect(opacity(preview)).toBe('1');
 });
+
+it('reveals the program wrapper for a template that owns play and keeps it visible on re-render', async () => {
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({
+		...original(slug),
+		component: StubTemplate as never
+	}));
+	hooks.plays = 0;
+	try {
+		const layer = (view: ReturnType<typeof render>) =>
+			view.container.querySelector<HTMLElement>('[data-graphic] > div')!;
+		const base = plainSnapshot();
+		const shown = {
+			...base,
+			controls: { ...base.controls, visibility: { ...defaultVisibility, 'post-game': true } },
+			publications: { ...base.publications, 'post-game': preparedFixture() }
+		};
+		const view = render(GraphicRenderer, {
+			snapshot: shown,
+			graphic: 'post-game',
+			mode: 'program'
+		});
+		await expect.element(layer(view)).toBeInTheDocument();
+		expect(getComputedStyle(layer(view)).opacity).toBe('0');
+		await view.component.play();
+		expect(hooks.plays).toBe(1);
+		expect(layer(view).style.opacity).toBe('');
+		expect(getComputedStyle(layer(view)).opacity).toBe('1');
+		await view.rerender({
+			snapshot: { ...shown, dataRevision: 2 },
+			graphic: 'post-game',
+			mode: 'program'
+		});
+		expect(layer(view).style.opacity).toBe('');
+		expect(getComputedStyle(layer(view)).opacity).toBe('1');
+	} finally {
+		resolve.mockImplementation(original);
+	}
+});
