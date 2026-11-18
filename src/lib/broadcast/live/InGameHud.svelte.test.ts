@@ -52,9 +52,9 @@ it('shows round history only in buy phase', async () => {
 	expect(view.container.querySelector('[aria-label="Round history"]')).toBeNull();
 	await view.rerender(props(live({ phase: 'buy' })));
 	expect(view.container.querySelector('[aria-label="Round history"]')).not.toBeNull();
-	// GStack never reports a phase; its history must not disappear for good.
+	// Buy rounds only, even for providers that never report a phase (GStack).
 	await view.rerender(props(live({ phase: 'unknown' })));
-	expect(view.container.querySelector('[aria-label="Round history"]')).not.toBeNull();
+	expect(view.container.querySelector('[aria-label="Round history"]')).toBeNull();
 });
 
 it('fits overtime round history inside the strip', async () => {
@@ -118,4 +118,63 @@ it('draws round history reasons as icons', () => {
 		expect(mark.querySelector('img')?.getAttribute('src')).toBeTruthy();
 		expect(mark.textContent?.trim()).toBe('');
 	}
+});
+
+it('frames the game timer exactly with timer-height halves and a bare round label', async () => {
+	await page.viewport(1920, 1080);
+	const view = render(InGameHud, props(live({ roundNumber: 14 })));
+	const box = (selector: string) => view.container.querySelector(selector)!.getBoundingClientRect();
+	const [leftScore, rightScore] = [
+		box('.score[data-position="left"]'),
+		box('.score[data-position="right"]')
+	];
+	expect(rightScore.left - leftScore.right).toBe(140);
+	expect((leftScore.right + rightScore.left) / 2).toBe(960);
+	for (const selector of [
+		'.team-rail[data-position="left"]',
+		'.team-rail[data-position="right"]',
+		'.score[data-position="left"]',
+		'.score[data-position="right"]'
+	])
+		expect(box(selector).height, selector).toBe(72);
+	expect(
+		box('.team-rail[data-position="left"]').left + box('.team-rail[data-position="right"]').right
+	).toBe(1920);
+	const label = view.container.querySelector('.round-context')!;
+	expect(getComputedStyle(label).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+});
+
+it('shows a large buy-phase round history below the series pips', async () => {
+	await page.viewport(1920, 1080);
+	const snapshot = snapshotWithVeto();
+	snapshot.match = {
+		id: 'm',
+		label: 'Final',
+		bestOf: 3,
+		scoreA: 1,
+		scoreB: 0,
+		resultType: null,
+		winnerEntryId: null
+	};
+	const rounds = Array.from({ length: 13 }, (_, i) => ({
+		round: i + 1,
+		winnerProviderSide: i % 2 ? ('left' as const) : ('right' as const),
+		reason: 'elimination' as const
+	}));
+	const view = render(InGameHud, props(live({ phase: 'buy', rounds }), snapshot));
+	const history = view.container
+		.querySelector('[aria-label="Round history"]')!
+		.getBoundingClientRect();
+	const pips = Math.max(
+		...[...view.container.querySelectorAll('[data-win-dots]')].map(
+			(el) => el.getBoundingClientRect().bottom
+		)
+	);
+	expect(history.top).toBeGreaterThanOrEqual(pips + 8);
+	expect(
+		view.container.querySelector('.history-round')!.getBoundingClientRect().width
+	).toBeGreaterThanOrEqual(26);
+	expect(
+		view.container.querySelector('.history-round img')!.getBoundingClientRect().width
+	).toBeGreaterThanOrEqual(18);
 });

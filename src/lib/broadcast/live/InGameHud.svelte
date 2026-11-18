@@ -166,8 +166,8 @@
 			{/each}
 		</div>
 	{/each}
-	<!-- Buy phase only; GStack reports no phase ('unknown'), so it keeps history on. -->
-	{#if (live?.phase === 'buy' || live?.phase === 'unknown') && live.rounds.length}<div
+	<!-- Buy rounds only; providers that report no phase (GStack) never show it. -->
+	{#if live?.phase === 'buy' && live.rounds.length}<div
 			class="history"
 			role="group"
 			aria-label="Round history"
@@ -231,11 +231,12 @@
 		font-size: inherit;
 		color: var(--hud-muted, #97a2b0);
 	}
+	/* Halves are timer-height (72px) and sit exactly 140px apart: x 890-1030 is the game timer. */
 	.team-rail {
 		position: absolute;
 		top: 0;
 		width: 150px;
-		height: 64px;
+		height: 72px;
 		box-sizing: border-box;
 		display: flex;
 		align-items: center;
@@ -246,13 +247,13 @@
 		overflow: hidden;
 	}
 	.team-rail[data-position='left'] {
-		left: 640px;
+		left: 646px;
 		clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%, 0 24px);
 	}
 	.team-rail[data-position='right'] {
-		left: 1130px;
+		left: 1124px;
 		flex-direction: row-reverse;
-		clip-path: polygon(0 0, 100% 0, 100% 24px, 100% 100%, 0 100%);
+		clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%);
 	}
 	.team-rail .logo {
 		flex: none;
@@ -272,7 +273,7 @@
 		position: absolute;
 		top: 0;
 		width: 92px;
-		height: 64px;
+		height: 72px;
 		box-sizing: border-box;
 		display: grid;
 		place-items: center;
@@ -284,24 +285,24 @@
 			sans-serif;
 	}
 	.score[data-position='left'] {
-		left: 792px;
+		left: 798px;
 	}
 	.score[data-position='right'] {
-		left: 1036px;
+		left: 1030px;
 	}
 	.win-dots {
 		position: absolute;
-		top: 70px;
+		top: 78px;
 		width: 92px;
 		display: flex;
 		justify-content: center;
 		gap: 6px;
 	}
 	.win-dots[data-position='left'] {
-		left: 792px;
+		left: 798px;
 	}
 	.win-dots[data-position='right'] {
-		left: 1036px;
+		left: 1030px;
 	}
 	.win-dots span {
 		width: 9px;
@@ -323,7 +324,6 @@
 		align-items: center;
 		gap: 10px;
 		padding: 0 10px;
-		background: var(--hud-panel, #10151de0);
 		font-size: 12px;
 		font-weight: 700;
 		letter-spacing: 0.1em;
@@ -360,63 +360,62 @@
 	.rail[data-position='right'] {
 		left: 1592px;
 	}
+	/* Buy rounds only, below the series pips (y ~88). Rounds squeeze in overtime. */
 	.history {
 		position: absolute;
 		left: 50%;
-		/* y 82-132: under the win dots, above the game's plant/defuse banner (y ~135). */
-		top: 82px;
-		/* Centred x 480-1440: clear of the minimap and kill feed. */
+		top: 100px;
 		max-width: 960px;
 		overflow: hidden;
 		box-sizing: border-box;
 		transform: translateX(-50%);
 		display: flex;
 		gap: 4px;
-		padding: 4px 7px;
+		padding: 8px 12px;
 		background: var(--hud-panel, #10151de0);
 	}
 	.history-teams,
 	.history-round {
-		height: 42px;
+		height: 68px;
 		display: grid;
-		grid-template-rows: 16px 10px 16px;
+		grid-template-rows: 26px 16px 26px;
 		place-items: center;
-		font-size: 9px;
+		font-size: 14px;
+		font-weight: 700;
 	}
 	.history-teams {
 		flex: none;
-		padding-right: 5px;
+		padding-right: 8px;
 	}
 	.history-teams strong {
-		max-width: 56px;
+		max-width: 64px;
 		overflow: hidden;
 		white-space: nowrap;
 	}
 	.history-teams strong:last-child {
 		grid-row: 3;
 	}
-	/* Overtime squeezes rounds instead of widening the strip. */
 	.history-round {
-		flex: 0 1 18px;
-		min-width: 10px;
+		flex: 0 1 28px;
+		min-width: 14px;
 	}
 	.history-round small {
 		grid-row: 2;
-		font-size: 7px;
+		font-size: 11px;
 		color: var(--hud-muted, #b0bac6);
 	}
 	.history-round b {
 		grid-column: 1;
 		grid-row: 2;
-		width: 16px;
+		width: 24px;
 		display: grid;
 		place-items: center;
 		text-align: center;
 		border-bottom: 2px solid var(--hud-muted, #97a2b0);
 	}
 	.history-round b img {
-		width: 12px;
-		height: 12px;
+		width: 20px;
+		height: 20px;
 	}
 	.history-round b[data-winner-position='left'] {
 		grid-row: 1;
