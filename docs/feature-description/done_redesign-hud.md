@@ -1,5 +1,7 @@
 # Redesign the current HUDs
 
+STATUS: Done ([#13](https://github.com/BEUS-Esports/vlr-broadcast-fptshopxacer/pull/13)).
+
 ## Goal
 
 - Redesign the HUD elements to match current designs.
