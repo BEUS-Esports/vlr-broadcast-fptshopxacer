@@ -9,6 +9,14 @@ import type { BroadcastPreparedSnapshot, BroadcastPublications, BroadcastSnapsho
 import { liveGameFixture, liveSessionFixture } from '#lib/live/fixtures.ts';
 import type { LiveGameEnvelope } from '#lib/live/types.ts';
 import { emptySponsor } from './sponsor';
+import { emptyComposite } from './templates/test-snapshot';
+import * as templates from './templates';
+import StubTemplate, { hooks } from './GraphicRenderer.stub.svelte';
+
+vi.mock('./templates', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('./templates')>();
+	return { ...actual, resolveGraphicTemplate: vi.fn(actual.resolveGraphicTemplate) };
+});
 
 function preparedFixture(): BroadcastPreparedSnapshot {
 	const scope = {
@@ -118,6 +126,7 @@ it('prepares saved images while the output is hidden and retires images on unmou
 		const snapshot: BroadcastSnapshot = {
 			...prepared,
 			sponsor: emptySponsor,
+			composite: emptyComposite,
 			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 		};
 		sources.get('/api/broadcast/events')!.dispatchEvent(
@@ -141,6 +150,7 @@ it('credits saved Spectra reports independently of the live provider and respect
 	const snapshot: BroadcastSnapshot = {
 		...prepared,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const view = render(GraphicRenderer, { snapshot, graphic: 'post-game', mode: 'preview' });
@@ -165,6 +175,7 @@ it('credits saved Spectra reports independently of the live provider and respect
 		...snapshot,
 		scopes: { ...snapshot.scopes, game: { ...snapshot.scopes.game, usesSpectra: false } },
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'post-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'post-game': prepared }
 	};
 	await view.rerender({ snapshot: shown, graphic: 'post-game', mode: 'program', telemetry });
@@ -189,6 +200,7 @@ it('refreshes weapon artwork in an open preview without a snapshot change', asyn
 	const snapshot: BroadcastSnapshot = {
 		...preparedFixture(),
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const view = render(GraphicPreview, {
@@ -226,6 +238,7 @@ it('renders latest preview when hidden and shared captured program data when sho
 		...prepared,
 		dataRevision: 2,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const preview = render(GraphicRenderer, { snapshot, graphic: 'in-game', mode: 'preview' });
@@ -238,6 +251,7 @@ it('renders latest preview when hidden and shared captured program data when sho
 	const shown = {
 		...snapshot,
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'in-game': prepared }
 	};
 	await program.rerender({ snapshot: shown, graphic: 'in-game' });
@@ -262,6 +276,7 @@ it('keeps normal and live HUD previews independent of the on-air HUD mode', asyn
 		...prepared,
 		controls: { ...prepared.controls, visibility: { ...defaultVisibility, 'in-game': true } },
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: {
 			...Object.fromEntries(graphicIds.map((id) => [id, null])),
 			'in-game': prepared
@@ -333,6 +348,7 @@ it('shows the entire live HUD template immediately with empty fields when no dat
 		match: null,
 		game: null,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const view = render(GraphicRenderer, {
@@ -353,6 +369,7 @@ it('renders a provider template without game preparation or healthy status', () 
 		...preparedFixture(),
 		selection: null,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const state = liveGameFixture({ provider: 'spectra', selectedGameId: null });
@@ -422,6 +439,7 @@ function bannerFixture(): BroadcastSnapshot {
 			pause: { type: 'tactical', entryId: 'a', pendingTechnical: false }
 		},
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 }
@@ -454,6 +472,7 @@ it('shares the local banner across native, live, empty-provider previews and HUD
 	const shown = {
 		...snapshot,
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'in-game': held }
 	};
 	const program = render(GraphicRenderer, { snapshot: shown, graphic: 'in-game', telemetry });
@@ -497,6 +516,7 @@ it('removes the banner immediately on hide and never retains an outgoing slot on
 	const shown = {
 		...snapshot,
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'in-game': held }
 	};
 	const view = render(GraphicRenderer, { snapshot: shown, graphic: 'in-game' });
@@ -513,6 +533,7 @@ it('themes the live HUD only for the roadshow template', async () => {
 		const snapshot = {
 			...prepared,
 			sponsor: emptySponsor,
+			composite: emptyComposite,
 			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 		};
 		const view = render(GraphicRenderer, { snapshot, graphic: 'in-game', mode: 'preview-live' });
@@ -586,6 +607,7 @@ it('hides the sponsor loop in the live HUD unless Spectra is attributed to a sup
 		...preparedFixture(),
 		tournament: { id: 't', name: 'T', slug: 'predator-roadshow-val' },
 		sponsor: { ...emptySponsor, loop: { logos: ['/assets/x.png'], intervalMs: 5000 } },
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const hud = (provider: 'spectra' | 'gstack', attribution: 'required' | 'supporter') =>
@@ -615,5 +637,155 @@ it('hides the sponsor loop in the live HUD unless Spectra is attributed to a sup
 			container.querySelector('[data-sponsor-safe-area]') !== null,
 			`${provider}/${attribution}`
 		).toBe(shown);
+	}
+});
+
+function plainSnapshot(): BroadcastSnapshot {
+	return {
+		...preparedFixture(),
+		sponsor: emptySponsor,
+		composite: emptyComposite,
+		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+	};
+}
+
+it('delegates play and stop to a template that exports them', async () => {
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({
+		...original(slug),
+		component: StubTemplate as never
+	}));
+	try {
+		let release!: () => void;
+		hooks.stop = () => new Promise<void>((resolve) => (release = resolve));
+		const view = render(GraphicRenderer, {
+			snapshot: plainSnapshot(),
+			graphic: 'post-game',
+			mode: 'preview'
+		});
+		await expect
+			.element(view.container.querySelector<HTMLElement>('[data-stub]'))
+			.toBeInTheDocument();
+		let done = false;
+		const stopped = view.component.stop().then(() => (done = true));
+		await new Promise((r) => setTimeout(r, 300));
+		expect(done).toBe(false);
+		release();
+		await stopped;
+		expect(done).toBe(true);
+	} finally {
+		resolve.mockImplementation(original);
+		hooks.stop = async () => {};
+	}
+});
+
+it('falls back to a fade for templates without the contract', async () => {
+	const view = render(GraphicRenderer, {
+		snapshot: plainSnapshot(),
+		graphic: 'post-game',
+		mode: 'preview'
+	});
+	const layer = view.container.querySelector('[data-graphic] > div')!;
+	await view.component.stop();
+	expect(getComputedStyle(layer).opacity).toBe('0');
+	await view.component.play();
+	expect(getComputedStyle(layer).opacity).toBe('1');
+});
+
+it('times out a hung template stop and resolves', async () => {
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({
+		...original(slug),
+		component: StubTemplate as never
+	}));
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+	try {
+		hooks.stop = () => new Promise<void>(() => {});
+		const view = render(GraphicRenderer, {
+			snapshot: plainSnapshot(),
+			graphic: 'post-game',
+			mode: 'preview'
+		});
+		await expect
+			.element(view.container.querySelector<HTMLElement>('[data-stub]'))
+			.toBeInTheDocument();
+		let done = false;
+		const stopped = view.component.stop().then(() => (done = true));
+		await vi.advanceTimersByTimeAsync(templates.TEMPLATE_ACTION_TIMEOUT_MS);
+		await stopped;
+		expect(done).toBe(true);
+		expect(warn).toHaveBeenCalledTimes(1);
+	} finally {
+		vi.useRealTimers();
+		warn.mockRestore();
+		resolve.mockImplementation(original);
+		hooks.stop = async () => {};
+	}
+});
+
+it('hides the program wrapper until play and keeps previews visible', async () => {
+	const opacity = (view: ReturnType<typeof render>) =>
+		getComputedStyle(view.container.querySelector('[data-graphic] > div')!).opacity;
+	const base = plainSnapshot();
+	const program = render(GraphicRenderer, {
+		snapshot: {
+			...base,
+			controls: { ...base.controls, visibility: { ...defaultVisibility, 'post-game': true } },
+			publications: { ...base.publications, 'post-game': preparedFixture() }
+		},
+		graphic: 'post-game',
+		mode: 'program'
+	});
+	expect(opacity(program)).toBe('0');
+	await program.component.play();
+	expect(opacity(program)).toBe('1');
+	const preview = render(GraphicRenderer, {
+		snapshot: plainSnapshot(),
+		graphic: 'post-game',
+		mode: 'preview'
+	});
+	expect(opacity(preview)).toBe('1');
+});
+
+it('reveals the program wrapper for a template that owns play and keeps it visible on re-render', async () => {
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({
+		...original(slug),
+		component: StubTemplate as never
+	}));
+	hooks.plays = 0;
+	try {
+		const layer = (view: ReturnType<typeof render>) =>
+			view.container.querySelector<HTMLElement>('[data-graphic] > div')!;
+		const base = plainSnapshot();
+		const shown = {
+			...base,
+			controls: { ...base.controls, visibility: { ...defaultVisibility, 'post-game': true } },
+			publications: { ...base.publications, 'post-game': preparedFixture() }
+		};
+		const view = render(GraphicRenderer, {
+			snapshot: shown,
+			graphic: 'post-game',
+			mode: 'program'
+		});
+		await expect.element(layer(view)).toBeInTheDocument();
+		expect(getComputedStyle(layer(view)).opacity).toBe('0');
+		await view.component.play();
+		expect(hooks.plays).toBe(1);
+		expect(layer(view).style.opacity).toBe('');
+		expect(getComputedStyle(layer(view)).opacity).toBe('1');
+		await view.rerender({
+			snapshot: { ...shown, dataRevision: 2 },
+			graphic: 'post-game',
+			mode: 'program'
+		});
+		expect(layer(view).style.opacity).toBe('');
+		expect(getComputedStyle(layer(view)).opacity).toBe('1');
+	} finally {
+		resolve.mockImplementation(original);
 	}
 });

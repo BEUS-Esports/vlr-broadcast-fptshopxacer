@@ -7,6 +7,7 @@
 <script lang="ts">
 	import './theme.css';
 	import { graphicLabels } from '../../controls';
+	import { prefersReducedMotion } from 'svelte/motion';
 	import type { GraphicTemplateProps } from '../../templates';
 	import { dev } from '$app/env';
 	import Header from './Header.svelte';
@@ -20,9 +21,42 @@
 	import InGame from '../test/InGame.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
+
+	let root = $state<HTMLElement>();
+
+	// Template contract (see templates.ts). animate() runs synchronously so the renderer's reveal never paints
+	// a full-opacity frame. Without play() (admin previews) the graphic stays fully visible.
+	function run(keyframes: Keyframe[]) {
+		return (
+			root
+				?.animate(keyframes, {
+					duration: prefersReducedMotion.current ? 0 : 400,
+					fill: 'forwards'
+				})
+				.finished.then(
+					() => {},
+					() => {}
+				) ?? Promise.resolve()
+		);
+	}
+	const hidden = { opacity: 0, transform: 'translateY(24px)' };
+	const shown = { opacity: 1, transform: 'translateY(0)' };
+
+	export function play() {
+		return run([hidden, shown]);
+	}
+
+	export function stop() {
+		return run([shown, hidden]);
+	}
 </script>
 
-<section class="rs-root" aria-label={graphicLabels[graphic]} data-graphic-body={graphic}>
+<section
+	bind:this={root}
+	class="rs-root"
+	aria-label={graphicLabels[graphic]}
+	data-graphic-body={graphic}
+>
 	{#if !snapshot.selection}
 		{#if graphic !== 'in-game'}
 			<Header />

@@ -31,8 +31,6 @@ test('production graphics stay stable, transparent and read-only across live sel
 		.getByRole('combobox', { name: 'Game', exact: true })
 		.selectOption(game.split('/').pop()!);
 	await save(page, 'Take game live');
-	// Every graphic stays on air together, so accept each "already on air" confirmation.
-	page.on('dialog', (dialog) => dialog.accept());
 	for (const graphic of graphicIds) {
 		await page.goto(`/admin/graphics/${graphic}`);
 		await save(page, `Show ${graphicLabels[graphic]}`);
@@ -95,7 +93,7 @@ test('production graphics stay stable, transparent and read-only across live sel
 			.getByRole('combobox', { name: 'Tournament', exact: true })
 			.selectOption('tabs-event');
 		for (const output of outputs)
-			await expect(output.locator('[data-live-graphic]')).toHaveAttribute(
+			await expect(output.locator('[data-live-layer]')).toHaveAttribute(
 				'data-game-id',
 				game.split('/').pop()!
 			);
@@ -121,7 +119,7 @@ test('production graphics stay stable, transparent and read-only across live sel
 		await expect(output).toHaveURL(/\/gfx\/live\/player-lineup$/);
 		const controlRevisions = await Promise.all(
 			outputs.map((output) =>
-				output.locator('[data-live-graphic]').getAttribute('data-control-revision')
+				output.locator('[data-live-layer]').getAttribute('data-control-revision')
 			)
 		);
 		expect(new Set(controlRevisions).size).toBe(1);

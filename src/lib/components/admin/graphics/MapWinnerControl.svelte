@@ -7,11 +7,13 @@
 	const winner = $derived(gameWinnerTeam(live));
 	const active = $derived(live.liveControls.lineupTeams === 'winner');
 	// Program pairs live controls with the published capture, so switching modes while Lineup is
-	// on air would show the old (possibly empty) result. Require Hide → Show first.
+	// on air would show the old (possibly empty) result. Require Update first.
+	const stale = (publication: BroadcastSnapshot['publications']['player-lineup']) =>
+		(publication?.game?.winnerEntryId ?? null) !== (live.game?.winnerEntryId ?? null);
 	const unpublished = $derived(
-		live.controls.visibility['player-lineup'] &&
-			(live.publications['player-lineup']?.game?.winnerEntryId ?? null) !==
-				(live.game?.winnerEntryId ?? null)
+		(live.controls.visibility['player-lineup'] && stale(live.publications['player-lineup'])) ||
+			(live.composite.visibility['player-lineup'] &&
+				stale(live.composite.publications['player-lineup']))
 	);
 	const game = $derived(
 		live.game ? `Game ${live.game.number} · ${live.game.map?.displayName ?? 'Map TBD'}` : ''
@@ -41,7 +43,8 @@
 			>
 		</ManagementForm>
 		<p>
-			{#if winner && unpublished}Hide → Show Player Lineup to publish the result first{:else if winner}{game}
+			{#if winner && unpublished}Use Update or Update Live on Player Lineup to publish the result
+				first{:else if winner}{game}
 				— {winner.name} won {score}{:else}No result saved for this game yet{/if}
 		</p>
 	</div>

@@ -28,7 +28,7 @@ Run check, tests, build and browser checks sequentially because they share gener
 
 The lineup and statistics release introduces snapshot v4 and a forward database migration. Back up before applying it, keep the previous build and its matching backup, and refresh every output and admin browser after deployment. Valid held v2/v3 publications are converted without replacing their saved content. Rehearse rollback using the matching pre-upgrade backup before using this release for an event; preserve any newer edits before a restore.
 
-On the Player Lineup page, **Lineup teams** changes the shown graphic immediately and follows the competition's Team A/B identities even after Swap. Player Stats and MVP have separate statistic field choices: saving updates Preview; Hide → Show publishes the new choices. Unavailable or partial data remains visible as such. The current test template accepts one to eight fields; register limits for final artwork before enabling its picker.
+On the Player Lineup page, **Lineup teams** changes the shown graphic immediately and follows the competition's Team A/B identities even after Swap. Player Stats and MVP have separate statistic field choices: saving updates Preview; **Update** (or **Update Live**) publishes the new choices. Unavailable or partial data remains visible as such. The current test template accepts one to eight fields; register limits for final artwork before enabling its picker.
 
 Reserve three hours with the operator and vMix PC: 60 minutes for cold outputs and every graphic, 60 minutes for performance/provider loss/recovery/restart, and 60 minutes for restore/source fallback/operator checks. Real provider sessions, final artwork and vMix measurements remain physical acceptance work.
 

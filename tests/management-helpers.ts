@@ -2,8 +2,8 @@ import { expect, type Page } from '@playwright/test';
 
 export async function save(page: Page, name: string) {
 	const button = page.getByRole('button', { name, exact: true });
-	const action = await button.locator('xpath=ancestor::form').getAttribute('action');
-	const form = page.locator(`form[action=${JSON.stringify(action)}]`);
+	// Several forms can share one action, so follow this button's own form.
+	const form = button.locator('xpath=ancestor::form');
 	const response = page.waitForResponse((response) => response.request().method() === 'POST');
 	await button.click();
 	const result = await response;
@@ -40,9 +40,7 @@ export async function prepareTournament(page: Page, name: string, mapNumbers: nu
 			await roster
 				.getByRole('searchbox', { name: 'Search players', exact: true })
 				.fill(`${team}-${i}`);
-			await roster
-				.getByRole('checkbox', { name: new RegExp(`${team}-${i}`) })
-				.check();
+			await roster.getByRole('checkbox', { name: new RegExp(`${team}-${i}`) }).check();
 		}
 		const response = page.waitForResponse((response) => response.request().method() === 'POST');
 		await roster.getByRole('button', { name: 'Save roster', exact: true }).click();

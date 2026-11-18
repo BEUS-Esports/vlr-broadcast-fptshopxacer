@@ -1,24 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { GraphicId } from './controls';
+	import { graphicLayers, layerNumbers, type GraphicId, type ProgramOutput } from './controls';
 	import { createBroadcastClient } from './client';
-	import GraphicRenderer from './GraphicRenderer.svelte';
+	import ProgramLayer from './ProgramLayer.svelte';
 	import { createLiveClient } from '#lib/live/client.ts';
 	import { liveResources } from '#lib/live/resources.svelte.ts';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
 	import { collectGraphicAssetUrls, createAssetPreloader } from './preload';
 
-	let { graphics }: { graphics: readonly GraphicId[] } = $props();
-	const layerOrder: readonly GraphicId[] = [
-		'in-game',
-		'map-veto',
-		'player-lineup',
-		'agent-select',
-		'post-game',
-		'player-stats',
-		'mvp'
-	];
-	const layers = $derived(layerOrder.filter((id) => graphics.includes(id)));
+	let { graphics, output }: { graphics: readonly GraphicId[]; output: ProgramOutput } = $props();
+	const layers = $derived(
+		layerNumbers
+			.map((number) => ({
+				number,
+				candidates: graphics.filter((graphic) => graphicLayers[graphic] === number)
+			}))
+			.filter(({ candidates }) => candidates.length)
+	);
 	const client = createBroadcastClient();
 	let broadcast = $state.raw(client.getState());
 	let telemetry = $state.raw<LiveGameEnvelope | null>(null);
@@ -31,7 +29,9 @@
 			snapshot
 				? [
 						...new Set(
-							layers.flatMap((graphic) => collectGraphicAssetUrls(snapshot, graphic, resources))
+							graphics.flatMap((graphic) =>
+								collectGraphicAssetUrls(snapshot, graphic, resources, output)
+							)
 						)
 					]
 				: []
@@ -56,21 +56,22 @@
 	});
 </script>
 
-<div data-live-output={layers.length > 1 ? 'composite' : layers[0]}>
-	{#each layers as graphic, index (graphic)}
+<div data-live-output={graphics.length > 1 ? 'composite' : graphics[0]}>
+	{#each layers as { number, candidates } (number)}
 		<div
 			class="layer"
-			style:z-index={index}
-			data-live-graphic={graphic}
+			style:z-index={number}
+			data-live-layer={number}
 			data-game-id={snapshot?.selection?.gameId ?? ''}
 			data-control-revision={snapshot?.controlRevision ?? 0}
 			data-data-revision={snapshot?.dataRevision ?? 0}
 			data-stream-epoch={broadcast.cursor?.epoch ?? ''}
 			data-stream-sequence={broadcast.cursor?.sequence ?? 0}
 		>
-			<GraphicRenderer
+			<ProgramLayer
 				{snapshot}
-				{graphic}
+				{candidates}
+				{output}
 				{telemetry}
 				resources={liveResources.current}
 				clock={broadcast.clock}

@@ -1,16 +1,21 @@
 import type { BroadcastSnapshot } from './types';
-import type { BroadcastScope, GraphicId } from './controls';
+import type { BroadcastScope, GraphicId, ProgramOutput } from './controls';
 import { isBroadcastPublication } from './types';
 import type { Metric, StatisticValues } from '../server/services/statistics-aggregation';
 
 /** Fail closed; program never substitutes the latest saved data for a missing capture. */
 export function programSnapshot(
 	latest: BroadcastSnapshot,
-	graphic: GraphicId
+	graphic: GraphicId,
+	output: ProgramOutput = 'standalone'
 ): BroadcastSnapshot | null {
-	const prepared = latest.publications?.[graphic];
+	const { visibility, publications } =
+		output === 'composite'
+			? latest.composite
+			: { visibility: latest.controls.visibility, publications: latest.publications };
+	const prepared = publications?.[graphic];
 	if (
-		!latest.controls.visibility[graphic] ||
+		!visibility[graphic] ||
 		!isBroadcastPublication(prepared) ||
 		prepared.selection?.gameId !== latest.selection?.gameId
 	)
@@ -21,9 +26,10 @@ export function programSnapshot(
 	return {
 		...prepared,
 		publications: latest.publications,
+		composite: latest.composite,
 		sponsor: latest.sponsor,
 		liveControls: latest.liveControls,
-		controls: { ...prepared.controls, visibility: latest.controls.visibility },
+		controls: { ...prepared.controls, visibility },
 		presentation: {
 			leftEntryId: latest.liveControls.swapped ? teamBEntryId : teamAEntryId,
 			rightEntryId: latest.liveControls.swapped ? teamAEntryId : teamBEntryId

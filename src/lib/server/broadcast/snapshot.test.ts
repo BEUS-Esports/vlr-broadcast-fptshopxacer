@@ -307,7 +307,7 @@ it('upgrades saved v4 captures to v5 instead of dropping them', async () => {
 		const { validatedPublications } = await import('#lib/broadcast/types.ts');
 		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the live envelope.
-		const { publications, sponsor, ...current } = await buildBroadcastSnapshot();
+		const { publications, composite, sponsor, ...current } = await buildBroadcastSnapshot();
 		const { booths, ...rest } = current;
 		const { boothsSwapped, ...liveControls } = current.liveControls;
 		expect({ booths, boothsSwapped }).toEqual({
@@ -329,5 +329,28 @@ it('includes resolved sponsor', async () => {
 		next.banners.default.logoPath = logo;
 		await saveSponsorSettings(next, 1);
 		expect((await buildBroadcastSnapshot()).sponsor.banners.flawless.logoPath).toBe(logo);
+	});
+});
+
+it('exposes an empty composite on a fresh state', async () => {
+	await withManagementFixture(async () => {
+		const { defaultVisibility } = await import('#lib/broadcast/controls.ts');
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		const { composite } = await buildBroadcastSnapshot();
+		expect(composite.visibility).toEqual(defaultVisibility);
+		expect(Object.values(composite.publications).every((slot) => slot === null)).toBe(true);
+	});
+});
+
+it('repairs malformed composite publications', async () => {
+	await withManagementFixture(async ({ client }) => {
+		const { buildBroadcastSnapshot } = await import('./snapshot');
+		await buildBroadcastSnapshot();
+		await client.execute({
+			sql: 'update broadcast_state set composite_publications = ? where id = 1',
+			args: [JSON.stringify({ mvp: { version: 1 }, 'post-game': 'x' })]
+		});
+		const { composite } = await buildBroadcastSnapshot();
+		expect(Object.values(composite.publications).every((slot) => slot === null)).toBe(true);
 	});
 });

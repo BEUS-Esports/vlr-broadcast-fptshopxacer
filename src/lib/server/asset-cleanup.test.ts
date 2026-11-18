@@ -154,6 +154,28 @@ it('keeps sponsor-referenced assets', async () => {
 	});
 });
 
+it('keeps assets referenced only by a composite publication', async () => {
+	await withManagementFixture(async ({ db, directory }) => {
+		vi.stubEnv('ASSET_DIR', join(directory, 'assets'));
+		const { saveUpload, assetExists } = await import('./assets');
+		const path = (await saveUpload(image()))!;
+		const { collectUnusedAssets } = await import('./asset-cleanup');
+		await db.insert(s.games).values({ id: 'g', matchId: 'match', number: 1, name: 'Game' });
+		await db.update(s.teams).set({ logoPath: path }).where(eq(s.teams.id, 'team-a'));
+		const { updateBroadcastState } = await import('./services/broadcast');
+		await updateBroadcastState({
+			expectedRevision: 1,
+			selectedGameId: 'g',
+			composite: { 'player-lineup': true }
+		});
+		await db.update(s.teams).set({ logoPath: null }).where(eq(s.teams.id, 'team-a'));
+		await collectUnusedAssets(start);
+		await collectUnusedAssets(start + 30 * day);
+		expect(await db.select().from(s.assetDeletionQueue)).toEqual([]);
+		expect(await assetExists(path)).toBe(true);
+	});
+});
+
 it('ignores unmanaged files and directories and tolerates an empty or missing asset directory', async () => {
 	await withManagementFixture(async ({ db, directory }) => {
 		const assetDir = join(directory, 'assets');

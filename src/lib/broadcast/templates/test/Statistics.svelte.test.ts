@@ -4,6 +4,7 @@ import Graphic from './Graphic.svelte';
 import type { BroadcastSnapshot } from '../../types';
 import { defaultVisibility, defaultPlayerStats, graphicIds } from '../../controls';
 import { emptySponsor } from '../../sponsor';
+import { emptyComposite } from '../test-snapshot';
 
 function preparedSnapshot(): BroadcastSnapshot {
 	const team = (entryId: string) => ({
@@ -42,6 +43,7 @@ function preparedSnapshot(): BroadcastSnapshot {
 			ceremony: null
 		},
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications'],

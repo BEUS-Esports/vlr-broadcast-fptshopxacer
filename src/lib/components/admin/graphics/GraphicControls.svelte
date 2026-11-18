@@ -4,7 +4,6 @@
 	import MapWinnerControl from './MapWinnerControl.svelte';
 	import {
 		broadcastScopes,
-		graphicIds,
 		graphicLabels,
 		type GraphicId,
 		type BroadcastScope
@@ -15,14 +14,15 @@
 	let { graphic, live }: { graphic: GraphicId; live: BroadcastSnapshot } = $props();
 	const shown = $derived(live.controls.visibility[graphic]);
 	const published = $derived(live.publications[graphic]);
-	// In-Game is the HUD under everything else; every other graphic covers the screen.
-	const fullScreenOnAir = $derived(
-		graphic === 'in-game'
-			? []
-			: graphicIds.filter(
-					(id) => id !== graphic && id !== 'in-game' && live.controls.visibility[id]
-				)
-	);
+	const onComposite = $derived(live.composite.visibility[graphic]);
+	const compositePublished = $derived(live.composite.publications[graphic]);
+	const newerThan = (capture: NonNullable<typeof published>) =>
+		live.dataRevision > capture.dataRevision ||
+		(graphic === 'player-stats' &&
+			JSON.stringify(live.controls.playerStats) !== JSON.stringify(capture.controls.playerStats)) ||
+		(graphic === 'mvp' &&
+			(live.controls.mvpScope !== capture.controls.mvpScope ||
+				JSON.stringify(live.controls.mvpFields) !== JSON.stringify(capture.controls.mvpFields)));
 	const fieldLabels: Record<StatisticField, string> = {
 		kills: 'Kills',
 		deaths: 'Deaths',
@@ -47,14 +47,14 @@
 		<p>
 			Published data revision {published.dataRevision} · publication {published.controlRevision}
 		</p>
-		{#if live.dataRevision > published.dataRevision || (graphic === 'player-stats' && JSON.stringify(live.controls.playerStats) !== JSON.stringify(published.controls.playerStats)) || (graphic === 'mvp' && (live.controls.mvpScope !== published.controls.mvpScope || JSON.stringify(live.controls.mvpFields) !== JSON.stringify(published.controls.mvpFields)))}
+		{#if newerThan(published)}
 			<p role="status" class="text-warning-600-400">
-				Preview contains newer saved data or controls. Hide → Show to publish.
+				Preview contains newer saved data or controls. Update to publish.
 			</p>
 		{/if}
 	{/if}
 	{#if shown && !published}<p role="alert">
-			Published content is unavailable. Hide this graphic, then Show again to capture saved data.
+			Published content is unavailable. Use Update to capture saved data.
 		</p>{/if}
 	{#if graphic === 'player-lineup'}
 		<div role="group" aria-label="Lineup display" class="flex flex-wrap gap-2">
@@ -75,22 +75,32 @@
 			{/each}
 		</div>
 	{/if}
-	<ManagementForm
-		action="?/controls"
-		recordDraft={false}
-		initial={{ expectedRevision: live.controlRevision, visibility: { [graphic]: !shown } }}
-		confirmMessage={!shown && fullScreenOnAir.length
-			? `${fullScreenOnAir.map((id) => graphicLabels[id]).join(', ')} ${fullScreenOnAir.length > 1 ? 'are' : 'is'} already on air. Show ${graphicLabels[graphic]} on top?`
-			: undefined}
-	>
-		<button
-			class="btn {shown ? 'preset-tonal-error' : 'preset-filled-success-500'}"
-			disabled={!live.selection}
+	<div class="flex flex-wrap gap-2">
+		<ManagementForm
+			action="?/controls"
+			recordDraft={false}
+			initial={{ expectedRevision: live.controlRevision, visibility: { [graphic]: !shown } }}
 		>
-			{shown ? 'Hide' : 'Show'}
-			{graphicLabels[graphic]}
-		</button>
-	</ManagementForm>
+			<button
+				class="btn {shown ? 'preset-tonal-error' : 'preset-filled-success-500'}"
+				disabled={!live.selection}
+			>
+				{shown ? 'Hide' : 'Show'}
+				{graphicLabels[graphic]}
+			</button>
+		</ManagementForm>
+		{#if shown}
+			<ManagementForm
+				action="/admin/graphics?/controls"
+				recordDraft={false}
+				initial={{ expectedRevision: live.controlRevision, republish: { standalone: [graphic] } }}
+			>
+				<button class="btn preset-tonal-primary" disabled={!live.selection}>
+					Update {graphicLabels[graphic]}
+				</button>
+			</ManagementForm>
+		{/if}
+	</div>
 	{#if graphic === 'player-lineup'}<MapWinnerControl {live} />{/if}
 	{#if graphic === 'player-stats' || graphic === 'mvp'}
 		<ManagementForm
@@ -196,8 +206,8 @@
 					</fieldset>
 				{/if}
 				<p class="text-sm">
-					Saving content controls updates Preview. Shown program content remains published until
-					Hide → Show.
+					Saving content controls updates Preview. On-air content remains published until Update or
+					Update Live.
 				</p>
 				<button class="btn preset-filled-primary-500" disabled={!live.selection}
 					>Save {graphicLabels[graphic]} controls</button
@@ -211,4 +221,49 @@
 		rel="noreferrer"
 		class="text-sm underline">Open {graphicLabels[graphic]} output</a
 	>
+</section>
+
+<section class="admin-editor space-y-4" aria-label="Composite controls">
+	<h2 class="h3">Composite · {onComposite ? 'Live' : 'Off'}</h2>
+	<div class="flex flex-wrap gap-2">
+		{#if onComposite}
+			<!-- Taking an on-air graphic again is a no-op, so on-air graphics offer Update instead. -->
+			<ManagementForm
+				action="/admin/graphics?/controls"
+				recordDraft={false}
+				initial={{ expectedRevision: live.controlRevision, republish: { composite: [graphic] } }}
+			>
+				<button class="btn preset-tonal-primary" disabled={!live.selection}>
+					Update {graphicLabels[graphic]} Live
+				</button>
+			</ManagementForm>
+			<ManagementForm
+				action="/admin/graphics?/controls"
+				recordDraft={false}
+				initial={{ expectedRevision: live.controlRevision, composite: { [graphic]: false } }}
+			>
+				<button class="btn preset-tonal-error" disabled={!live.selection}>
+					Take {graphicLabels[graphic]} Off
+				</button>
+			</ManagementForm>
+		{:else}
+			<ManagementForm
+				action="/admin/graphics?/controls"
+				recordDraft={false}
+				initial={{ expectedRevision: live.controlRevision, composite: { [graphic]: true } }}
+			>
+				<button class="btn preset-filled-error-500" disabled={!live.selection}>
+					Take {graphicLabels[graphic]} Live
+				</button>
+			</ManagementForm>
+		{/if}
+	</div>
+	{#if onComposite && compositePublished && newerThan(compositePublished)}
+		<p role="status" class="text-warning-600-400">
+			Preview contains newer saved data or controls. Update Live to publish.
+		</p>
+	{/if}
+	{#if onComposite && !compositePublished}<p role="alert">
+			Published content is unavailable. Use Update Live to capture saved data.
+		</p>{/if}
 </section>

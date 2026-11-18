@@ -146,6 +146,8 @@ export const actions: Actions = {
 						? null
 						: (draft.currentAttackersEntryId as BroadcastUpdate['currentAttackersEntryId']),
 				visibility: draft.visibility as BroadcastUpdate['visibility'],
+				composite: draft.composite as BroadcastUpdate['composite'],
+				republish: draft.republish as BroadcastUpdate['republish'],
 				playerStats: draft.playerStats as BroadcastUpdate['playerStats'],
 				mvpScope: draft.mvpScope as BroadcastUpdate['mvpScope'],
 				mvpFields: draft.mvpFields as BroadcastUpdate['mvpFields']

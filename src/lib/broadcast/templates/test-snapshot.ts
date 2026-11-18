@@ -3,6 +3,13 @@ import { emptySponsor } from '../sponsor';
 import { defaultVisibility, defaultPlayerStats, graphicIds } from '../controls';
 
 /** Test-only fixture: a selected game with teams a/b, partial lineups and one veto pick/ban. */
+export const emptyComposite: BroadcastSnapshot['composite'] = {
+	visibility: { ...defaultVisibility },
+	publications: Object.fromEntries(
+		graphicIds.map((id) => [id, null])
+	) as BroadcastSnapshot['publications']
+};
+
 export function preparedSnapshot(): BroadcastSnapshot {
 	const team = (entryId: string) => ({
 		entryId,
@@ -43,6 +50,7 @@ export function preparedSnapshot(): BroadcastSnapshot {
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications'],
+		composite: emptyComposite,
 		selection: { tournamentId: 't', matchId: 'm', gameId: 'g' },
 		tournament: null,
 		match: null,

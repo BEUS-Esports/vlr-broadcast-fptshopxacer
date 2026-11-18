@@ -47,7 +47,11 @@ export async function buildBroadcastSnapshot(): Promise<BroadcastSnapshot> {
 		const [state] = await tx.select().from(s.broadcastState).where(eq(s.broadcastState.id, 1));
 		const prepared = await buildBroadcastPreparedSnapshot(tx, state);
 		const publications = validatedPublications(state.publications);
-		return { ...prepared, publications, sponsor };
+		const composite = {
+			visibility: state.compositeVisibility,
+			publications: validatedPublications(state.compositePublications)
+		};
+		return { ...prepared, publications, composite, sponsor };
 	});
 }
 

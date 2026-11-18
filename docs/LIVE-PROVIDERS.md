@@ -21,7 +21,7 @@ The GStack reference folder is ignored by Git, and none of its code or assets ar
 
 - GStack outputs have no watermark.
 - Spectra's logo and “Powered by Spectra” credit occupy the top-edge sponsor position unless the server verifies supporter status. Unknown or invalid-key responses keep the watermark.
-- Saved Spectra reports carry attribution into Post-Game, Player Stats and MVP whether or not a live connection exists. Graphics captured before this feature need **Hide → Show** to include report provenance.
+- Saved Spectra reports carry attribution into Post-Game, Player Stats and MVP whether or not a live connection exists. Graphics captured before this feature need **Update** (or **Update Live** on the composite) to include report provenance.
 
 ## Running the external HUD
 

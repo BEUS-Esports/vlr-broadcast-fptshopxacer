@@ -31,7 +31,7 @@ pnpm dev
 - `ORIGIN` is read at startup: set it before `node build`, and restart when it changes. No rebuild.
 - Back up the database, `ASSET_DIR` and the encryption key together.
 - Team A/B is competition order. Swap Left/Right changes only presentation.
-- Preview follows saved data. A shown graphic keeps its capture until Hide → Show.
+- Preview follows saved data. A shown graphic keeps its capture until **Update** (standalone) or **Update Live** (composite).
 
 ## Docs
 

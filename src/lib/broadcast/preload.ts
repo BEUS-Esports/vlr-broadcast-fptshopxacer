@@ -1,5 +1,5 @@
 import { resourceByName, type LiveResources } from '../live/selectors';
-import type { GraphicId } from './controls';
+import type { GraphicId, ProgramOutput } from './controls';
 import { programSnapshot } from './selectors';
 import type { BroadcastMap, BroadcastPreparedSnapshot, BroadcastSnapshot } from './types';
 
@@ -9,7 +9,8 @@ export const assetRetryDelays = [1000, 5000, 15000] as const;
 export function collectGraphicAssetUrls(
 	snapshot: BroadcastSnapshot,
 	graphic: GraphicId,
-	resources: LiveResources | null
+	resources: LiveResources | null,
+	output: ProgramOutput = 'standalone'
 ): string[] {
 	const urls = new Set<string>();
 	const add = (...paths: (string | null | undefined)[]) =>
@@ -84,7 +85,7 @@ export function collectGraphicAssetUrls(
 		}
 	}
 	collect(snapshot);
-	const held = programSnapshot(snapshot, graphic);
+	const held = programSnapshot(snapshot, graphic, output);
 	if (held) collect(held);
 	if (graphic === 'in-game') {
 		for (const weapon of resources?.weapons ?? []) add(weapon.displayIconPath);
