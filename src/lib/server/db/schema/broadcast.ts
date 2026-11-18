@@ -62,6 +62,22 @@ export const broadcastState = sqliteTable(
 				'post-game': null,
 				mvp: null
 			}),
+		compositeVisibility: text('composite_visibility', { mode: 'json' })
+			.$type<GraphicVisibility>()
+			.notNull()
+			.default(defaultVisibility),
+		compositePublications: text('composite_publications', { mode: 'json' })
+			.$type<BroadcastPublications>()
+			.notNull()
+			.default({
+				'player-lineup': null,
+				'player-stats': null,
+				'map-veto': null,
+				'agent-select': null,
+				'in-game': null,
+				'post-game': null,
+				mvp: null
+			}),
 		playerStats: text('player_stats', { mode: 'json' })
 			.$type<PlayerStatsControl>()
 			.notNull()

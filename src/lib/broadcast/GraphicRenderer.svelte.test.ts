@@ -9,6 +9,7 @@ import type { BroadcastPreparedSnapshot, BroadcastPublications, BroadcastSnapsho
 import { liveGameFixture, liveSessionFixture } from '#lib/live/fixtures.ts';
 import type { LiveGameEnvelope } from '#lib/live/types.ts';
 import { emptySponsor } from './sponsor';
+import { emptyComposite } from './templates/test-snapshot';
 
 function preparedFixture(): BroadcastPreparedSnapshot {
 	const scope = {
@@ -118,6 +119,7 @@ it('prepares saved images while the output is hidden and retires images on unmou
 		const snapshot: BroadcastSnapshot = {
 			...prepared,
 			sponsor: emptySponsor,
+			composite: emptyComposite,
 			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 		};
 		sources.get('/api/broadcast/events')!.dispatchEvent(
@@ -141,6 +143,7 @@ it('credits saved Spectra reports independently of the live provider and respect
 	const snapshot: BroadcastSnapshot = {
 		...prepared,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const view = render(GraphicRenderer, { snapshot, graphic: 'post-game', mode: 'preview' });
@@ -165,6 +168,7 @@ it('credits saved Spectra reports independently of the live provider and respect
 		...snapshot,
 		scopes: { ...snapshot.scopes, game: { ...snapshot.scopes.game, usesSpectra: false } },
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'post-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'post-game': prepared }
 	};
 	await view.rerender({ snapshot: shown, graphic: 'post-game', mode: 'program', telemetry });
@@ -189,6 +193,7 @@ it('refreshes weapon artwork in an open preview without a snapshot change', asyn
 	const snapshot: BroadcastSnapshot = {
 		...preparedFixture(),
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const view = render(GraphicPreview, {
@@ -226,6 +231,7 @@ it('renders latest preview when hidden and shared captured program data when sho
 		...prepared,
 		dataRevision: 2,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const preview = render(GraphicRenderer, { snapshot, graphic: 'in-game', mode: 'preview' });
@@ -238,6 +244,7 @@ it('renders latest preview when hidden and shared captured program data when sho
 	const shown = {
 		...snapshot,
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'in-game': prepared }
 	};
 	await program.rerender({ snapshot: shown, graphic: 'in-game' });
@@ -262,6 +269,7 @@ it('keeps normal and live HUD previews independent of the on-air HUD mode', asyn
 		...prepared,
 		controls: { ...prepared.controls, visibility: { ...defaultVisibility, 'in-game': true } },
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: {
 			...Object.fromEntries(graphicIds.map((id) => [id, null])),
 			'in-game': prepared
@@ -333,6 +341,7 @@ it('shows the entire live HUD template immediately with empty fields when no dat
 		match: null,
 		game: null,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const view = render(GraphicRenderer, {
@@ -353,6 +362,7 @@ it('renders a provider template without game preparation or healthy status', () 
 		...preparedFixture(),
 		selection: null,
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const state = liveGameFixture({ provider: 'spectra', selectedGameId: null });
@@ -422,6 +432,7 @@ function bannerFixture(): BroadcastSnapshot {
 			pause: { type: 'tactical', entryId: 'a', pendingTechnical: false }
 		},
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 }
@@ -454,6 +465,7 @@ it('shares the local banner across native, live, empty-provider previews and HUD
 	const shown = {
 		...snapshot,
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'in-game': held }
 	};
 	const program = render(GraphicRenderer, { snapshot: shown, graphic: 'in-game', telemetry });
@@ -497,6 +509,7 @@ it('removes the banner immediately on hide and never retains an outgoing slot on
 	const shown = {
 		...snapshot,
 		controls: { ...snapshot.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		composite: emptyComposite,
 		publications: { ...snapshot.publications, 'in-game': held }
 	};
 	const view = render(GraphicRenderer, { snapshot: shown, graphic: 'in-game' });
@@ -513,6 +526,7 @@ it('themes the live HUD only for the roadshow template', async () => {
 		const snapshot = {
 			...prepared,
 			sponsor: emptySponsor,
+			composite: emptyComposite,
 			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 		};
 		const view = render(GraphicRenderer, { snapshot, graphic: 'in-game', mode: 'preview-live' });
@@ -586,6 +600,7 @@ it('hides the sponsor loop in the live HUD unless Spectra is attributed to a sup
 		...preparedFixture(),
 		tournament: { id: 't', name: 'T', slug: 'predator-roadshow-val' },
 		sponsor: { ...emptySponsor, loop: { logos: ['/assets/x.png'], intervalMs: 5000 } },
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 	const hud = (provider: 'spectra' | 'gstack', attribution: 'required' | 'supporter') =>

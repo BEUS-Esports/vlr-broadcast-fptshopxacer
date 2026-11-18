@@ -24,6 +24,20 @@ export const graphicLabels: Record<GraphicId, string> = {
 	mvp: 'MVP'
 };
 export type GraphicVisibility = Record<GraphicId, boolean>;
+export type ProgramOutput = 'standalone' | 'composite';
+/** Composite stacking layer per graphic; graphics sharing a layer replace each other. */
+export const graphicLayers: Record<GraphicId, number> = {
+	'in-game': 0,
+	'player-lineup': 1,
+	'player-stats': 1,
+	'map-veto': 1,
+	'post-game': 1,
+	mvp: 1,
+	'agent-select': 2
+};
+export const layerNumbers: readonly number[] = [...new Set(Object.values(graphicLayers))].sort(
+	(a, b) => a - b
+);
 export type PlayerStatsControl = {
 	mode: 'single' | 'head-to-head';
 	scope: BroadcastScope;

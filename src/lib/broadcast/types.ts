@@ -143,6 +143,7 @@ export type BroadcastPublications = Record<
 >;
 export type BroadcastSnapshot = BroadcastPreparedSnapshot & {
 	publications: BroadcastPublications;
+	composite: { visibility: GraphicVisibility; publications: BroadcastPublications };
 	sponsor: BroadcastSponsor;
 };
 
@@ -452,7 +453,13 @@ const snapshotCheck = object({
 	sponsor: sponsorCheck,
 	publications: object(
 		Object.fromEntries(graphicIds.map((id) => [id, nullable(isBroadcastPublication)]))
-	)
+	),
+	composite: object({
+		visibility: object(Object.fromEntries(graphicIds.map((id) => [id, boolean]))),
+		publications: object(
+			Object.fromEntries(graphicIds.map((id) => [id, nullable(isBroadcastPublication)]))
+		)
+	})
 });
 
 /** Reject the entire envelope on malformed nested data; consumers only see complete snapshots. */

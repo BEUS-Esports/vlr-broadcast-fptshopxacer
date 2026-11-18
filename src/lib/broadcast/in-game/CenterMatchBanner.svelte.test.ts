@@ -6,6 +6,7 @@ import { defaultPlayerStats, defaultVisibility, graphicIds } from '../controls';
 import { CEREMONY_VISIBLE_MS, ceremonyLabels, ceremonyTypes } from '../in-game-controls';
 import type { BroadcastPreparedSnapshot, BroadcastPublications, BroadcastSnapshot } from '../types';
 import { emptySponsor } from '../sponsor';
+import { emptyComposite } from '../templates/test-snapshot';
 function preparedFixture(): BroadcastPreparedSnapshot {
 	const scope = {
 		statistics: { scope: 'game' as const, gamesTotal: 0, gamesContributing: 0, players: [] },
@@ -90,6 +91,7 @@ function fixture(): BroadcastSnapshot {
 			logoBlackPath: null
 		})),
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
 	};
 }

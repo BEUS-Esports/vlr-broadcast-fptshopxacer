@@ -6,6 +6,7 @@ import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
 import { defaultPlayerStats, defaultVisibility, graphicIds } from '#lib/broadcast/controls.ts';
 import InGameMatchControls from './InGameMatchControls.svelte';
 import { emptySponsor } from '#lib/broadcast/sponsor.ts';
+import { emptyComposite } from '#lib/broadcast/templates/test-snapshot.ts';
 
 afterEach(() => vi.useRealTimers());
 
@@ -88,6 +89,7 @@ function snapshot(): BroadcastSnapshot {
 		},
 		readiness: { selected: true, map: false, lineups: false, agents: false, result: false },
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications']

@@ -7,6 +7,7 @@ import ScoreHeader from './ScoreHeader.svelte';
 import type { BroadcastSnapshot } from '../types';
 import { defaultVisibility, defaultPlayerStats } from '../controls';
 import { emptySponsor } from '../sponsor';
+import { emptyComposite } from '../templates/test-snapshot';
 
 it('shows missing and failed assets, resets on a new identity, and preserves zero and coverage', async () => {
 	const identity = render(Identity, {
@@ -78,6 +79,7 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 			ceremony: null
 		},
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: {
 			'player-lineup': null,
 			'player-stats': null,

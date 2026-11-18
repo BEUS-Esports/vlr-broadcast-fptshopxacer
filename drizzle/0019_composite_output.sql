@@ -1,0 +1,2 @@
+ALTER TABLE `broadcast_state` ADD `composite_visibility` text DEFAULT '{"player-lineup":false,"player-stats":false,"map-veto":false,"agent-select":false,"in-game":false,"post-game":false,"mvp":false}' NOT NULL;--> statement-breakpoint
+ALTER TABLE `broadcast_state` ADD `composite_publications` text DEFAULT '{"player-lineup":null,"player-stats":null,"map-veto":null,"agent-select":null,"in-game":null,"post-game":null,"mvp":null}' NOT NULL;

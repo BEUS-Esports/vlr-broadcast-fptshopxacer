@@ -85,9 +85,10 @@ it('rebuilds on-air booths from the live booth flag, like presentation', async (
 		const { buildBroadcastSnapshot } = await import('#lib/server/broadcast/snapshot.ts');
 		const { programSnapshot } = await import('./selectors');
 		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
-		const { publications, sponsor, ...captured } = await buildBroadcastSnapshot();
+		const { publications, composite, sponsor, ...captured } = await buildBroadcastSnapshot();
 		const latest = {
 			...captured,
+			composite,
 			sponsor,
 			liveControls: { ...captured.liveControls, boothsSwapped: true },
 			booths: { booth1EntryId: 'entry-b', booth2EntryId: 'entry-a' },
@@ -121,8 +122,9 @@ it('programSnapshot passes latest sponsor through', async () => {
 			winnerEntryId: null
 		}
 	};
-	const { publications, sponsor: _, ...captured } = base;
+	const { publications, composite, sponsor: _, ...captured } = base;
 	void publications;
+	void composite;
 	void _;
 	const sponsor = { ...base.sponsor, loop: { logos: ['/assets/x.png'], intervalMs: 5000 } };
 	const latest = {

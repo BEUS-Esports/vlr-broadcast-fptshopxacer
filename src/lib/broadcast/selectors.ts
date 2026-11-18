@@ -21,6 +21,7 @@ export function programSnapshot(
 	return {
 		...prepared,
 		publications: latest.publications,
+		composite: latest.composite,
 		sponsor: latest.sponsor,
 		liveControls: latest.liveControls,
 		controls: { ...prepared.controls, visibility: latest.controls.visibility },

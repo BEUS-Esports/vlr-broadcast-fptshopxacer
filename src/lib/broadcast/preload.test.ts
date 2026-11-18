@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultPlayerStats, defaultVisibility, graphicIds } from './controls';
 import type { BroadcastSnapshot } from './types';
 import { emptySponsor } from './sponsor';
+import { emptyComposite } from './templates/test-snapshot';
 import type { LiveResources } from '../live/selectors';
 import { collectGraphicAssetUrls, createAssetPreloader } from './preload';
 
@@ -110,6 +111,7 @@ function fixture(): BroadcastSnapshot {
 		},
 		readiness: { selected: true, map: true, lineups: true, agents: true, result: false },
 		sponsor: emptySponsor,
+		composite: emptyComposite,
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications']
@@ -180,8 +182,8 @@ describe('saved asset collection', () => {
 	});
 	it('includes both latest saved and held Program images on reconnect without mutating captures', () => {
 		const snapshot = fixture();
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Captures omit the publications container and sponsor.
-		const { publications: _, sponsor: __, ...held } = fixture();
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Captures omit the publications containers and sponsor.
+		const { publications: _, composite: ___, sponsor: __, ...held } = fixture();
 		held.lineups[0].player!.portraitPath = '/held.png';
 		snapshot.controls.visibility['player-lineup'] = true;
 		snapshot.publications['player-lineup'] = held;
