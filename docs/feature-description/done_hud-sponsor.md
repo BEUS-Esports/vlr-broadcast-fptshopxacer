@@ -1,5 +1,7 @@
 # Sponsor Customization for HUD GFX
 
+STATUS: Done.
+
 ## Goal
 
 - Allow setting custom sponsor assets for the HUD. This includes:
