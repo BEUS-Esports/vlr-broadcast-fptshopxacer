@@ -16,7 +16,7 @@ export type ImportPlayerRow = {
 	row: number;
 	displayName: string;
 	fullName: string | null;
-	riotId: string;
+	riotId: string | null;
 	portrait: string | null;
 };
 export type ImportPreview = {

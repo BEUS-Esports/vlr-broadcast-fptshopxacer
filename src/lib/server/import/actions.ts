@@ -14,7 +14,7 @@ async function load(request: Request) {
 	if (!(file instanceof File) || file.size === 0)
 		throw new SaveError('invalid', 'Choose a zip bundle.');
 	if (file.size > BUNDLE_LIMITS.zipBytes)
-		throw new SaveError('invalid', 'The bundle must be 32 MB or smaller.');
+		throw new SaveError('invalid', 'The bundle must be 150 MB or smaller.');
 	const bytes = new Uint8Array(await file.arrayBuffer());
 	const bundle = readBundle(bytes);
 	const [existingTeams, existingPlayers] = await Promise.all([

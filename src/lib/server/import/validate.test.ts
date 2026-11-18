@@ -79,15 +79,37 @@ describe('buildPreview', () => {
 	it('reports missing and unknown columns and skips the rows', () => {
 		const sheet: Sheet = {
 			file: 'players.csv',
-			header: ['display_name', 'full_name', 'riotid'],
-			rows: [{ row: 2, cells: { display_name: '', full_name: '', riotid: '' } }]
+			header: ['display_name', 'riotid'],
+			rows: [{ row: 2, cells: { display_name: '', riotid: '' } }]
 		};
 		const preview = buildPreview(bundle({ players: sheet }), none, 'h');
 		expect(preview.problems).toEqual([
-			err('players.csv', 1, 'riot_id', 'Missing column riot_id.'),
+			err('players.csv', 1, 'full_name', 'Missing column full_name.'),
 			err('players.csv', 1, 'riotid', 'Unknown column riotid.')
 		]);
 		expect(preview.players).toEqual([]);
+	});
+
+	it('imports players with no riot_id column or blank Riot IDs', () => {
+		const sheet: Sheet = {
+			file: 'players.csv',
+			header: ['display_name', 'full_name'],
+			rows: [
+				{ row: 2, cells: { display_name: 'Thang', full_name: 'Nguyen Thang' } },
+				{ row: 3, cells: { display_name: 'Linh', full_name: '' } }
+			]
+		};
+		const preview = buildPreview(
+			bundle({ players: sheet, portraits: [image('player_images/Thang.png')] }),
+			none,
+			'h'
+		);
+		expect(preview.problems).toEqual([]);
+		expect(preview.players.map((p) => [p.riotId, p.portrait])).toEqual([
+			[null, 'player_images/Thang.png'],
+			[null, null]
+		]);
+		expect(problems(bundle({ players: playerSheet(['A', '', ''], ['B', '', '']) }))).toEqual([]);
 	});
 
 	it('reports every field problem on a row', () => {
@@ -104,7 +126,6 @@ describe('buildPreview', () => {
 			err('teams.csv', 2, 'team_tag', 'Team tag must be 1–20 characters.'),
 			err('players.csv', 2, 'display_name', 'Display name must be 1–100 characters.'),
 			err('players.csv', 2, 'full_name', 'Full name must be at most 150 characters.'),
-			err('players.csv', 2, 'riot_id', 'Riot ID is required.'),
 			err('players.csv', 3, 'riot_id', riotIdProblem('bad')!),
 			err('players.csv', 4, 'riot_id', 'Riot ID must be at most 100 characters.')
 		]);
@@ -185,6 +206,57 @@ describe('buildPreview', () => {
 				message: 'Matched no player.'
 			}
 		]);
+	});
+
+	it('matches logos by tag or team name and portraits by Riot ID, display name or full name', () => {
+		const preview = buildPreview(
+			bundle({
+				teams: teamSheet(['Alpha', 'USEC'], ['Bravo Squad', 'BRV']),
+				players: playerSheet(['Thang', 'Nguyen Thang', 'Thắng#VN2'], ['Linh', '', 'Linh#VN3']),
+				logos: {
+					normal: [image('team_logos/normal/Alpha.png'), image('team_logos/normal/BRV.png')],
+					white: [],
+					black: []
+				},
+				portraits: [image('player_images/Nguyen Thang.png'), image('player_images/linh.png')]
+			}),
+			none,
+			'h'
+		);
+		expect(preview.problems).toEqual([]);
+		expect(preview.teams.map((t) => t.logos.normal)).toEqual([
+			'team_logos/normal/Alpha.png',
+			'team_logos/normal/BRV.png'
+		]);
+		expect(preview.players.map((p) => p.portrait)).toEqual([
+			'player_images/Nguyen Thang.png',
+			'player_images/linh.png'
+		]);
+	});
+
+	it('errors when one row has two images, or one image names two rows', () => {
+		const preview = buildPreview(
+			bundle({
+				teams: teamSheet(['Alpha', 'USEC'], ['ALP', 'ZZZ'], ['Other', 'ALP']),
+				logos: {
+					normal: [
+						image('team_logos/normal/USEC.png'),
+						image('team_logos/normal/Alpha.png'),
+						image('team_logos/normal/ALP.png')
+					],
+					white: [],
+					black: []
+				}
+			}),
+			none,
+			'h'
+		);
+		expect(preview.problems).toEqual([
+			err('team_logos/normal/USEC.png', null, null, 'Another image fills the same slot.'),
+			err('team_logos/normal/Alpha.png', null, null, 'Another image fills the same slot.'),
+			err('team_logos/normal/ALP.png', null, null, 'Matches more than one row.')
+		]);
+		expect(preview.teams.map((t) => t.logos.normal)).toEqual([null, null, null]);
 	});
 
 	it('errors on both images that fill the same slot', () => {

@@ -24,6 +24,7 @@ type Owner = { name: string; archivedAt: Date | null };
 const VARIANTS: LogoVariant[] = ['normal', 'white', 'black'];
 const TEAM_COLUMNS = ['team_name', 'team_tag'];
 const PLAYER_COLUMNS = ['display_name', 'full_name', 'riot_id'];
+const OPTIONAL_COLUMNS = ['riot_id']; // bundles from non-Valorant shows have no Riot IDs
 
 const clean = (value: string | undefined) => (value ?? '').normalize('NFC').trim();
 const byKey = (items: Array<[string, Owner]>) =>
@@ -44,10 +45,10 @@ export function buildPreview(
 	) => problems.push({ level, file, row, field, message });
 
 	// Returns false (after reporting) when the sheet's columns are wrong, so its rows are skipped.
-	const columnsOk = (sheet: Sheet, expected: string[]) => {
+	const columnsOk = (sheet: Sheet, expected: string[], optional: string[] = []) => {
 		const before = problems.length;
 		for (const column of expected)
-			if (!sheet.header.includes(column))
+			if (!optional.includes(column) && !sheet.header.includes(column))
 				add('error', sheet.file, 1, column, `Missing column ${column}.`);
 		sheet.header.forEach((column, index) => {
 			if (!column) return;
@@ -123,7 +124,7 @@ export function buildPreview(
 		}
 	}
 
-	if (bundle.players && columnsOk(bundle.players, PLAYER_COLUMNS)) {
+	if (bundle.players && columnsOk(bundle.players, PLAYER_COLUMNS, OPTIONAL_COLUMNS)) {
 		const file = bundle.players.file;
 		const checkName = keyedCheck(
 			file,
@@ -170,14 +171,19 @@ export function buildPreview(
 					'full_name',
 					`Full name must be at most ${PROFILE_LIMITS.fullName} characters.`
 				);
-			const riotProblem = !riotId
-				? 'Riot ID is required.'
-				: riotId.length > PROFILE_LIMITS.riotId
+			const riotProblem =
+				riotId.length > PROFILE_LIMITS.riotId
 					? `Riot ID must be at most ${PROFILE_LIMITS.riotId} characters.`
-					: riotIdProblem(riotId);
+					: riotId && riotIdProblem(riotId);
 			if (riotProblem) add('error', file, row, 'riot_id', riotProblem);
 			checkRiot(row, riotId);
-			players.push({ row, displayName, fullName: fullName || null, riotId, portrait: null });
+			players.push({
+				row,
+				displayName,
+				fullName: fullName || null,
+				riotId: riotId || null,
+				portrait: null
+			});
 		}
 	}
 
@@ -207,23 +213,57 @@ export function buildPreview(
 		return slot;
 	};
 	const matched = new Set<string>();
-	const match = (slot: Map<string, string>, value: string) => {
-		const path = slot.get(profileKey(value)) ?? null;
-		if (path) matched.add(path);
-		return path;
+	const reported = new Set<string>(); // ambiguous images already carry an error, no "matched no" warning
+	// Gives each row the one image any of its keys names. An image several rows name, or several
+	// images one row names, is an error and goes to nobody.
+	const matchRows = (slot: Map<string, string>, rows: Array<{ keys: string[] }>) => {
+		const paths = rows.map(({ keys }) => [
+			...new Set(keys.filter(Boolean).flatMap((key) => slot.get(profileKey(key)) ?? []))
+		]);
+		const owners = new Map<string, number>();
+		for (const list of paths)
+			for (const path of list) owners.set(path, (owners.get(path) ?? 0) + 1);
+		for (const list of paths)
+			for (const path of list)
+				if ((owners.get(path)! > 1 || list.length > 1) && !reported.has(path)) {
+					reported.add(path);
+					add(
+						'error',
+						path,
+						null,
+						null,
+						owners.get(path)! > 1
+							? 'Matches more than one row.'
+							: 'Another image fills the same slot.'
+					);
+				}
+		return paths.map(([path], i) => {
+			if (paths[i].length !== 1 || owners.get(path) !== 1) return null;
+			matched.add(path);
+			return path;
+		});
 	};
 	const warnUnmatched = (slot: Map<string, string>, noun: string) => {
 		for (const path of slot.values())
-			if (!matched.has(path)) add('warning', path, null, null, `Matched no ${noun}.`);
+			if (!matched.has(path) && !reported.has(path))
+				add('warning', path, null, null, `Matched no ${noun}.`);
 	};
 
 	for (const variant of VARIANTS) {
 		const slot = claim(bundle.logos[variant]);
-		for (const team of teams) team.logos[variant] = match(slot, team.tag);
+		matchRows(
+			slot,
+			teams.map((team) => ({ keys: [team.tag, team.name] }))
+		).forEach((path, i) => (teams[i].logos[variant] = path));
 		warnUnmatched(slot, 'team');
 	}
 	const portraits = claim(bundle.portraits);
-	for (const player of players) player.portrait = match(portraits, player.riotId);
+	matchRows(
+		portraits,
+		players.map((player) => ({
+			keys: [player.riotId ?? '', player.displayName, player.fullName ?? '']
+		}))
+	).forEach((path, i) => (players[i].portrait = path));
 	warnUnmatched(portraits, 'player');
 
 	return { hash, teams, players, imageCount: matched.size, problems };
