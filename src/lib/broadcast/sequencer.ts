@@ -12,7 +12,8 @@ type Steps = {
 export function createLayerSequencer(steps: Steps) {
 	let desired: LayerTarget | null = null;
 	let current: LayerTarget | null = null;
-	let running: Promise<void> | null = null;
+	let looping = false;
+	let running: Promise<void> = Promise.resolve();
 
 	// A throwing step is treated as completed so a bad template cannot freeze the layer.
 	async function run(step: () => Promise<void>) {
@@ -39,15 +40,17 @@ export function createLayerSequencer(steps: Steps) {
 				await run(() => steps.refresh(target));
 			}
 		}
+		// Cleared in the same tick as the final check: a set() after this starts a new loop.
+		looping = false;
 	}
 
 	return {
 		set(target: LayerTarget | null) {
 			desired = target;
-			running ??= loop().finally(() => (running = null));
+			if (looping) return;
+			looping = true;
+			running = loop(); // cannot reject: run() catches every step error
 		},
-		idle: async () => {
-			await running;
-		}
+		idle: () => running
 	};
 }
