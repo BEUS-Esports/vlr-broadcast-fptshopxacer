@@ -38,14 +38,12 @@ export async function prepareTournament(page: Page, name: string, mapNumbers: nu
 		const roster = page.getByRole('region', { name: `${team} roster`, exact: true });
 		for (let i = 1; i <= 6; i++) {
 			await roster
-				.getByRole('combobox', { name: 'Search players', exact: true })
+				.getByRole('searchbox', { name: 'Search players', exact: true })
 				.fill(`${team}-${i}`);
 			await roster
-				.getByRole('option')
-				.filter({ hasText: `${team}-${i}` })
-				.click();
+				.getByRole('checkbox', { name: new RegExp(`${team}-${i}`) })
+				.check();
 		}
-		await roster.getByRole('combobox', { name: 'Search players', exact: true }).press('Escape');
 		const response = page.waitForResponse((response) => response.request().method() === 'POST');
 		await roster.getByRole('button', { name: 'Save roster', exact: true }).click();
 		expect((await response).ok()).toBe(true);

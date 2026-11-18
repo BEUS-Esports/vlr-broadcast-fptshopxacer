@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { page, userEvent } from 'vitest/browser';
+import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
 import RosterEditor from './RosterEditor.svelte';
 
@@ -23,20 +23,16 @@ it('searches players, disables other teams, previews selections and preserves a 
 		]
 	};
 	const view = render(RosterEditor, props);
-	const search = page.getByRole('combobox', { name: 'Search players', exact: true });
+	const search = page.getByRole('searchbox', { name: 'Search players', exact: true });
 	await search.fill('Same');
-	await expect
-		.element(page.getByRole('option', { name: /Taken#123/ }))
-		.toHaveAttribute('data-disabled');
-	await expect.element(page.getByRole('option', { name: /Free#123/ })).toBeVisible();
+	await expect.element(page.getByRole('checkbox', { name: /Taken#123/ })).toBeDisabled();
+	await expect.element(page.getByRole('checkbox', { name: /Free#123/ })).toBeVisible();
 	await search.fill('Available Player');
-	await expect.element(page.getByRole('option', { name: /Taken#123/ })).not.toBeInTheDocument();
-	await userEvent.keyboard('{ArrowDown}{Enter}');
+	await expect.element(page.getByRole('checkbox', { name: /Taken#123/ })).not.toBeInTheDocument();
+	await page.getByRole('checkbox', { name: /Free#123/ }).click();
 	await expect
 		.element(page.getByRole('button', { name: 'Remove Same (free)', exact: true }))
 		.toBeVisible();
-	await userEvent.keyboard('{Escape}');
-	await expect.element(search).toHaveAttribute('aria-expanded', 'false');
 	await page.getByRole('button', { name: 'Remove Veteran (old)', exact: true }).click();
 	await view.rerender({ ...props, revision: 2, playerIds: [] });
 	const payload = JSON.parse(
@@ -45,4 +41,29 @@ it('searches players, disables other teams, previews selections and preserves a 
 	expect(payload).toEqual({ entryId: 'a', expectedTournamentRevision: 1, playerIds: ['free'] });
 	await search.fill('Hidden');
 	await expect.element(page.getByText('No matching players.', { exact: true })).toBeVisible();
+});
+
+it('keeps earlier picks and the search text while ticking players across searches', async () => {
+	render(RosterEditor, {
+		entryId: 'a',
+		revision: 1,
+		playerIds: [],
+		assignments: [],
+		players: [
+			{ id: 'a1', displayName: 'Alpha 1', archivedAt: null },
+			{ id: 'a2', displayName: 'Alpha 2', archivedAt: null },
+			{ id: 'b1', displayName: 'Bravo 1', archivedAt: null }
+		]
+	});
+	const search = page.getByRole('searchbox', { name: 'Search players', exact: true });
+	const selected = page.getByRole('list', { name: 'Selected players' });
+	await search.fill('Alpha');
+	await page.getByRole('checkbox', { name: /Alpha 1/ }).click();
+	await page.getByRole('checkbox', { name: /Alpha 2/ }).click();
+	await expect.element(search).toHaveValue('Alpha');
+	await search.fill('Bravo');
+	await page.getByRole('checkbox', { name: /Bravo 1/ }).click();
+	await expect.element(selected).toHaveTextContent(/Alpha 1.*Alpha 2.*Bravo 1/);
+	await page.getByRole('checkbox', { name: /Bravo 1/ }).click();
+	await expect.element(selected).not.toHaveTextContent(/Bravo 1/);
 });
