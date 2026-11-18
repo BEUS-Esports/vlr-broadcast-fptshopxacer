@@ -24,11 +24,32 @@ Order: **Info → Lineup → Map Veto → Agent Select → Post-Game Report**.
 - Agent Select owns the saved player-to-agent mapping. Post-Game Report shows it read-only.
 - **Duplicate Game** (Match → Games) takes an unused target number and a label derived from it. It copies the lineup and, optionally, agents (off by default), and derives map and starting sides from the target veto. Scores, results, statistics, MVP and import metadata stay empty. The source game and the tournament roster are unchanged.
 
+## Importing teams and players
+
+On **Teams** or **Players**, open **Import bundle**, choose a `.zip`, then **Preview import**. Nothing is saved until **Confirm import**, and it stays disabled while the preview has errors or after the file is changed. The import is all or nothing: one error blocks every row. It never changes tournament rosters, and re-importing a bundle fails on duplicates. Before upgrading an existing install, run `pnpm db:duplicates` (see `docs/BROADCAST-OPERATIONS.md`; for compose use `DATABASE_URL=file:data/broadcast.db pnpm db:duplicates` with the app stopped) to find profiles that already clash.
+
+```text
+bundle.zip
+├── teams.csv | teams.xlsx | teams.ods        (optional)
+├── players.csv | players.xlsx | players.ods  (optional)
+├── team_logos/normal/<tag>.<ext>
+├── team_logos/white/<tag>.<ext>
+├── team_logos/black/<tag>.<ext>
+└── player_images/<riot_id>.<ext>
+```
+
+- At least one of `teams.*` or `players.*` is required, one file per table. Files may sit at the zip root or inside one folder. Either page imports whatever the bundle contains.
+- First row is the header (first sheet only for `.xlsx` / `.ods`; CSV is UTF-8). Teams: `team_name`, `team_tag`. Players: `display_name`, `full_name` (column required, value optional), `riot_id`. Missing or unknown columns are errors.
+- Images are `.png`, `.jpg`, `.jpeg` or `.webp` up to 10 MB, named after the team tag or Riot ID, ignoring case. Images are optional. An image that matches no row is only a warning.
+- Riot ID needs exactly one `#`: a 3-16 character game name (letters, digits, spaces) and a 3-5 character alphanumeric tagline.
+- Team name, team tag, display name and Riot ID must be unique, ignoring case, within the bundle and against existing profiles including archived ones. The preview names the clash and its row.
+- Limits: zip up to 32 MB, up to 500 entries, up to 100 MB unpacked.
+
 ## Assets
 
 - `ASSET_DIR` holds uploaded logos and portraits plus imported game art, outside the build. Back it up with the database.
 - Asset URLs are relative to the app origin, so other PCs load them through the server's LAN address.
-- With the Node adapter, set `BODY_SIZE_LIMIT=32M` to allow three team logos of up to 10 MB each.
+- With the Node adapter, set `BODY_SIZE_LIMIT=40M` (also in the `.env` that compose reads) to allow three team logos of up to 10 MB each and the 32 MB bundle import (a 32 MB zip plus form overhead exceeds `32M`).
 - A failed team or player save deletes the uploads it just completed.
 
 ### Cleanup

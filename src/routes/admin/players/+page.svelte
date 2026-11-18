@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { Plus, Pencil, X } from '@lucide/svelte';
+	import BundleImport from '#lib/components/admin/BundleImport.svelte';
 	import CatalogTable from '#lib/components/admin/CatalogTable.svelte';
 	import type { PageProps } from './$types';
 
@@ -24,6 +25,11 @@
 		</p>
 	</header>
 	{#if form?.error}<p role="alert" class="card preset-filled-error-500 p-4">{form.error}</p>{/if}
+	<BundleImport
+		result={form && ('importPreview' in form || 'imported' in form || 'importError' in form)
+			? form
+			: null}
+	/>
 	<CatalogTable
 		rows={data.players}
 		label="Players"

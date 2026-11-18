@@ -64,7 +64,8 @@ node --env-file=.env build
 
 At runtime:
 
-- Keep `DATABASE_URL` and `ASSET_DIR` on persistent storage, and set `BODY_SIZE_LIMIT=32M` for uploads.
+- Keep `DATABASE_URL` and `ASSET_DIR` on persistent storage, and set `BODY_SIZE_LIMIT=40M` for uploads. Compose reads the operator's `.env`, so raise `BODY_SIZE_LIMIT` to `40M` there too.
+- Before upgrading to the version with bundle import, run `pnpm db:duplicates`. It lists team and player names, tags and Riot IDs that differ only by case or by spaces around `#`. The startup migration adds unique indexes and refuses to apply over such duplicates, so fix them first. The script reads `DATABASE_URL` from the host's `.env` (`file:local.db`), not the compose database, so for the compose deployment run `DATABASE_URL=file:data/broadcast.db pnpm db:duplicates` from the repo on the host, with the app stopped (or against a backup copy).
 - Run **one Node process**. SSE delivery is process-local, so several workers or replicas would need shared pub/sub.
 - Prepared graphic captures are stored in the database and survive restarts.
 - Authentication is deferred for trusted-LAN operation. Output pages have no controls, but anyone who can reach the management routes can write.

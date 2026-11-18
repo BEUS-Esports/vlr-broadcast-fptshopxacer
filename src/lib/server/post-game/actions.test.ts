@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { withManagementFixture } from '#lib/server/testing/management-fixture.ts';
 import * as s from '#lib/server/db/schema/index.ts';
 import { completedMatch, recentMatches } from './providers/fixtures';
@@ -33,7 +34,7 @@ it('uses the saved lineup anchor, encoded provider request and safe public load 
 		await db
 			.insert(s.gameLineups)
 			.values({ gameId: 'g', entryId: 'entry-a', slot: 1, playerId: 'a1' });
-		await db.update(s.players).set({ riotId: 'Saved Player#EVENT' });
+		await db.update(s.players).set({ riotId: 'Saved Player#EVENT' }).where(eq(s.players.id, 'a1'));
 		const { actions, load } = await route();
 		const fetcher = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(recentMatches)));
 		const controller = new AbortController();
