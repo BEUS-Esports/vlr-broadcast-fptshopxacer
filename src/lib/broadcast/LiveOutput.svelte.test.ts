@@ -148,10 +148,16 @@ it('keeps the outgoing graphic until its stop resolves', async () => {
 			)
 			.toBe('1');
 		await send(compositeSnapshot('mvp', 2));
-		expect(graphicLayer(view.container, 'post-game')).not.toBeNull();
+		// The content wrapper (not the outer data-graphic div) must stay, frozen and still visible, during stop.
+		const outgoing = view.container.querySelector<HTMLElement>('[data-graphic="post-game"] > div');
+		expect(outgoing).not.toBeNull();
+		expect(Number(getComputedStyle(outgoing!).opacity)).toBeGreaterThan(0);
 		expect(graphicLayer(view.container, 'mvp')).toBeNull();
 		await expect.poll(() => graphicLayer(view.container, 'mvp')).not.toBeNull();
 		expect(graphicLayer(view.container, 'post-game')).toBeNull();
+		const incoming = view.container.querySelector<HTMLElement>('[data-graphic="mvp"] > div');
+		expect(incoming).not.toBeNull();
+		await expect.poll(() => getComputedStyle(incoming!).opacity).toBe('1');
 	} finally {
 		await view.unmount();
 		vi.unstubAllGlobals();
