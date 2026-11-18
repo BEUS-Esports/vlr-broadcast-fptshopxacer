@@ -5,7 +5,9 @@ import {
 	broadcastScopes,
 	defaultPlayerStats,
 	graphicIds,
+	graphicLayers,
 	type BroadcastScope,
+	type GraphicId,
 	type GraphicVisibility,
 	type PlayerStatsControl,
 	type LineupTeams,
@@ -34,6 +36,10 @@ export type BroadcastUpdate = {
 	lineupTeams?: LineupTeams;
 	currentAttackersEntryId?: string | null;
 	visibility?: Partial<GraphicVisibility>;
+	/** Composite output: true takes a graphic live (replacing its layer), false takes it off. */
+	composite?: Partial<GraphicVisibility>;
+	/** Recapture on-air graphics in place, per output. */
+	republish?: { standalone?: GraphicId[]; composite?: GraphicId[] };
 	playerStats?: PlayerStatsControl;
 	mvpScope?: BroadcastScope;
 	mvpFields?: StatisticField[];
@@ -106,6 +112,30 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 		throw new SaveError('invalid', 'A valid broadcast revision is required.');
 	if (input.boothsSwapped !== undefined && typeof input.boothsSwapped !== 'boolean')
 		throw new SaveError('invalid', 'Choose whether the booths are swapped.');
+	const isRecord = (value: unknown): value is Record<string, unknown> =>
+		!!value && typeof value === 'object' && !Array.isArray(value);
+	const isGraphicId = (id: unknown) => graphicIds.includes(id as GraphicId);
+	const composite = input.composite ?? {};
+	const republish = input.republish ?? {};
+	if (
+		(input.composite !== undefined &&
+			(!isRecord(input.composite) ||
+				Object.entries(input.composite).some(
+					([id, on]) => !isGraphicId(id) || typeof on !== 'boolean'
+				))) ||
+		(input.republish !== undefined &&
+			(!isRecord(input.republish) ||
+				Object.entries(input.republish).some(
+					([output, ids]) =>
+						!['standalone', 'composite'].includes(output) ||
+						!Array.isArray(ids) ||
+						!ids.every(isGraphicId)
+				)))
+	)
+		throw new SaveError('invalid', 'Choose valid graphic visibility controls.');
+	const taken = graphicIds.filter((id) => composite[id] === true);
+	if (new Set(taken.map((id) => graphicLayers[id])).size !== taken.length)
+		throw new SaveError('invalid', 'Take one graphic per layer.');
 	return db.transaction(async (tx) => {
 		await initialize(tx);
 		const [current] = await tx
@@ -120,11 +150,21 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			input.selectedGameId === undefined ? current.selectedGameId : input.selectedGameId;
 		const selected = await selection(tx, selectedGameId);
 		const changedGame = selectedGameId !== current.selectedGameId;
-		if (changedGame && Object.values(current.visibility).some(Boolean))
+		if (
+			changedGame &&
+			(Object.values(current.visibility).some(Boolean) ||
+				Object.values(current.compositeVisibility).some(Boolean))
+		)
 			throw new SaveError(
 				'blocked',
 				'Hide all shown graphics before changing or clearing the live selection.'
 			);
+		const compositeVisibility = { ...current.compositeVisibility, ...composite };
+		const taking = taken.filter((id) => !current.compositeVisibility[id]);
+		for (const id of taking)
+			for (const other of graphicIds)
+				if (other !== id && graphicLayers[other] === graphicLayers[id])
+					compositeVisibility[other] = false;
 		const state = {
 			pause: changedGame ? ({ type: 'none' } as BroadcastPauseState) : current.pause,
 			ceremony: changedGame ? null : current.ceremony,
@@ -152,6 +192,7 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 						: current.currentAttackersEntryId
 					: input.currentAttackersEntryId,
 			visibility: { ...current.visibility, ...input.visibility },
+			compositeVisibility,
 			playerStats:
 				input.playerStats === undefined
 					? changedGame
@@ -271,8 +312,14 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 		)
 			throw new SaveError('invalid', 'Choose valid stats mode, scope, and distinct players.');
 		// Saved lineup edits may invalidate retained picks; they must not prevent Hide or live axes.
+		const republishStandalone = republish.standalone ?? [];
+		const republishComposite = republish.composite ?? [];
 		const validateStatsPlayers =
-			input.playerStats !== undefined || showing.includes('player-stats');
+			input.playerStats !== undefined ||
+			showing.includes('player-stats') ||
+			taking.includes('player-stats') ||
+			republishStandalone.includes('player-stats') ||
+			republishComposite.includes('player-stats');
 		for (const playerId of validateStatsPlayers ? [stats.playerId, stats.opponentPlayerId] : []) {
 			if (playerId === null) continue;
 			if (typeof playerId !== 'string' || !playerId || !selected)
@@ -301,19 +348,30 @@ export async function updateBroadcastState(input: BroadcastUpdate) {
 			.set(state)
 			.where(eq(broadcastState.id, 1))
 			.returning();
-		if (showing.length && !selected)
+		const capturing =
+			showing.length || taking.length || republishStandalone.length || republishComposite.length;
+		if (capturing && !selected)
 			throw new SaveError('blocked', 'Select a valid live game before showing a graphic.');
+		if (
+			republishStandalone.some((id) => !saved.visibility[id]) ||
+			republishComposite.some((id) => !saved.compositeVisibility[id])
+		)
+			throw new SaveError('blocked', 'Only on-air graphics can be updated.');
 		const publications = validatedPublications(current.publications);
 		for (const id of graphicIds) if (!saved.visibility[id]) publications[id] = null;
-		if (showing.length) {
+		const compositePublications = validatedPublications(current.compositePublications);
+		for (const id of graphicIds)
+			if (!saved.compositeVisibility[id]) compositePublications[id] = null;
+		if (capturing) {
 			const prepared = await buildBroadcastPreparedSnapshot(tx, saved);
 			if (!prepared.selection)
 				throw new SaveError('blocked', 'Select a valid live game before showing a graphic.');
-			for (const id of showing) publications[id] = prepared;
+			for (const id of [...showing, ...republishStandalone]) publications[id] = prepared;
+			for (const id of [...taking, ...republishComposite]) compositePublications[id] = prepared;
 		}
 		const [published] = await tx
 			.update(broadcastState)
-			.set({ publications })
+			.set({ publications, compositePublications })
 			.where(eq(broadcastState.id, 1))
 			.returning();
 		return withParents(tx, published);

@@ -24,7 +24,12 @@ export async function collectUnusedAssets(now = Date.now()) {
 		for (const table of [s.teams, s.players, s.maps, s.agents, s.weapons, s.sponsorSettings])
 			collectReferences(await tx.select().from(table), referenced);
 		collectReferences(
-			await tx.select({ publications: s.broadcastState.publications }).from(s.broadcastState),
+			await tx
+				.select({
+					publications: s.broadcastState.publications,
+					compositePublications: s.broadcastState.compositePublications
+				})
+				.from(s.broadcastState),
 			referenced
 		);
 		const pending = await tx.select().from(s.assetDeletionQueue);
