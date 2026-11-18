@@ -113,8 +113,15 @@
 		}
 	}
 
+	// Program output starts hidden (opacity 0) so nothing paints before play(): callers must call play() in
+	// the same task as the mount (await tick(), then play(), nothing else awaited in between). A template that
+	// exports play() owns its first paint and must show nothing until play() runs.
 	export function play() {
-		return run(() => (controls?.play ? controls.play() : fade(0, 1)));
+		return run(() => {
+			if (!controls?.play) return fade(0, 1);
+			if (layer) layer.style.opacity = '';
+			return controls.play();
+		});
 	}
 
 	export function stop() {
@@ -136,7 +143,7 @@
 	data-data-revision={rendered?.dataRevision ?? 0}
 >
 	{#if rendered && presented}
-		<div bind:this={layer}>
+		<div bind:this={layer} style:opacity={mode === 'program' ? 0 : undefined}>
 			{#if (liveGame && telemetry) || (mode === 'preview-live' && graphic === 'in-game')}
 				<InGameHud
 					snapshot={presented}

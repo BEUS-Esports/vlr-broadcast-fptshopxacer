@@ -725,3 +725,27 @@ it('times out a hung template stop and resolves', async () => {
 		hooks.stop = async () => {};
 	}
 });
+
+it('hides the program wrapper until play and keeps previews visible', async () => {
+	const opacity = (view: ReturnType<typeof render>) =>
+		getComputedStyle(view.container.querySelector('[data-graphic] > div')!).opacity;
+	const base = plainSnapshot();
+	const program = render(GraphicRenderer, {
+		snapshot: {
+			...base,
+			controls: { ...base.controls, visibility: { ...defaultVisibility, 'post-game': true } },
+			publications: { ...base.publications, 'post-game': preparedFixture() }
+		},
+		graphic: 'post-game',
+		mode: 'program'
+	});
+	expect(opacity(program)).toBe('0');
+	await program.component.play();
+	expect(opacity(program)).toBe('1');
+	const preview = render(GraphicRenderer, {
+		snapshot: plainSnapshot(),
+		graphic: 'post-game',
+		mode: 'preview'
+	});
+	expect(opacity(preview)).toBe('1');
+});

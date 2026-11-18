@@ -12,6 +12,9 @@ export type GraphicTemplateProps = { snapshot: BroadcastSnapshot; graphic: Graph
 // in/out animation. A missing method falls back to a 150ms fade. `update(snapshot)` is called after
 // the `snapshot` prop already holds the new data, so a template only animates the change. Each call
 // is bounded by TEMPLATE_ACTION_TIMEOUT_MS: on timeout (or a throw) the renderer warns and cuts.
+// In program mode the renderer wrapper starts at opacity 0 and play() reveals it (the renderer clears it
+// before calling a template's own play()), so callers must call play() in the same task as the mount, and
+// a template that exports play() must itself show nothing until play() runs.
 export type TemplateControls = {
 	play?(): Promise<void>;
 	stop?(): Promise<void>;
