@@ -103,3 +103,19 @@ it('keeps the provider top bar clear of the game timer', async () => {
 		else expect(clear, element.className).toBe(true);
 	}
 });
+
+it('draws round history reasons as icons', () => {
+	const reasons = ['elimination', 'defuse', 'detonation', 'time'] as const;
+	const rounds = reasons.map((reason, i) => ({
+		round: i + 1,
+		winnerProviderSide: 'left' as const,
+		reason
+	}));
+	const view = render(InGameHud, props(live({ phase: 'buy', rounds })));
+	const marks = [...view.container.querySelectorAll('[data-winner-position]')];
+	expect(marks.map((mark) => mark.getAttribute('data-reason'))).toEqual([...reasons]);
+	for (const mark of marks) {
+		expect(mark.querySelector('img')?.getAttribute('src')).toBeTruthy();
+		expect(mark.textContent?.trim()).toBe('');
+	}
+});

@@ -3,6 +3,20 @@
 	import type { LivePlayerState } from '#lib/live/types.ts';
 	import { resourceByName, type LiveResources } from '#lib/live/selectors.ts';
 	import Asset from '../primitives/Asset.svelte';
+	// Spectra-Frontend SVGs (ELv2), see ./assets/spectra/NOTICE.md.
+	import spikeIcon from './assets/spectra/spike.svg';
+	import creditsIcon from './assets/spectra/credits.svg';
+	import pipIcon from './assets/spectra/ult-pip.svg';
+	import pipFullIcon from './assets/spectra/ult-pip-full.svg';
+	import heavyIcon from './assets/spectra/shield-heavy.svg';
+	import lightIcon from './assets/spectra/shield-light.svg';
+	import regenIcon from './assets/spectra/shield-regen.svg';
+	const shieldIcons: Record<string, string> = {
+		heavy: heavyIcon,
+		light: lightIcon,
+		regen: regenIcon,
+		standard: heavyIcon
+	};
 	let {
 		saved,
 		live,
@@ -29,16 +43,22 @@
 		catalogAgent?.abilities?.find((ability) => ability.slot === 'ultimate') ?? null
 	);
 	const ultimate = $derived(live?.ultimate ?? null);
-	const ultimateText = $derived(
+	const ultimateLabel = $derived(
 		ultimate?.ready === true
-			? 'ULT READY'
-			: ultimate?.current !== null && ultimate?.current !== undefined
-				? `ULT ${ultimate.current}${ultimate.required === null ? '' : `/${ultimate.required}`}`
-				: ultimate?.required !== null && ultimate?.required !== undefined
-					? `ULT MAX ${ultimate.required}`
-					: ultimate?.ready === false
-						? 'ULT NOT READY'
-						: null
+			? 'Ultimate ready'
+			: ultimate?.current !== null && ultimate?.current !== undefined && ultimate.required !== null
+				? `Ultimate ${ultimate.current}/${ultimate.required}`
+				: 'Ultimate'
+	);
+	/** One pip per ult point; all full when ready. */
+	const ultimatePips = $derived(
+		ultimate?.required
+			? Array.from(
+					{ length: ultimate.required },
+					(_, index) =>
+						index < (ultimate.ready === true ? ultimate.required! : (ultimate.current ?? 0))
+				)
+			: []
 	);
 </script>
 
@@ -53,22 +73,31 @@
 			path={agent?.displayIconPath ?? null}
 			label={agent?.displayName ?? live?.agent ?? ''}
 			blankMissing
-		/><span>{agent?.displayName ?? live?.agent ?? ''}</span>
-		{#if ultimateText || ultimateArtwork?.displayIconPath}<span
+		/>
+		{#if ultimatePips.length || ultimateArtwork?.displayIconPath}<span
 				class:ready={live?.ultimate.ready === true}
 				class="ultimate"
-				aria-label="Ultimate"
+				aria-label={ultimateLabel}
 				>{#if ultimateArtwork?.displayIconPath}<Asset
 						path={ultimateArtwork.displayIconPath}
 						label={ultimateArtwork.displayName}
 						blankMissing
-					/>{/if}{ultimateText ?? ''}</span
+					/>{/if}{#if ultimatePips.length}<span class="pips"
+						>{#each ultimatePips as full, index (index)}<img
+								data-ult-pip
+								class:full
+								src={full ? pipFullIcon : pipIcon}
+								alt=""
+							/>{/each}</span
+					>{/if}</span
 			>{/if}
 	</div>
 	<div class="details">
 		<header>
 			<strong>{saved?.player?.displayName ?? live?.observedName ?? ''}</strong
-			>{#if live?.hasSpike === true}<b class="spike" aria-label="Spike carrier">◆</b>{/if}
+			>{#if live?.hasSpike === true}<b class="spike" aria-label="Spike carrier"
+					><img src={spikeIcon} alt="" /></b
+				>{/if}
 			<span class="vitals">
 				{#if live?.alive !== false && live?.health !== null && live?.health !== undefined}<strong
 						class="hp"
@@ -80,9 +109,9 @@
 				{#if live?.alive !== false && live?.shield.kind && live.shield.kind !== 'unknown' && live.shield.kind !== 'none'}<span
 						class="shield"
 						data-shield-kind={live.shield.kind}
-						>{live.shield.kind === 'regen' ? 'REGEN' : live.shield.kind.toUpperCase()}{live.shield
-							.current !== null
-							? ` ${live.shield.current}`
+						aria-label={`${live.shield.kind} shield`}
+						><img src={shieldIcons[live.shield.kind]} alt="" />{live.shield.current !== null
+							? live.shield.current
 							: ''}</span
 					>{/if}
 				{#if live?.alive !== false && live?.shield.extra !== null && live?.shield.extra !== undefined}<span
@@ -126,7 +155,7 @@
 						blankMissing
 					/>{:else}<span>{live?.weapon ?? ''}</span>{/if}
 				{#if live?.credits !== null && live?.credits !== undefined}<span class="credits"
-						>¤ {live.credits.toLocaleString('en-US')}</span
+						><img src={creditsIcon} alt="" />{live.credits.toLocaleString('en-US')}</span
 					>{/if}
 			</span>
 			{#if live?.alive === false && [live.kills, live.deaths, live.assists].some((value) => value !== null)}<span
@@ -177,11 +206,6 @@
 	.dead .agent {
 		filter: grayscale(1);
 	}
-	.agent > span {
-		display: block;
-		overflow: hidden;
-		white-space: nowrap;
-	}
 	.details {
 		flex: 1;
 		min-width: 0;
@@ -204,8 +228,24 @@
 			'Arial Narrow',
 			sans-serif;
 	}
-	.spike {
-		color: var(--hud-accent, #63e6d7);
+	.spike img {
+		display: block;
+		width: 20px;
+		height: 18px;
+	}
+	.shield,
+	.credits {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+	}
+	.shield img {
+		width: 16px;
+		height: 16px;
+	}
+	.credits img {
+		width: 10px;
+		height: 9px;
 	}
 	.loadout {
 		display: flex;
@@ -301,8 +341,19 @@
 		height: 18px;
 	}
 	.ultimate :global(.asset) {
-		width: 14px;
-		height: 14px;
+		flex: none;
+		width: 18px;
+		height: 18px;
+	}
+	.pips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1px;
+		max-width: 34px;
+	}
+	.pips img {
+		width: 7px;
+		height: 8px;
 	}
 	/* League layout: ult sits under the portrait on the card's outer edge. */
 	.ultimate {

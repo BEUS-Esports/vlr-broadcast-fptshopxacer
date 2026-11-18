@@ -7,6 +7,17 @@
 	import SponsorLoop from '../in-game/SponsorLoop.svelte';
 	import PlayerCard from './PlayerCard.svelte';
 	import ProviderAttribution from './ProviderAttribution.svelte';
+	// Spectra-Frontend SVGs (ELv2), see ./assets/spectra/NOTICE.md.
+	import killsIcon from './assets/spectra/round-kills.svg';
+	import defusedIcon from './assets/spectra/round-defused.svg';
+	import detonatedIcon from './assets/spectra/round-detonated.svg';
+	import timeoutIcon from './assets/spectra/round-timeout.svg';
+	const reasonIcons = {
+		elimination: killsIcon,
+		defuse: defusedIcon,
+		detonation: detonatedIcon,
+		time: timeoutIcon
+	} as const;
 	let {
 		snapshot,
 		live,
@@ -172,13 +183,7 @@
 					<b
 						data-winner-position={winner?.position ?? 'unknown'}
 						title={`Round ${round.round}: ${winner?.label ?? 'Unknown winner'} · ${round.reason}`}
-						>{round.reason === 'defuse'
-							? 'D'
-							: round.reason === 'elimination'
-								? 'E'
-								: round.reason === 'time'
-									? 'T'
-									: 'S'}</b
+						data-reason={round.reason}><img src={reasonIcons[round.reason]} alt="" /></b
 					></span
 				>{/each}
 		</div>{/if}
@@ -407,8 +412,14 @@
 		grid-column: 1;
 		grid-row: 2;
 		width: 16px;
+		display: grid;
+		place-items: center;
 		text-align: center;
 		border-bottom: 2px solid var(--hud-muted, #97a2b0);
+	}
+	.history-round b img {
+		width: 12px;
+		height: 12px;
 	}
 	.history-round b[data-winner-position='left'] {
 		grid-row: 1;
