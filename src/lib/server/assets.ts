@@ -7,7 +7,7 @@ const maxBytes = 10 * 1024 * 1024;
 const filenamePattern =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/;
 
-function imageType(bytes: Uint8Array) {
+export function imageType(bytes: Uint8Array) {
 	if (bytes.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((v, i) => bytes[i] === v))
 		return { extension: 'png', mime: 'image/png' };
 	if (bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255)
@@ -21,7 +21,7 @@ function imageType(bytes: Uint8Array) {
 	throw new SaveError('invalid', 'Use a PNG, JPEG, or WebP image.');
 }
 
-async function saveBytes(bytes: Uint8Array) {
+export async function saveBytes(bytes: Uint8Array) {
 	if (!bytes.length || bytes.length > maxBytes)
 		throw new SaveError('invalid', 'Images must be between 1 byte and 10 MB.');
 	const { extension } = imageType(bytes);
