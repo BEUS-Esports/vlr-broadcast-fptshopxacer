@@ -335,7 +335,7 @@ it('bounds native team rails and match context while reserving timer and killfee
 		expect(section.scrollWidth).toBeLessThanOrEqual(section.clientWidth);
 		expect(section.scrollHeight).toBeLessThanOrEqual(section.clientHeight);
 		const regions = section.querySelectorAll(
-			'.team-rail, .team-logo, .best-of, .match-bug, .event-logo, .sponsor-slot, .empty'
+			'.team-rail, .team-logo, .series, .match-bug, .event-logo, .sponsor-slot, .empty'
 		);
 		for (const element of regions) {
 			const box = element.getBoundingClientRect();
@@ -363,8 +363,8 @@ it('bounds native team rails and match context while reserving timer and killfee
 				return [box.x, box.y, box.width, box.height];
 			});
 			expect(rails).toEqual([
-				[402, 0, 470, 28],
-				[1048, 0, 470, 28]
+				[402, 0, 388, 28],
+				[1130, 0, 388, 28]
 			]);
 			for (const name of section.querySelectorAll('.team-rail strong')) {
 				expect(name.scrollWidth).toBeGreaterThanOrEqual(name.clientWidth);
@@ -398,4 +398,34 @@ it('labels best-of and map count for Bo1 and Bo5', async () => {
 	expect(view.container.textContent).toContain('BEST OF 5');
 	expect(view.container.textContent).toContain('GRAND FINALS - MAP 3/5');
 	expect(dots()).toEqual([3, 3]);
+});
+
+it('puts series pips beside BEST OF and fills them outside in', () => {
+	const snapshot = preparedSnapshot();
+	// Presentation: left = b, right = a.
+	snapshot.match = {
+		id: 'm',
+		label: 'GRAND FINALS',
+		bestOf: 3,
+		scoreA: 1,
+		scoreB: 1,
+		resultType: null,
+		winnerEntryId: null
+	};
+	const view = render(Graphic, { snapshot, graphic: 'in-game' });
+	const series = view.container.querySelector('.series')!;
+	const [left, label, right] = [...series.children];
+	expect(left.matches('[data-win-dots]')).toBe(true);
+	expect(label.textContent).toBe('BEST OF 3');
+	expect(right.matches('[data-win-dots]')).toBe(true);
+	const won = (el: Element) => [...el.children].map((dot) => dot.classList.contains('won'));
+	expect(won(left)).toEqual([true, false]);
+	expect(won(right)).toEqual([false, true]);
+	expect(view.container.querySelectorAll('.team-rail [data-win-dots]')).toHaveLength(0);
+});
+
+it('makes the whole map box opaque so it hides player chat', () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'in-game' });
+	const box = view.container.querySelector('.match-bug')!;
+	expect(getComputedStyle(box).backgroundColor).toMatch(/^rgb\(/);
 });

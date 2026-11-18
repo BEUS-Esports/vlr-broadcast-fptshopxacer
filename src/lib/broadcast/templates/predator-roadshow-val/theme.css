@@ -60,6 +60,7 @@
 	--hud-defense: #1cfffa;
 	--hud-neutral: #8a9aa0;
 	--hud-event-logo: url('./assets/logo-roadshow.webp');
+	--hud-panel-solid: #000;
 }
 
 /* Shared HUD keeps its own layout; names never ellipsize under this theme. */

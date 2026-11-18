@@ -31,7 +31,6 @@
 						? snapshot.presentation.leftEntryId
 						: snapshot.presentation.rightEntryId}
 				{@const side = gameplaySide(snapshot, entryId)}
-				{@const wins = teamScore(snapshot, entryId, 'match')}
 				{@const logo = team?.logoWhitePath ?? team?.logoPath ?? team?.logoBlackPath ?? null}
 
 				<div
@@ -41,21 +40,35 @@
 					data-side={side ?? 'neutral'}
 				>
 					<strong>{team?.name ?? 'Team unavailable'}</strong>
-					{#if winSlots.length}<div
-							class="win-dots"
-							data-win-dots
-							aria-label={`${wins ?? 0} series wins`}
-						>
-							{#each winSlots as index (index)}<span class={{ won: index < (wins ?? 0) }}
-								></span>{/each}
-						</div>{/if}
 				</div>
 				<div class="team-logo" data-position={position} data-side={side ?? 'neutral'}>
 					{#if logo}<Asset path={logo} label={team?.name ?? ''} blankMissing />{/if}
 				</div>
 			{/each}
 
-			{#if snapshot.match}<div class="best-of">BEST OF {snapshot.match.bestOf}</div>{/if}
+			<!-- Series pips flank BEST OF and fill outside in: W L  BEST OF 3  L W. -->
+			{#if snapshot.match}<div class="series">
+					{#each ['left', 'right'] as const as position (position)}
+						{@const wins =
+							teamScore(
+								snapshot,
+								position === 'left'
+									? snapshot.presentation.leftEntryId
+									: snapshot.presentation.rightEntryId,
+								'match'
+							) ?? 0}
+						{#if position === 'right'}<div class="best-of">
+								BEST OF {snapshot.match.bestOf}
+							</div>{/if}
+						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+							{#each winSlots as index (index)}<span
+									class={{
+										won: position === 'left' ? index < wins : index >= winSlots.length - wins
+									}}
+								></span>{/each}
+						</div>
+					{/each}
+				</div>{/if}
 			{#if showSponsor}<div
 					class="sponsor-slot"
 					data-sponsor-safe-area
@@ -143,7 +156,7 @@
 	.team-rail {
 		position: absolute;
 		top: 0;
-		width: 470px;
+		width: 388px;
 		height: 28px;
 		box-sizing: border-box;
 		display: flex;
@@ -160,7 +173,7 @@
 	}
 
 	.team-rail[data-position='right'] {
-		left: 1048px;
+		left: 1130px;
 	}
 
 	.team-rail[data-side='attack'],
@@ -206,14 +219,20 @@
 		border-color: var(--gfx-accent);
 	}
 
-	.best-of {
+	.series {
 		position: absolute;
-		left: 876px;
+		left: 790px;
 		top: 0;
-		width: 168px;
+		width: 340px;
 		height: 28px;
-		display: grid;
-		place-items: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+	}
+
+	.best-of {
+		white-space: nowrap;
 		color: var(--gfx-accent);
 		font:
 			800 16px/1 var(--hud-font-display, Bahnschrift),
@@ -245,8 +264,10 @@
 		letter-spacing: 0.16em;
 	}
 
-	/* Bottom-left map box, below the game's spectated-player portrait (y 795-875). */
+	/* Bottom-left map box, below the game's spectated-player portrait (y 795-875). Fully opaque:
+	   it also hides the game's player chat so nothing offensive reaches air. */
 	.match-bug {
+		background: var(--hud-panel-solid, #0b0f15);
 		position: absolute;
 		left: 28px;
 		top: 880px;
