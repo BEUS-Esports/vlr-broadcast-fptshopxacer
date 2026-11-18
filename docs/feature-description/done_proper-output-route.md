@@ -1,5 +1,7 @@
 # Proper composite output
 
+STATUS: Done [#12](https://github.com/BEUS-Esports/vlr-broadcast-fptshopxacer/pull/12)
+
 ## Problem
 
 - Composite gfx output is a bit broken, this is the feature that was not flushed out properly.
