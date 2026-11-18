@@ -5,9 +5,9 @@ import { profileKey } from '#lib/server/services/profiles.ts';
 import { SaveError } from '#lib/server/services/save-error.ts';
 
 export const BUNDLE_LIMITS = {
-	zipBytes: 32 * 1024 * 1024,
+	zipBytes: 150 * 1024 * 1024,
 	entries: 500,
-	expandedBytes: 100 * 1024 * 1024,
+	expandedBytes: 500 * 1024 * 1024,
 	imageBytes: 10 * 1024 * 1024
 } as const;
 
@@ -58,7 +58,9 @@ function unzip(bytes: Uint8Array) {
 				if (++count > BUNDLE_LIMITS.entries) throw invalid('The bundle has more than 500 files.');
 				total += originalSize;
 				if (total > BUNDLE_LIMITS.expandedBytes)
-					throw invalid('The bundle unpacks to more than 100 MB.');
+					throw invalid(
+						`The bundle unpacks to more than ${BUNDLE_LIMITS.expandedBytes / 1024 / 1024} MB.`
+					);
 				return !isJunk(name);
 			}
 		});

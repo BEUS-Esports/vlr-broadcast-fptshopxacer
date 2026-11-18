@@ -112,10 +112,10 @@ describe('readBundle limits and safety', () => {
 	});
 
 	it('rejects bundles that unpack too large', () => {
-		const huge = new Uint8Array(101 * 1024 * 1024);
+		const huge = new Uint8Array(BUNDLE_LIMITS.expandedBytes + 1);
 		const bytes = zipSync({ 'teams.csv': enc('a\n1\n'), 'big.bin': huge }, { level: 1 });
-		expect(failure(bytes).message).toBe('The bundle unpacks to more than 100 MB.');
-	});
+		expect(failure(bytes).message).toBe('The bundle unpacks to more than 500 MB.');
+	}, 30_000); // compressing a 500 MB buffer is slow
 
 	it('rejects unsafe paths', () => {
 		const message = 'The bundle contains an unsafe path: ../evil.png';

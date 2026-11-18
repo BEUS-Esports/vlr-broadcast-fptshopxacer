@@ -125,7 +125,7 @@
 							{#each preview.players as player (player.row)}
 								<tr id={rowId('players', player.row)}>
 									<td>{player.row}</td><td>{player.displayName}</td><td>{player.fullName ?? '—'}</td
-									><td>{player.riotId}</td><td>{player.portrait ?? '—'}</td>
+									><td>{player.riotId ?? '—'}</td><td>{player.portrait ?? '—'}</td>
 									<td>{@render issues(forRow('players', player.row), false)}</td>
 								</tr>
 							{/each}

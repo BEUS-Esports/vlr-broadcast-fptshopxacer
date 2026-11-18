@@ -32,24 +32,24 @@ On **Teams** or **Players**, open **Import bundle**, choose a `.zip`, then **Pre
 bundle.zip
 ├── teams.csv | teams.xlsx | teams.ods        (optional)
 ├── players.csv | players.xlsx | players.ods  (optional)
-├── team_logos/normal/<tag>.<ext>
-├── team_logos/white/<tag>.<ext>
-├── team_logos/black/<tag>.<ext>
-└── player_images/<riot_id>.<ext>
+├── team_logos/normal/<tag or team name>.<ext>
+├── team_logos/white/<tag or team name>.<ext>
+├── team_logos/black/<tag or team name>.<ext>
+└── player_images/<riot_id, display name or full name>.<ext>
 ```
 
 - At least one of `teams.*` or `players.*` is required, one file per table. Files may sit at the zip root or inside one folder. Either page imports whatever the bundle contains.
-- First row is the header (first sheet only for `.xlsx` / `.ods`; CSV is UTF-8). Teams: `team_name`, `team_tag`. Players: `display_name`, `full_name` (column required, value optional), `riot_id`. Missing or unknown columns are errors.
-- Images are `.png`, `.jpg`, `.jpeg` or `.webp` up to 10 MB, named after the team tag or Riot ID, ignoring case. Images are optional. An image that matches no row is only a warning.
-- Riot ID needs exactly one `#`: a 3-16 character game name (letters, digits, spaces) and a 3-5 character alphanumeric tagline.
+- First row is the header (first sheet only for `.xlsx` / `.ods`; CSV is UTF-8). Teams: `team_name`, `team_tag`. Players: `display_name`, `full_name` (column required, value optional), `riot_id` (column and value both optional; players without one just have no Riot ID). Missing or unknown columns are errors.
+- Images are `.png`, `.jpg`, `.jpeg` or `.webp` up to 10 MB, named after the team tag or team name (logos) or the Riot ID, display name or full name (player images), ignoring case. Images are optional. An image that matches no row is only a warning. It is an error when one image matches several rows (full names are not unique) or one row matches several images.
+- A Riot ID, when given, needs exactly one `#`: a 3-16 character game name (letters, digits, spaces) and a 3-5 character alphanumeric tagline.
 - Team name, team tag, display name and Riot ID must be unique, ignoring case, within the bundle and against existing profiles including archived ones. The preview names the clash and its row.
-- Limits: zip up to 32 MB, up to 500 entries, up to 100 MB unpacked.
+- Limits: zip up to 150 MB, up to 500 entries, up to 500 MB unpacked.
 
 ## Assets
 
 - `ASSET_DIR` holds uploaded logos and portraits plus imported game art, outside the build. Back it up with the database.
 - Asset URLs are relative to the app origin, so other PCs load them through the server's LAN address.
-- With the Node adapter, set `BODY_SIZE_LIMIT=40M` (also in the `.env` that compose reads) to allow three team logos of up to 10 MB each and the 32 MB bundle import (a 32 MB zip plus form overhead exceeds `32M`).
+- With the Node adapter, set `BODY_SIZE_LIMIT=160M` (also in the `.env` that compose reads) to allow three team logos of up to 10 MB each and the 150 MB bundle import (a 150 MB zip plus form overhead exceeds `150M`).
 - A failed team or player save deletes the uploads it just completed.
 
 ### Cleanup
