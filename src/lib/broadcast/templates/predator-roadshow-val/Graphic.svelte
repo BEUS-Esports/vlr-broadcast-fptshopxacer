@@ -17,7 +17,7 @@
 	import MapVeto from './MapVeto.svelte';
 	import AgentSelect from './AgentSelect.svelte';
 	import PostGame from './PostGame.svelte';
-	// The live HUD embeds this same scorebar; theme.css styles both for this template.
+	// Shared fallback HUD; theme.css only sets its --hud-* tokens and event logo for this template.
 	import InGame from '../test/InGame.svelte';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();

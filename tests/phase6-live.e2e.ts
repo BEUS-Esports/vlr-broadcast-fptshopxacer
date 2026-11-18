@@ -347,12 +347,8 @@ test('server-owned live provider keeps keys private, shares one upstream, and ho
 		await expect(
 			outputs[0].locator('[data-player-id="Alpha-1"] [data-ability-dot].available')
 		).toHaveCount(1);
-		const history = outputs[0].getByRole('group', { name: 'Round history' });
-		const leftWinner = history.locator('[data-winner-position="left"]');
-		const rightWinner = history.locator('[data-winner-position="right"]');
-		await expect(leftWinner).toHaveAttribute('title', /alp/i);
-		await expect(rightWinner).toHaveAttribute('title', /bra/i);
-		expect((await leftWinner.boundingBox())!.y).toBeLessThan((await rightWinner.boundingBox())!.y);
+		// Round history is buy-rounds only and GStack reports no phase, so it never shows here.
+		await expect(outputs[0].getByRole('group', { name: 'Round history' })).toHaveCount(0);
 		await outputs[0].screenshot({ path: testInfo.outputPath('external-hud.png') });
 
 		await controls.getByRole('button', { name: 'View Data', exact: true }).click();

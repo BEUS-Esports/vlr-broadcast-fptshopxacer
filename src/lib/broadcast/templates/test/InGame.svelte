@@ -1,49 +1,37 @@
 <script lang="ts">
 	import type { BroadcastSnapshot } from '../../types';
 	import { presentationTeams, gameplaySide, teamScore } from '../../selectors';
-	import Identity from '../../primitives/Identity.svelte';
+	import Asset from '../../primitives/Asset.svelte';
 	import SponsorLoop from '../../in-game/SponsorLoop.svelte';
 
-	let {
-		snapshot,
-		teamPresentation = null,
-		blankMissing = false,
-		showSponsor = true,
-		mapName = null
-	}: {
-		snapshot: BroadcastSnapshot;
-		blankMissing?: boolean;
-		showSponsor?: boolean;
-		mapName?: string | null;
-		teamPresentation?: Record<
-			'left' | 'right',
-			{ name: string; side: 'attack' | 'defense' | null }
-		> | null;
-	} = $props();
+	let { snapshot, showSponsor = true }: { snapshot: BroadcastSnapshot; showSponsor?: boolean } =
+		$props();
 	const teams = $derived(presentationTeams(snapshot));
 	const winSlots = $derived(
 		snapshot.match
 			? Array.from({ length: Math.floor(snapshot.match.bestOf / 2) + 1 }, (_, index) => index)
 			: []
 	);
+	const mapCount = $derived(
+		snapshot.game
+			? `MAP ${snapshot.game.number}${snapshot.match ? `/${snapshot.match.bestOf}` : ''}`
+			: 'MAP —'
+	);
 </script>
 
-<section
-	aria-label="In-Game"
-	data-side-source={teamPresentation ? 'provider' : snapshot.sides.source}
->
-	{#if snapshot.selection || teamPresentation || blankMissing}
+<!-- Fallback HUD: the game keeps its full spectator top bar (agents + timer, x 400-1520, y 28-90);
+     this frames it without covering it. -->
+<section aria-label="In-Game" data-side-source={snapshot.sides.source}>
+	{#if snapshot.selection}
 		<div class="top-wrap">
 			{#each ['left', 'right'] as const as position (position)}
 				{@const team = position === 'left' ? teams.left : teams.right}
-				{@const presented = teamPresentation?.[position]}
-				{@const entryId = presented
-					? null
-					: position === 'left'
+				{@const entryId =
+					position === 'left'
 						? snapshot.presentation.leftEntryId
 						: snapshot.presentation.rightEntryId}
-				{@const side = presented ? presented.side : gameplaySide(snapshot, entryId)}
-				{@const wins = teamScore(snapshot, entryId, 'match')}
+				{@const side = gameplaySide(snapshot, entryId)}
+				{@const logo = team?.logoWhitePath ?? team?.logoPath ?? team?.logoBlackPath ?? null}
 
 				<div
 					class="team-rail"
@@ -51,34 +39,36 @@
 					data-entry-id={entryId ?? ''}
 					data-side={side ?? 'neutral'}
 				>
-					{#if position === 'right' && !presented && (!blankMissing || wins !== null)}
-						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
-							{#each winSlots as index (index)}
-								<span class={{ won: index < (wins ?? 0) }}></span>
-							{/each}
-						</div>
-					{/if}
-
-					<Identity
-						name={presented?.name ?? team?.name ?? null}
-						assetPath={presented
-							? null
-							: (team?.logoPath ?? team?.logoWhitePath ?? team?.logoBlackPath ?? null)}
-						unavailable={blankMissing ? '' : 'Team unavailable'}
-						{blankMissing}
-					/>
-
-					{#if position === 'left' && !presented && (!blankMissing || wins !== null)}
-						<div class="win-dots" data-win-dots aria-label={`${wins ?? 0} series wins`}>
-							{#each winSlots as index (index)}
-								<span class={{ won: index < (wins ?? 0) }}></span>
-							{/each}
-						</div>
-					{/if}
+					<strong>{team?.name ?? 'Team unavailable'}</strong>
+				</div>
+				<div class="team-logo" data-position={position} data-side={side ?? 'neutral'}>
+					{#if logo}<Asset path={logo} label={team?.name ?? ''} blankMissing />{/if}
 				</div>
 			{/each}
 
-			<div class="center-mark" aria-hidden="true"></div>
+			<!-- Series pips flank BEST OF and fill outside in: W L  BEST OF 3  L W. -->
+			{#if snapshot.match}<div class="series">
+					{#each ['left', 'right'] as const as position (position)}
+						{@const wins =
+							teamScore(
+								snapshot,
+								position === 'left'
+									? snapshot.presentation.leftEntryId
+									: snapshot.presentation.rightEntryId,
+								'match'
+							) ?? 0}
+						{#if position === 'right'}<div class="best-of">
+								BEST OF {snapshot.match.bestOf}
+							</div>{/if}
+						<div class="win-dots" data-win-dots aria-label={`${wins} series wins`}>
+							{#each winSlots as index (index)}<span
+									class={{
+										won: position === 'left' ? index < wins : index >= winSlots.length - wins
+									}}
+								></span>{/each}
+						</div>
+					{/each}
+				</div>{/if}
 			{#if showSponsor}<div
 					class="sponsor-slot"
 					data-sponsor-safe-area
@@ -89,17 +79,16 @@
 							logos={snapshot.sponsor.loop.logos}
 							intervalMs={snapshot.sponsor.loop.intervalMs}
 						/>
-					{:else if !blankMissing}<span>SPONSOR LOOP</span>{/if}
+					{:else}<span>SPONSOR LOOP</span>{/if}
 				</div>{/if}
 		</div>
 
 		<div class="match-bug">
-			<strong>{snapshot.match?.label ?? (blankMissing ? '' : 'MATCH')}</strong>
-			<span
-				>{snapshot.game?.name ??
-					(blankMissing && !snapshot.game ? '' : `GAME ${snapshot.game?.number ?? '—'}`)}</span
-			>
-			<p>{mapName ?? snapshot.game?.map?.displayName ?? (blankMissing ? '' : 'MAP TBD')}</p>
+			<strong>{snapshot.match?.label ?? 'MATCH'} - {mapCount}</strong>
+			<div class="match-body">
+				<span class="event-logo" aria-hidden="true"></span>
+				<p>{snapshot.game?.map?.displayName ?? 'MAP TBD'}</p>
+			</div>
 		</div>
 	{:else}
 		<p class="empty">No game selected</p>
@@ -119,7 +108,6 @@
 		font:
 			15px/1.2 var(--hud-font, 'Segoe UI'),
 			sans-serif;
-		--gfx-bg: #090c11;
 		--gfx-panel: var(--hud-panel, #10151df2);
 		--gfx-line: var(--hud-line, #303947);
 		--gfx-muted: var(--hud-muted, #97a2b0);
@@ -129,79 +117,85 @@
 		--gfx-defense: var(--hud-defense, #ff4655);
 	}
 
-	.top-wrap {
+	/* Band above the game's strip (y 0-28) plus logo plates at both ends (x 320-400, 1520-1604). */
+	.top-wrap::before {
+		content: '';
 		position: absolute;
-		inset: 0 0 auto;
-		height: 96px;
+		left: 320px;
+		top: 0;
+		width: 1284px;
+		height: 28px;
+		background: var(--gfx-panel);
+		border-bottom: 1px solid var(--gfx-line);
+	}
+
+	.team-logo {
+		position: absolute;
+		top: 0;
+		width: 80px;
+		height: 72px;
+		box-sizing: border-box;
+		display: grid;
+		place-items: center;
+		background: var(--gfx-panel);
+		border-bottom: 3px solid var(--gfx-line);
+		--asset-width: 56px;
+		--asset-height: 56px;
+	}
+
+	.team-logo[data-position='left'] {
+		left: 320px;
+		clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+	}
+
+	.team-logo[data-position='right'] {
+		left: 1524px;
+		clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
 	}
 
 	.team-rail {
 		position: absolute;
-		top: 10px;
-		width: 505px;
-		height: 48px;
+		top: 0;
+		width: 388px;
+		height: 28px;
 		box-sizing: border-box;
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 0 22px;
-		background: linear-gradient(180deg, #141b26f7, #090d14f4);
-		border-top: 2px solid var(--hud-line, #465160);
+		justify-content: center;
+		gap: 12px;
+		padding: 0 14px;
+		overflow: hidden;
 		border-bottom: 3px solid var(--gfx-line);
 	}
 
 	.team-rail[data-position='left'] {
-		left: 342px;
-		justify-content: flex-end;
-		clip-path: polygon(24px 0, 100% 0, calc(100% - 18px) 100%, 0 100%, 14px 50%);
+		left: 402px;
 	}
 
 	.team-rail[data-position='right'] {
-		right: 342px;
-		justify-content: flex-start;
-		clip-path: polygon(0 0, calc(100% - 24px) 0, calc(100% - 14px) 50%, 100% 100%, 18px 100%);
+		left: 1130px;
 	}
 
-	.team-rail[data-side='attack'] {
+	.team-rail[data-side='attack'],
+	.team-logo[data-side='attack'] {
 		border-bottom-color: var(--gfx-attack);
 	}
 
-	.team-rail[data-side='defense'] {
+	.team-rail[data-side='defense'],
+	.team-logo[data-side='defense'] {
 		border-bottom-color: var(--gfx-defense);
 	}
 
-	.team-rail :global(.identity) {
+	.team-rail strong {
 		min-width: 0;
-		max-width: 330px;
-		flex: 0 1 auto;
-		border: 0;
-		padding: 0;
-		gap: 10px;
-		--asset-width: 30px;
-		--asset-height: 30px;
-	}
-
-	.team-rail[data-position='left'] :global(.identity) {
-		flex-direction: row-reverse;
-		text-align: right;
-	}
-
-	.team-rail :global(.identity strong) {
-		display: block;
-		max-width: 270px;
 		overflow: hidden;
-		text-overflow: ellipsis;
 		white-space: nowrap;
 		font:
-			800 17px/1 var(--hud-font-display, Bahnschrift),
+			800 20px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
-		letter-spacing: 0.045em;
+		letter-spacing: 0.04em;
 		text-transform: uppercase;
-	}
-
-	.team-rail :global(.identity small) {
-		display: none;
 	}
 
 	.win-dots {
@@ -212,31 +206,39 @@
 	}
 
 	.win-dots span {
-		width: 10px;
-		height: 10px;
+		width: 9px;
+		height: 9px;
 		box-sizing: border-box;
 		display: block;
 		transform: rotate(45deg);
-		background: #0a0e14;
-		border: 1px solid #788392;
+		border: 1px solid var(--gfx-muted);
 	}
 
 	.win-dots span.won {
-		background: var(--gfx-ink);
-		border-color: var(--gfx-ink);
-		box-shadow: 0 0 0 2px #f7f4eb18;
+		background: var(--gfx-accent);
+		border-color: var(--gfx-accent);
 	}
 
-	.center-mark {
+	.series {
 		position: absolute;
-		left: 50%;
-		top: 51px;
-		width: 74px;
-		height: 22px;
-		transform: translateX(-50%);
-		background: linear-gradient(180deg, #171f2b, #0b1017);
-		clip-path: polygon(0 0, 24px 0, 37px 12px, 50px 0, 74px 0, 51px 22px, 23px 22px);
-		border-top: 1px solid var(--gfx-line);
+		left: 790px;
+		top: 0;
+		width: 340px;
+		height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+	}
+
+	.best-of {
+		white-space: nowrap;
+		color: var(--gfx-accent);
+		font:
+			800 16px/1 var(--hud-font-display, Bahnschrift),
+			'Arial Narrow',
+			sans-serif;
+		letter-spacing: 0.08em;
 	}
 
 	.sponsor-slot {
@@ -250,16 +252,8 @@
 		place-items: center;
 		overflow: hidden;
 		color: var(--gfx-muted);
-		background: linear-gradient(135deg, var(--hud-panel, #10151dd9), #171e28bf);
-		border: 1px solid var(--hud-line, #465160);
-		clip-path: polygon(
-			12px 0,
-			100% 0,
-			100% calc(100% - 12px),
-			calc(100% - 12px) 100%,
-			0 100%,
-			0 12px
-		);
+		background: var(--gfx-panel);
+		border: 1px solid var(--gfx-line);
 	}
 
 	.sponsor-slot span {
@@ -270,60 +264,66 @@
 		letter-spacing: 0.16em;
 	}
 
+	/* Bottom-left map box, below the game's spectated-player portrait (y 795-875). Fully opaque:
+	   it also hides the game's player chat so nothing offensive reaches air. */
 	.match-bug {
+		background: var(--hud-panel-solid, #0b0f15);
 		position: absolute;
-		left: 30px;
-		bottom: 34px;
-		width: 360px;
-		min-height: 124px;
+		left: 28px;
+		top: 880px;
+		width: 492px;
+		height: 192px;
 		box-sizing: border-box;
-		padding: 18px 24px 17px;
+		display: flex;
+		flex-direction: column;
 		overflow: hidden;
-		background:
-			linear-gradient(135deg, #63e6d719, transparent 44%),
-			linear-gradient(180deg, #141b26f2, #090d14f2);
-		border-left: 4px solid var(--gfx-accent);
-		border-bottom: 1px solid var(--gfx-line);
-		clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
-	}
-
-	.match-bug strong,
-	.match-bug span,
-	.match-bug p {
-		display: block;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 
 	.match-bug strong {
+		align-self: flex-end;
+		max-width: 100%;
+		box-sizing: border-box;
+		padding: 8px 18px;
+		overflow: hidden;
+		white-space: nowrap;
+		background: var(--gfx-panel);
 		font:
-			800 18px/1 var(--hud-font-display, Bahnschrift),
+			800 20px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
-		letter-spacing: 0.045em;
+		letter-spacing: 0.04em;
 		text-transform: uppercase;
 	}
 
-	.match-bug span {
-		margin-top: 7px;
-		color: var(--gfx-muted);
-		font:
-			700 11px/1 var(--hud-font-display, Bahnschrift),
-			'Arial Narrow',
-			sans-serif;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
+	.match-body {
+		flex: 1;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: 140px minmax(0, 1fr);
+		align-items: center;
+		background: var(--gfx-panel);
+		border-bottom: 3px solid var(--gfx-accent);
 	}
 
-	.match-bug p {
-		margin: 13px 0 0;
-		color: var(--gfx-accent);
+	.event-logo {
+		height: 100px;
+		margin: 0 14px;
+		border-right: 2px solid var(--gfx-line);
+		background: var(--hud-event-logo, none) center / contain no-repeat;
+	}
+
+	.match-body p {
+		margin: 0;
+		padding: 0 18px;
+		overflow: hidden;
+		white-space: nowrap;
+		text-align: center;
+		color: var(--gfx-ink);
 		font:
-			900 29px/0.95 var(--hud-font-display, Bahnschrift),
+			900 44px/1 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
-		letter-spacing: 0.055em;
+		letter-spacing: 0.02em;
 		text-transform: uppercase;
 	}
 

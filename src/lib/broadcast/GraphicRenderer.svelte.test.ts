@@ -386,6 +386,7 @@ it('renders a provider template without game preparation or healthy status', () 
 		}))
 	}));
 	state.rounds = [{ round: 1, winnerProviderSide: 'team-1', reason: 'elimination' }];
+	state.phase = 'buy';
 	const preview = render(GraphicRenderer, {
 		snapshot,
 		graphic: 'in-game',
@@ -554,7 +555,7 @@ it('themes the live HUD only for the roadshow template', async () => {
 	const other = await hud('other');
 	expect(getComputedStyle(other).fontFamily).not.toContain('Predator');
 	expect(
-		getComputedStyle(other.querySelector('.round-context, .rail-label')!).backgroundColor
+		getComputedStyle(other.querySelector('.team-rail')!).backgroundColor
 	).toMatch(/^rgba?\(16, 21, 29/);
 });
 

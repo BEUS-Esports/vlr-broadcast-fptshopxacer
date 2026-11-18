@@ -260,3 +260,17 @@ it('play resolves after the intro and leaves the graphic fully visible', async (
 	const root = view.container.querySelector('.rs-root')!;
 	expect(getComputedStyle(root).opacity).toBe('1');
 });
+
+it('shows the roadshow event logo in the in-game map box', () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'in-game' });
+	view.container.setAttribute('data-template', 'predator-roadshow-val');
+	const logo = view.container.querySelector('.event-logo')!;
+	expect(getComputedStyle(logo).backgroundImage).toContain('logo-roadshow');
+});
+
+it('keeps the in-game map box opaque under the roadshow theme', () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'in-game' });
+	view.container.setAttribute('data-template', 'predator-roadshow-val');
+	const box = view.container.querySelector('.match-bug')!;
+	expect(getComputedStyle(box).backgroundColor).toBe('rgb(0, 0, 0)');
+});

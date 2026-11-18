@@ -16,3 +16,6 @@ bun.lockb
 # Raw provider captures retain their supplied formatting.
 /docs/*.jsonc
 /docs/*.example.json
+
+# Third-party assets kept byte-identical to upstream (licence notice)
+src/lib/broadcast/live/assets/spectra/

@@ -34,6 +34,18 @@ The GStack reference folder is ignored by Git, and none of its code or assets ar
 - A server restart starts disconnected in native mode and requires mapping review.
 - All browser clients subscribe to the app's SSE and share one upstream session, so run one Node process.
 
+## Rehearsing without a live match
+
+`pnpm fake:spectra` starts a fake ValoSpectra server on port 5200. It replays
+`docs/spectra-matchData.example.json`, or another file passed as the first argument, as `match_data` once a second.
+
+1. Run `pnpm fake:spectra` on the app server.
+2. In Settings, set the Spectra region to **custom** with host `http://localhost` and any group code. Connect Spectra in Live.
+3. Map the teams and players, then enable the external HUD.
+4. Press keys in the script's terminal to switch scenarios: `1` buy phase, `2` combat, `3` planted, `4` detonated, `5` defused, `6` clutch, `7` one team wiped, `8` overtime (round 31). `a` cycles through them every 8 seconds and `q` quits.
+
+Health, credits and ult points change every second, so the HUD visibly updates. The fake never confirms a supporter key, so the HUD shows Spectra attribution and hides the sponsor loop. Switch the region back before going live.
+
 ## Settings and credentials
 
 - Provider settings live in the database (migration 0011). The ValoSpectra Org/access key and HenrikDev API key are encrypted at rest with AES-256-GCM.

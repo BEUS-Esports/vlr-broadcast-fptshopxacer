@@ -85,8 +85,9 @@ it('leaves missing player fields blank while retaining measured zero and partial
 	expect(view.container.textContent).toContain('Observed player');
 	expect(view.container.querySelector('[data-health]')?.textContent).toMatch(/^0\s+HP$/);
 	expect(view.container.querySelector('.credits')?.textContent).toContain('0');
-	expect(view.container.querySelector('.kda')?.textContent).toBe('0//2');
-	expect(view.container.querySelector('.ultimate')?.textContent).toBe('ULT 0');
+	expect(view.container.querySelector('.kda')).toBeNull();
+	// Ult progress without a known total has nothing to draw.
+	expect(view.container.querySelector('.ultimate')).toBeNull();
 	expect(view.container.querySelectorAll('[data-ability-dot]')).toHaveLength(2);
 	expect(view.container.querySelectorAll('.ability')).toHaveLength(1);
 });
@@ -139,4 +140,79 @@ it('shows conservative provider attribution unless Spectra supporter status is c
 		status: liveSessionFixture({ provider: 'spectra', attribution: 'supporter' })
 	});
 	expect(view.container.textContent).not.toContain('Powered by');
+});
+
+it('shows name, credits and K/D/A but no health on a dead card', () => {
+	const view = render(PlayerCard, {
+		saved,
+		resources: null,
+		live: livePlayerFixture({
+			alive: false,
+			health: 0,
+			credits: 1500,
+			kills: 3,
+			deaths: 2,
+			assists: 1
+		})
+	});
+	expect(view.container.querySelector('[data-health]')).toBeNull();
+	expect(view.container.querySelector('.health-track')).toBeNull();
+	expect(view.container.querySelector('.kda')?.textContent).toBe('3/2/1');
+	expect(view.container.querySelector('.credits')?.textContent).toContain('1,500');
+	expect(view.container.textContent).toContain('Approved name');
+	expect(view.container.textContent).not.toContain('DEAD');
+});
+
+it('keeps card height when the player dies', async () => {
+	const alive = livePlayerFixture({ alive: true, health: 100, kills: 3, deaths: 0, assists: 0 });
+	const view = render(PlayerCard, { saved, resources: null, live: alive });
+	const article = view.container.querySelector('article')!;
+	const height = article.getBoundingClientRect().height;
+	expect(height).toBeGreaterThanOrEqual(90);
+	expect(view.container.querySelector('.kda')).toBeNull();
+	await view.rerender({ saved, resources: null, live: { ...alive, alive: false, health: 0 } });
+	expect(article.getBoundingClientRect().height).toBe(height);
+});
+
+it('draws ult progress as pips with no text and no agent name', () => {
+	const view = render(PlayerCard, {
+		saved: undefined,
+		resources,
+		live: livePlayerFixture({ agent: 'Jett', ultimate: { ready: false, current: 3, required: 8 } })
+	});
+	const ult = view.container.querySelector('.ultimate')!;
+	expect(ult.textContent?.trim()).toBe('');
+	expect(ult.getAttribute('aria-label')).toBe('Ultimate 3/8');
+	expect(ult.querySelectorAll('[data-ult-pip]')).toHaveLength(8);
+	expect(ult.querySelectorAll('[data-ult-pip].full')).toHaveLength(3);
+	expect(view.container.querySelector('.agent')?.textContent).not.toContain('Jett');
+});
+
+it('fills every ult pip when the ultimate is ready', () => {
+	const view = render(PlayerCard, {
+		saved: undefined,
+		resources: null,
+		live: livePlayerFixture({ ultimate: { ready: true, current: 7, required: 7 } })
+	});
+	const ult = view.container.querySelector('.ultimate.ready')!;
+	expect(ult.querySelectorAll('[data-ult-pip].full')).toHaveLength(7);
+});
+
+it('shows shield, credits and spike carrier as icons', () => {
+	const view = render(PlayerCard, {
+		saved: undefined,
+		resources: null,
+		live: livePlayerFixture({
+			alive: true,
+			hasSpike: true,
+			credits: 2100,
+			shield: { raw: 'Heavy', kind: 'heavy', current: null, extra: null }
+		})
+	});
+	const shield = view.container.querySelector('.shield[data-shield-kind="heavy"]')!;
+	expect(shield.querySelector('img')?.getAttribute('src')).toBeTruthy();
+	expect(shield.textContent?.trim()).toBe('');
+	expect(view.container.querySelector('.credits img')).not.toBeNull();
+	expect(view.container.querySelector('.credits')?.textContent?.trim()).toBe('2,100');
+	expect(view.container.querySelector('[aria-label="Spike carrier"] img')).not.toBeNull();
 });
