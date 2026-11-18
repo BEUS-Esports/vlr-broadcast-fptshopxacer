@@ -258,7 +258,7 @@ it('renders prepared fallback and unknown in-game sides without invented live co
 		'prepared'
 	);
 	expect(view.container.textContent).toContain('Saved map');
-	expect(view.container.textContent).toContain('Game 1');
+	expect(view.container.textContent).toContain('MATCH - MAP 1');
 	await view.rerender({
 		snapshot: {
 			...snapshot,
@@ -288,10 +288,12 @@ it('renders prepared fallback and unknown in-game sides without invented live co
 it('bounds native team rails and match context while reserving timer and killfeed space', async () => {
 	await page.viewport(1920, 1080);
 	// Regression bounds for the accepted native composition; OBS rehearsal remains separate.
+	// Game strip + timer, kill feed/weapons, ability bar, spectated-player portrait.
 	const protectedAreas = [
-		{ left: 850, top: 0, right: 1070, bottom: 50 },
-		{ left: 1460, top: 100, right: 1920, bottom: 420 },
-		{ left: 400, top: 680, right: 1920, bottom: 1080 }
+		{ left: 400, top: 28, right: 1520, bottom: 90 },
+		{ left: 1440, top: 90, right: 1920, bottom: 420 },
+		{ left: 530, top: 680, right: 1920, bottom: 1080 },
+		{ left: 0, top: 790, right: 300, bottom: 878 }
 	];
 	const snapshot = preparedSnapshot();
 	const longName = 'Long saved identity '.repeat(50);
@@ -332,7 +334,9 @@ it('bounds native team rails and match context while reserving timer and killfee
 		expect([bounds.x, bounds.y, bounds.width, bounds.height]).toEqual([0, 0, 1920, 1080]);
 		expect(section.scrollWidth).toBeLessThanOrEqual(section.clientWidth);
 		expect(section.scrollHeight).toBeLessThanOrEqual(section.clientHeight);
-		const regions = section.querySelectorAll('.team-rail, .match-bug, .sponsor-slot, .empty');
+		const regions = section.querySelectorAll(
+			'.team-rail, .team-logo, .best-of, .match-bug, .event-logo, .sponsor-slot, .empty'
+		);
 		for (const element of regions) {
 			const box = element.getBoundingClientRect();
 			if (!box.width || !box.height) continue;
@@ -359,13 +363,39 @@ it('bounds native team rails and match context while reserving timer and killfee
 				return [box.x, box.y, box.width, box.height];
 			});
 			expect(rails).toEqual([
-				[342, 10, 505, 48],
-				[1073, 10, 505, 48]
+				[402, 0, 470, 28],
+				[1048, 0, 470, 28]
 			]);
-			for (const identity of section.querySelectorAll('.identity strong')) {
-				expect(identity.scrollWidth).toBeGreaterThanOrEqual(identity.clientWidth);
-				expect(getComputedStyle(identity).textOverflow).toBe('ellipsis');
+			for (const name of section.querySelectorAll('.team-rail strong')) {
+				expect(name.scrollWidth).toBeGreaterThanOrEqual(name.clientWidth);
+				expect(getComputedStyle(name).textOverflow).toBe('clip');
 			}
 		}
 	}
+});
+
+it('labels best-of and map count for Bo1 and Bo5', async () => {
+	const snapshot = preparedSnapshot();
+	const match = (bestOf: number) => ({
+		id: 'm',
+		label: 'GRAND FINALS',
+		bestOf,
+		scoreA: 0,
+		scoreB: 0,
+		resultType: null,
+		winnerEntryId: null
+	});
+	const view = render(Graphic, { snapshot: { ...snapshot, match: match(1) }, graphic: 'in-game' });
+	const dots = () =>
+		[...view.container.querySelectorAll('[data-win-dots]')].map((el) => el.children.length);
+	expect(view.container.textContent).toContain('BEST OF 1');
+	expect(view.container.textContent).toContain('GRAND FINALS - MAP 1/1');
+	expect(dots()).toEqual([1, 1]);
+	await view.rerender({
+		snapshot: { ...snapshot, match: match(5), game: { ...snapshot.game!, number: 3 } },
+		graphic: 'in-game'
+	});
+	expect(view.container.textContent).toContain('BEST OF 5');
+	expect(view.container.textContent).toContain('GRAND FINALS - MAP 3/5');
+	expect(dots()).toEqual([3, 3]);
 });

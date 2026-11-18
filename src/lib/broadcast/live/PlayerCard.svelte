@@ -58,42 +58,29 @@
 	<div class="details">
 		<header>
 			<strong>{saved?.player?.displayName ?? live?.observedName ?? ''}</strong
-			>{#if live?.hasSpike === true}<b class="spike" aria-label="Spike carrier">◆</b
-				>{/if}{#if live?.alive === false}<b class="death">DEAD</b>{/if}
+			>{#if live?.hasSpike === true}<b class="spike" aria-label="Spike carrier">◆</b>{/if}
+			<span class="vitals">
+				{#if live?.alive !== false && live?.health !== null && live?.health !== undefined}<strong
+						class="hp"
+						data-health>{live.health}<small>&nbsp;HP</small></strong
+					>{/if}
+				{#if live?.extraHealth !== null && live?.extraHealth !== undefined}<span class="enhanced"
+						>+{live.extraHealth}</span
+					>{/if}
+				{#if live?.shield.kind && live.shield.kind !== 'unknown'}<span
+						class="shield"
+						data-shield-kind={live.shield.kind}
+						>{live.shield.kind === 'regen' ? 'REGEN' : live.shield.kind.toUpperCase()}{live.shield
+							.current !== null
+							? ` ${live.shield.current}`
+							: ''}</span
+					>{/if}
+				{#if live?.shield.extra !== null && live?.shield.extra !== undefined}<span class="enhanced"
+						>+{live.shield.extra} SH</span
+					>{/if}
+			</span>
 		</header>
-		<div class="loadout">
-			{#if weapon?.displayIconPath}<Asset
-					path={weapon.displayIconPath}
-					label={weapon.displayName}
-					blankMissing
-				/>{:else}<span>{live?.weapon ?? ''}</span>{/if}
-			{#if live?.credits !== null && live?.credits !== undefined}<span class="credits"
-					>¤ {live.credits.toLocaleString('en-US')}</span
-				>{/if}
-		</div>
-		<div class="vitals">
-			{#if live?.health !== null && live?.health !== undefined}<strong class="hp" data-health
-					>{live.health}<small>&nbsp;HP</small></strong
-				>{/if}
-			{#if live?.extraHealth !== null && live?.extraHealth !== undefined}<span class="enhanced"
-					>+{live.extraHealth}</span
-				>{/if}
-			{#if live?.shield.kind && live.shield.kind !== 'unknown'}<span
-					class="shield"
-					data-shield-kind={live.shield.kind}
-					>{live.shield.kind === 'regen' ? 'REGEN' : live.shield.kind.toUpperCase()}{live.shield
-						.current !== null
-						? ` ${live.shield.current}`
-						: ''}</span
-				>{/if}
-			{#if live?.shield.extra !== null && live?.shield.extra !== undefined}<span class="enhanced"
-					>+{live.shield.extra} SH</span
-				>{/if}
-			{#if live && [live.kills, live.deaths, live.assists].some((value) => value !== null)}<span
-					class="kda">{live.kills ?? ''}/{live.deaths ?? ''}/{live.assists ?? ''}</span
-				>{/if}
-		</div>
-		{#if live?.health !== null && live?.health !== undefined}<div
+		{#if live?.alive !== false && live?.health !== null && live?.health !== undefined}<div
 				class="health-track"
 				aria-label={`${live.health} health`}
 			>
@@ -132,6 +119,19 @@
 							blankMissing
 						/>{/if}{ultimateText ?? ''}</span
 				>{/if}
+			<span class="loadout">
+				{#if weapon?.displayIconPath}<Asset
+						path={weapon.displayIconPath}
+						label={weapon.displayName}
+						blankMissing
+					/>{:else}<span>{live?.weapon ?? ''}</span>{/if}
+				{#if live?.credits !== null && live?.credits !== undefined}<span class="credits"
+						>¤ {live.credits.toLocaleString('en-US')}</span
+					>{/if}
+			</span>
+			{#if live?.alive === false && [live.kills, live.deaths, live.assists].some((value) => value !== null)}<span
+					class="kda">{live.kills ?? ''}/{live.deaths ?? ''}/{live.assists ?? ''}</span
+				>{/if}
 		</footer>
 	</div>
 </article>
@@ -139,9 +139,10 @@
 <style>
 	article {
 		display: flex;
-		width: 312px;
-		min-height: 90px;
-		padding: 8px;
+		width: 100%;
+		min-width: 0;
+		height: 100px;
+		padding: 8px 10px;
 		box-sizing: border-box;
 		gap: 9px;
 		background: var(--hud-panel, #10151ded);
@@ -149,23 +150,29 @@
 		border-left: 3px solid var(--live-side, var(--hud-muted, #97a2b0));
 		clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
 	}
+	/* Dead: name, credits and K/D/A only; height stays so rails never jump. */
 	article.dead {
-		opacity: 0.62;
+		opacity: 0.55;
+	}
+	.dead .abilities,
+	.dead .ultimate,
+	.dead .loadout :global(.asset) {
+		display: none;
 	}
 	article.observed {
 		border-color: #e9d06d;
 		background: #292719ed;
 	}
 	.agent {
-		width: 47px;
-		flex: 0 0 47px;
-		align-self: center;
+		width: 56px;
+		flex: 0 0 56px;
+		align-self: flex-start;
 		text-align: center;
 		font-size: 10px;
 	}
 	.agent :global(.asset) {
-		width: 44px;
-		height: 44px;
+		width: 56px;
+		height: 56px;
 	}
 	.dead .agent {
 		filter: grayscale(1);
@@ -173,12 +180,14 @@
 	.agent span {
 		display: block;
 		overflow: hidden;
-		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 	.details {
 		flex: 1;
 		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
 	}
 	header {
 		display: flex;
@@ -189,16 +198,11 @@
 		min-width: 0;
 		flex: 1;
 		overflow: hidden;
-		text-overflow: ellipsis;
 		white-space: nowrap;
 		font:
-			800 16px/1.2 var(--hud-font-display, Bahnschrift),
+			800 18px/1.2 var(--hud-font-display, Bahnschrift),
 			'Arial Narrow',
 			sans-serif;
-	}
-	.death {
-		font-size: 10px;
-		color: #ff8790;
 	}
 	.spike {
 		color: var(--hud-accent, #63e6d7);
@@ -206,14 +210,14 @@
 	.loadout {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		height: 22px;
+		gap: 8px;
+		margin-left: auto;
 		color: #c4cbd5;
-		font-size: 11px;
+		font-size: 13px;
 	}
 	.loadout :global(.asset) {
-		width: 95px;
-		height: 20px;
+		width: 80px;
+		height: 22px;
 	}
 	.credits {
 		font-variant-numeric: tabular-nums;
@@ -221,12 +225,11 @@
 	.vitals {
 		display: flex;
 		align-items: center;
-		gap: 5px;
-		min-height: 16px;
-		font-size: 10px;
+		gap: 6px;
+		font-size: 11px;
 	}
 	.hp {
-		font-size: 14px;
+		font-size: 20px;
 	}
 	.hp small {
 		font-size: 9px;
@@ -243,13 +246,13 @@
 		color: #73ded4;
 	}
 	.kda {
-		margin-left: auto;
-		color: #c4cbd5;
+		margin-left: 10px;
+		font-size: 16px;
+		color: var(--hud-ink, #f7f4eb);
 		font-variant-numeric: tabular-nums;
 	}
 	.health-track {
-		height: 3px;
-		margin-top: 3px;
+		height: 4px;
 		background: var(--hud-line, #303947);
 	}
 	.health-track span {
@@ -260,8 +263,7 @@
 	footer {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding-top: 5px;
+		gap: 10px;
 	}
 	.abilities {
 		display: flex;
@@ -294,8 +296,8 @@
 	}
 	.ability :global(.asset),
 	.ultimate :global(.asset) {
-		width: 15px;
-		height: 15px;
+		width: 20px;
+		height: 20px;
 	}
 	.ultimate {
 		display: flex;

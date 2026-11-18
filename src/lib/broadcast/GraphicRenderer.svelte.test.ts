@@ -386,6 +386,7 @@ it('renders a provider template without game preparation or healthy status', () 
 		}))
 	}));
 	state.rounds = [{ round: 1, winnerProviderSide: 'team-1', reason: 'elimination' }];
+	state.phase = 'buy';
 	const preview = render(GraphicRenderer, {
 		snapshot,
 		graphic: 'in-game',

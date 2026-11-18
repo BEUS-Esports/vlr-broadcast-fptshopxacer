@@ -8,7 +8,8 @@ import {
 	teamScore,
 	lineupForTeam,
 	vetoActor,
-	statisticMetric
+	statisticMetric,
+	mapStrip
 } from './selectors';
 
 it('keeps competition ownership, presentation order and prepared/current sides independent', async () => {
@@ -206,4 +207,45 @@ it('reads composite captures independently of standalone', async () => {
 	latest.composite.visibility.mvp = false;
 	expect(programSnapshot(latest, 'mvp', 'composite')).toBeNull();
 	expect(programSnapshot(latest, 'mvp')?.dataRevision).toBe(11);
+});
+
+async function stripVeto(gameNumber: number) {
+	const { preparedSnapshot } = await import('./templates/test-snapshot');
+	const snapshot = preparedSnapshot();
+	const map = (displayName: string) => ({ ...snapshot.game!.map!, id: displayName, displayName });
+	const step = (
+		sequence: number,
+		action: 'ban' | 'pick' | 'decider',
+		name: string,
+		game: number | null
+	) => ({
+		sequence,
+		action,
+		map: map(name),
+		actingEntryId: null,
+		gameNumber: game,
+		sideChooserEntryId: null,
+		sideChoice: null
+	});
+	snapshot.veto = [
+		step(4, 'decider', 'Lotus', 3),
+		step(1, 'ban', 'Ascent', null),
+		step(3, 'pick', 'Haven', 2),
+		step(2, 'pick', 'Bind', 1)
+	];
+	snapshot.game!.number = gameNumber;
+	return snapshot;
+}
+
+it('lists played, current and next picked maps for the strip', async () => {
+	expect(mapStrip(await stripVeto(2))).toEqual([
+		{ gameNumber: 1, name: 'Bind', state: 'past' },
+		{ gameNumber: 2, name: 'Haven', state: 'current' },
+		{ gameNumber: 3, name: 'Lotus', state: 'next' }
+	]);
+	expect(mapStrip(await stripVeto(1))).toEqual([
+		{ gameNumber: 1, name: 'Bind', state: 'current' },
+		{ gameNumber: 2, name: 'Haven', state: 'next' }
+	]);
+	expect(mapStrip({ ...(await stripVeto(1)), game: null })).toEqual([]);
 });

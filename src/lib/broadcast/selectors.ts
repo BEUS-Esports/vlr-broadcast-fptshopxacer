@@ -186,3 +186,23 @@ export function statisticMetric(
 		}
 	);
 }
+
+/** Played, current and next picked maps for the in-game map strip; empty without a current game. */
+export function mapStrip(snapshot: BroadcastSnapshot) {
+	const current = snapshot.game?.number;
+	if (current === undefined) return [];
+	return snapshot.veto
+		.filter(
+			(step) => step.action !== 'ban' && step.gameNumber !== null && step.gameNumber <= current + 1
+		)
+		.map((step) => ({ gameNumber: step.gameNumber!, name: step.map.displayName }))
+		.sort((a, b) => a.gameNumber - b.gameNumber)
+		.map((item) => ({
+			...item,
+			state: (item.gameNumber < current
+				? 'past'
+				: item.gameNumber === current
+					? 'current'
+					: 'next') as 'past' | 'current' | 'next'
+		}));
+}

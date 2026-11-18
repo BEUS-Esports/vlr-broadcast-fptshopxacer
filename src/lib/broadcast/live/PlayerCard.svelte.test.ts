@@ -85,7 +85,7 @@ it('leaves missing player fields blank while retaining measured zero and partial
 	expect(view.container.textContent).toContain('Observed player');
 	expect(view.container.querySelector('[data-health]')?.textContent).toMatch(/^0\s+HP$/);
 	expect(view.container.querySelector('.credits')?.textContent).toContain('0');
-	expect(view.container.querySelector('.kda')?.textContent).toBe('0//2');
+	expect(view.container.querySelector('.kda')).toBeNull();
 	expect(view.container.querySelector('.ultimate')?.textContent).toBe('ULT 0');
 	expect(view.container.querySelectorAll('[data-ability-dot]')).toHaveLength(2);
 	expect(view.container.querySelectorAll('.ability')).toHaveLength(1);
@@ -139,4 +139,36 @@ it('shows conservative provider attribution unless Spectra supporter status is c
 		status: liveSessionFixture({ provider: 'spectra', attribution: 'supporter' })
 	});
 	expect(view.container.textContent).not.toContain('Powered by');
+});
+
+it('shows name, credits and K/D/A but no health on a dead card', () => {
+	const view = render(PlayerCard, {
+		saved,
+		resources: null,
+		live: livePlayerFixture({
+			alive: false,
+			health: 0,
+			credits: 1500,
+			kills: 3,
+			deaths: 2,
+			assists: 1
+		})
+	});
+	expect(view.container.querySelector('[data-health]')).toBeNull();
+	expect(view.container.querySelector('.health-track')).toBeNull();
+	expect(view.container.querySelector('.kda')?.textContent).toBe('3/2/1');
+	expect(view.container.querySelector('.credits')?.textContent).toContain('1,500');
+	expect(view.container.textContent).toContain('Approved name');
+	expect(view.container.textContent).not.toContain('DEAD');
+});
+
+it('keeps card height when the player dies', async () => {
+	const alive = livePlayerFixture({ alive: true, health: 100, kills: 3, deaths: 0, assists: 0 });
+	const view = render(PlayerCard, { saved, resources: null, live: alive });
+	const article = view.container.querySelector('article')!;
+	const height = article.getBoundingClientRect().height;
+	expect(height).toBeGreaterThanOrEqual(90);
+	expect(view.container.querySelector('.kda')).toBeNull();
+	await view.rerender({ saved, resources: null, live: { ...alive, alive: false, health: 0 } });
+	expect(article.getBoundingClientRect().height).toBe(height);
 });

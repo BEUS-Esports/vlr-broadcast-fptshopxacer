@@ -1,0 +1,105 @@
+import { expect, it } from 'vitest';
+import { page } from 'vitest/browser';
+import { render } from 'vitest-browser-svelte';
+import InGameHud from './InGameHud.svelte';
+import { preparedSnapshot } from '../templates/test-snapshot';
+import { liveGameFixture } from '#lib/live/fixtures.ts';
+import type { LiveGameState } from '#lib/live/types.ts';
+
+function snapshotWithVeto() {
+	const snapshot = preparedSnapshot();
+	const map = (displayName: string) => ({ ...snapshot.game!.map!, id: displayName, displayName });
+	snapshot.veto = [
+		{
+			sequence: 1,
+			action: 'pick',
+			map: map('Bind'),
+			actingEntryId: 'a',
+			gameNumber: 1,
+			sideChooserEntryId: null,
+			sideChoice: null
+		},
+		{
+			sequence: 2,
+			action: 'pick',
+			map: map('Haven'),
+			actingEntryId: 'b',
+			gameNumber: 2,
+			sideChooserEntryId: null,
+			sideChoice: null
+		}
+	];
+	return snapshot;
+}
+
+function live(overrides: Partial<LiveGameState> = {}) {
+	return liveGameFixture({
+		rounds: [{ round: 1, winnerProviderSide: 'right', reason: 'elimination' }],
+		...overrides
+	});
+}
+
+const props = (state: LiveGameState, snapshot = snapshotWithVeto()) => ({
+	snapshot,
+	live: state,
+	status: null,
+	resources: null,
+	identity: 'local' as const
+});
+
+it('shows round history only in buy phase', async () => {
+	const view = render(InGameHud, props(live({ phase: 'combat' })));
+	expect(view.container.querySelector('[aria-label="Round history"]')).toBeNull();
+	await view.rerender(props(live({ phase: 'buy' })));
+	expect(view.container.querySelector('[aria-label="Round history"]')).not.toBeNull();
+	// GStack never reports a phase; its history must not disappear for good.
+	await view.rerender(props(live({ phase: 'unknown' })));
+	expect(view.container.querySelector('[aria-label="Round history"]')).not.toBeNull();
+});
+
+it('fits overtime round history inside the strip', async () => {
+	await page.viewport(1920, 1080);
+	const rounds = Array.from({ length: 30 }, (_, index) => ({
+		round: index + 1,
+		winnerProviderSide: index % 2 ? ('left' as const) : ('right' as const),
+		reason: 'elimination' as const
+	}));
+	const view = render(InGameHud, props(live({ phase: 'buy', rounds })));
+	const history = view.container.querySelector<HTMLElement>('[aria-label="Round history"]')!;
+	expect(history.getBoundingClientRect().width).toBeLessThanOrEqual(1100);
+	expect(history.scrollWidth).toBeLessThanOrEqual(history.clientWidth);
+});
+
+it('labels current and next maps in the provider HUD', () => {
+	const view = render(InGameHud, props(live()));
+	const strip = view.container.querySelector('[data-map-strip]')!;
+	expect(strip.textContent).toMatch(/CURRENT:\s*BIND/i);
+	expect(strip.textContent).toMatch(/NEXT:\s*HAVEN/i);
+	const empty = render(InGameHud, props(live(), { ...snapshotWithVeto(), game: null }));
+	expect(empty.container.querySelector('[data-map-strip]')).toBeNull();
+});
+
+it('keeps the provider top bar clear of the game timer', async () => {
+	await page.viewport(1920, 1080);
+	const snapshot = snapshotWithVeto();
+	const longName = 'Long saved identity '.repeat(20);
+	snapshot.teams.forEach((team) => {
+		team.name = longName;
+		team.tag = longName;
+	});
+	const view = render(InGameHud, props(live({ roundNumber: 14 }), snapshot));
+	const timer = { left: 890, top: 0, right: 1030, bottom: 72 };
+	for (const element of view.container.querySelectorAll(
+		'.team-rail, .score, [data-map-strip], .round-context'
+	)) {
+		const box = element.getBoundingClientRect();
+		if (!box.width || !box.height) continue;
+		const clear =
+			box.right <= timer.left ||
+			box.left >= timer.right ||
+			box.bottom <= timer.top ||
+			box.top >= timer.bottom;
+		if (element.classList.contains('round-context')) expect(box.bottom).toBeLessThanOrEqual(24);
+		else expect(clear, element.className).toBe(true);
+	}
+});
