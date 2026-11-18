@@ -68,6 +68,6 @@ Syncs tactical maps, playable agents and weapons from [VALORANT-API](https://val
 
 - Refreshes names, roles and categories. Resource IDs, keys and active status are kept, including key/status edits saved during a sync.
 - Missing local artwork is downloaded again when the catalogue has an image URL. Existing files are reused.
-- Repaired artwork gets new asset URLs, so republish held graphics with **Hide → Show**.
+- Repaired artwork gets new asset URLs, so recapture held graphics with **Update** (or **Update Live** on the composite).
 - Open graphics and previews refresh live-provider artwork from the local server every 30 s. A failed request retries after 5 s and keeps the last good artwork.
 - The server needs internet only while syncing. Saved records and downloaded images keep working offline.

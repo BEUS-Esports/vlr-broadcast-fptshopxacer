@@ -11,7 +11,7 @@
 
 - Each page has an embedded 16:9 Preview and a **Large Preview** dialog. Both use the real output renderer.
 - Preview always follows the latest saved data, including while the graphic is hidden.
-- **Show** publishes a persisted capture of the graphic's saved preparation and content controls. Later saves update only Preview, and program keeps its capture. Pressing Show again keeps the capture; **Hide → Show** publishes the latest saved version.
+- **Show** publishes a persisted capture of the graphic's saved preparation and content controls. Later saves update only Preview, and program keeps its capture. Pressing Show again keeps the capture; **Update** recaptures the latest saved version in place, without animating out and back in. **Hide** plays the graphic's out animation before it leaves.
 - Explicit presentation and current-side changes apply live.
 - An editor with unsaved changes keeps its original record and revision across a refresh or a remote selection change.
 - Player Stats offers Single and Head-to-Head, scoped to a game, match or tournament. MVP uses the operator's saved pick.
@@ -22,6 +22,7 @@
 - Team A/B is competition order. **Swap Left/Right** changes only screen presentation.
 - Current attackers/defenders set the blue/red colors without moving teams.
 - Unknown tournament slugs use the generic test templates. A slug `<template>-<anything>` uses that template, so `predator-roadshow-val-dong-nai` uses `predator-roadshow-val`.
+- A tournament template's `Graphic.svelte` may export `play()`, `stop()` and `update(snapshot)` to animate in, out and on data change; a template without them gets a 150ms fade. Predator Roadshow animates in and out (400ms) and has no `update`.
 - The Phase 5/5.1 native In-Game fallback passed real Valorant/OBS composition testing. The Phase 5/5.1 native/test package is the accepted fallback baseline; external-provider HUD acceptance is recorded separately.
 
 ## OBS URLs
@@ -38,7 +39,11 @@ Read-only, on a transparent 1920×1080 canvas:
 | Post-Game     | `/gfx/live/post-game`     |
 | MVP           | `/gfx/live/mvp`           |
 
-For rehearsal, `/gfx/live/composite` combines all seven in one output with shared connections. Layers from back to front: In-Game, Map Veto, Player Lineup, Agent Select, Post-Game, Player Stats, MVP. Shown graphics can overlap, so check the combinations you plan to use and compare vMix performance before going on air with it. Keep the individual URLs as a rehearsed fallback.
+For rehearsal, `/gfx/live/composite` combines all seven in one output with shared connections. It has its own on-air state, independent of Show/Hide on the individual URLs.
+
+- **Take Live** puts a graphic on the composite and captures its saved data. **Update Live** recaptures the latest saved data for a graphic already on air, and **Take Off** removes it with its out animation. The **Live Now — Composite** panel on Global Setup lists each layer and its occupant, with per-row Update and Take Off and **Clear all**.
+- Layers from back to front: 0 In-Game; 1 Player Lineup, Player Stats, Map Veto, Post-Game, MVP; 2 Agent Select. Each layer holds one graphic. Taking another graphic live on an occupied layer plays the old one's out animation first, then the new one's in animation. Graphics on different layers stack.
+- Compare vMix performance before going on air with it. Keep the individual URLs as a rehearsed fallback.
 
 ## Predator Roadshow VALORANT
 
