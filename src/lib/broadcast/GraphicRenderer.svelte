@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
 	import { prefersReducedMotion } from 'svelte/motion';
-	import type { GraphicId } from './controls';
+	import type { GraphicId, ProgramOutput } from './controls';
 	import type { BroadcastSnapshot } from './types';
 	import type { BroadcastClock } from './client';
 	import { programSnapshot } from './selectors';
-	import { resolveGraphicTemplate } from './templates';
+	import {
+		resolveGraphicTemplate,
+		TEMPLATE_ACTION_TIMEOUT_MS,
+		type TemplateControls
+	} from './templates';
 	import { filterSponsor } from './sponsor';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
 	import {
@@ -22,6 +25,7 @@
 		snapshot,
 		graphic,
 		mode = 'program',
+		output = 'standalone',
 		telemetry = null,
 		resources = null,
 		clock = null
@@ -29,12 +33,13 @@
 		snapshot: BroadcastSnapshot | null;
 		graphic: GraphicId;
 		mode?: 'program' | 'preview' | 'preview-live';
+		output?: ProgramOutput;
 		telemetry?: LiveGameEnvelope | null;
 		resources?: LiveResources | null;
 		clock?: BroadcastClock | null;
 	} = $props();
 	const rendered = $derived(
-		snapshot && (mode === 'program' ? programSnapshot(snapshot, graphic) : snapshot)
+		snapshot && (mode === 'program' ? programSnapshot(snapshot, graphic, output) : snapshot)
 	);
 	const template = $derived(resolveGraphicTemplate(rendered?.tournament?.slug));
 	const Template = $derived(template.component);
@@ -69,6 +74,57 @@
 					? rendered?.controls.playerStats.scope
 					: null
 	);
+
+	let layer = $state<HTMLDivElement>();
+	// Null while the In-Game HUD (not a template) is shown, so the HUD always uses the fallback.
+	let instance = $state<object | null>(null);
+	// shortcut: svelte-check types a dynamic component's bind:this as an opaque SvelteComponent, hence the cast.
+	const controls = $derived(instance as TemplateControls | null);
+
+	function fade(from: number, to: number) {
+		return layer
+			?.animate([{ opacity: from }, { opacity: to }], {
+				duration: prefersReducedMotion.current ? 0 : 150,
+				fill: 'forwards'
+			})
+			.finished.then(
+				() => {},
+				() => {}
+			);
+	}
+
+	// Races a template call against the timeout: a hung or throwing template is cut, never awaited forever.
+	async function run(action: () => Promise<void> | undefined) {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		try {
+			await Promise.race([
+				action(),
+				new Promise<void>((resolve) => {
+					timer = setTimeout(() => {
+						console.warn(`Graphic template action timed out after ${TEMPLATE_ACTION_TIMEOUT_MS}ms`);
+						resolve();
+					}, TEMPLATE_ACTION_TIMEOUT_MS);
+				})
+			]);
+		} catch (error) {
+			console.warn('Graphic template action failed', error);
+		} finally {
+			clearTimeout(timer);
+		}
+	}
+
+	export function play() {
+		return run(() => (controls?.play ? controls.play() : fade(0, 1)));
+	}
+
+	export function stop() {
+		return run(() => (controls?.stop ? controls.stop() : fade(1, 0)));
+	}
+
+	// The `snapshot` prop already holds the new data here; a template only animates the change.
+	export function update(next: BroadcastSnapshot) {
+		return run(() => controls?.update?.(next));
+	}
 </script>
 
 <div
@@ -80,7 +136,7 @@
 	data-data-revision={rendered?.dataRevision ?? 0}
 >
 	{#if rendered && presented}
-		<div transition:fade={{ duration: prefersReducedMotion.current ? 0 : 150 }}>
+		<div bind:this={layer}>
 			{#if (liveGame && telemetry) || (mode === 'preview-live' && graphic === 'in-game')}
 				<InGameHud
 					snapshot={presented}
@@ -90,7 +146,7 @@
 					identity={liveIdentity}
 				/>
 			{:else if mode !== 'preview-live'}
-				<Template snapshot={agentSnapshot ?? presented} {graphic} />
+				<Template bind:this={instance} snapshot={agentSnapshot ?? presented} {graphic} />
 				{#if reportScope && rendered.scopes[reportScope].usesSpectra}
 					<ProviderAttribution
 						status={{

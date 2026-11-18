@@ -10,6 +10,13 @@ import { liveGameFixture, liveSessionFixture } from '#lib/live/fixtures.ts';
 import type { LiveGameEnvelope } from '#lib/live/types.ts';
 import { emptySponsor } from './sponsor';
 import { emptyComposite } from './templates/test-snapshot';
+import * as templates from './templates';
+import StubTemplate, { hooks } from './GraphicRenderer.stub.svelte';
+
+vi.mock('./templates', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('./templates')>();
+	return { ...actual, resolveGraphicTemplate: vi.fn(actual.resolveGraphicTemplate) };
+});
 
 function preparedFixture(): BroadcastPreparedSnapshot {
 	const scope = {
@@ -630,5 +637,91 @@ it('hides the sponsor loop in the live HUD unless Spectra is attributed to a sup
 			container.querySelector('[data-sponsor-safe-area]') !== null,
 			`${provider}/${attribution}`
 		).toBe(shown);
+	}
+});
+
+function plainSnapshot(): BroadcastSnapshot {
+	return {
+		...preparedFixture(),
+		sponsor: emptySponsor,
+		composite: emptyComposite,
+		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
+	};
+}
+
+it('delegates play and stop to a template that exports them', async () => {
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({
+		...original(slug),
+		component: StubTemplate as never
+	}));
+	try {
+		let release!: () => void;
+		hooks.stop = () => new Promise<void>((resolve) => (release = resolve));
+		const view = render(GraphicRenderer, {
+			snapshot: plainSnapshot(),
+			graphic: 'post-game',
+			mode: 'preview'
+		});
+		await expect
+			.element(view.container.querySelector<HTMLElement>('[data-stub]'))
+			.toBeInTheDocument();
+		let done = false;
+		const stopped = view.component.stop().then(() => (done = true));
+		await new Promise((r) => setTimeout(r, 300));
+		expect(done).toBe(false);
+		release();
+		await stopped;
+		expect(done).toBe(true);
+	} finally {
+		resolve.mockImplementation(original);
+		hooks.stop = async () => {};
+	}
+});
+
+it('falls back to a fade for templates without the contract', async () => {
+	const view = render(GraphicRenderer, {
+		snapshot: plainSnapshot(),
+		graphic: 'post-game',
+		mode: 'preview'
+	});
+	const layer = view.container.querySelector('[data-graphic] > div')!;
+	await view.component.stop();
+	expect(getComputedStyle(layer).opacity).toBe('0');
+	await view.component.play();
+	expect(getComputedStyle(layer).opacity).toBe('1');
+});
+
+it('times out a hung template stop and resolves', async () => {
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({
+		...original(slug),
+		component: StubTemplate as never
+	}));
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+	try {
+		hooks.stop = () => new Promise<void>(() => {});
+		const view = render(GraphicRenderer, {
+			snapshot: plainSnapshot(),
+			graphic: 'post-game',
+			mode: 'preview'
+		});
+		await expect
+			.element(view.container.querySelector<HTMLElement>('[data-stub]'))
+			.toBeInTheDocument();
+		let done = false;
+		const stopped = view.component.stop().then(() => (done = true));
+		await vi.advanceTimersByTimeAsync(templates.TEMPLATE_ACTION_TIMEOUT_MS);
+		await stopped;
+		expect(done).toBe(true);
+		expect(warn).toHaveBeenCalledTimes(1);
+	} finally {
+		vi.useRealTimers();
+		warn.mockRestore();
+		resolve.mockImplementation(original);
+		hooks.stop = async () => {};
 	}
 });
