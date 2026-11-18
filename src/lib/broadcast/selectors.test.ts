@@ -169,3 +169,41 @@ it('shows saved game scores, or 13–0 for the advancing team when none is saved
 	expect(displayGameScore(walkover, 'a')).toBe(0);
 	expect(displayGameScore(base, 'a')).toBeNull();
 });
+
+it('reads composite captures independently of standalone', async () => {
+	const { preparedSnapshot } = await import('./templates/test-snapshot');
+	const { programSnapshot } = await import('./selectors');
+	const base = {
+		...preparedSnapshot(),
+		tournament: { id: 't', name: 'Test', slug: 'test' },
+		match: {
+			id: 'm',
+			label: 'Match',
+			bestOf: 1,
+			scoreA: 0,
+			scoreB: 0,
+			resultType: null,
+			winnerEntryId: null
+		}
+	};
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Captures omit the publications containers and sponsor.
+	const { publications: _, composite: __, sponsor: ___, ...prepared } = base;
+	const standalone = { ...prepared, dataRevision: 11 };
+	const captured = { ...prepared, dataRevision: 22 };
+	const latest = {
+		...base,
+		controls: { ...base.controls, visibility: { ...base.controls.visibility, mvp: true } },
+		publications: { ...base.publications, mvp: standalone },
+		composite: {
+			visibility: { ...base.composite.visibility, mvp: true },
+			publications: { ...base.composite.publications, mvp: captured }
+		}
+	};
+	expect(programSnapshot(latest, 'mvp')?.dataRevision).toBe(11);
+	const composite = programSnapshot(latest, 'mvp', 'composite');
+	expect(composite?.dataRevision).toBe(22);
+	expect(composite?.controls.visibility.mvp).toBe(true);
+	latest.composite.visibility.mvp = false;
+	expect(programSnapshot(latest, 'mvp', 'composite')).toBeNull();
+	expect(programSnapshot(latest, 'mvp')?.dataRevision).toBe(11);
+});

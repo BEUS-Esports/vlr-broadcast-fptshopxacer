@@ -194,6 +194,22 @@ describe('saved asset collection', () => {
 		snapshot.controls.visibility['player-lineup'] = false;
 		expect(collectGraphicAssetUrls(snapshot, 'player-lineup', null)).not.toContain('/held.png');
 	});
+	it('collects composite capture assets', () => {
+		const snapshot = fixture();
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Captures omit the publications containers and sponsor.
+		const { publications: _, composite: ___, sponsor: __, ...held } = fixture();
+		held.lineups[0].player!.portraitPath = '/composite-held.png';
+		snapshot.composite = {
+			visibility: { ...defaultVisibility, 'player-lineup': true },
+			publications: { ...snapshot.composite.publications, 'player-lineup': held }
+		};
+		expect(collectGraphicAssetUrls(snapshot, 'player-lineup', null)).not.toContain(
+			'/composite-held.png'
+		);
+		expect(collectGraphicAssetUrls(snapshot, 'player-lineup', null, 'composite')).toContain(
+			'/composite-held.png'
+		);
+	});
 });
 
 class TestImage {
