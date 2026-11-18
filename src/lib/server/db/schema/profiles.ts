@@ -1,4 +1,5 @@
-import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { index, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import {
 	archivedAtColumn,
 	createdAtColumn,
@@ -24,7 +25,9 @@ export const teams = sqliteTable(
 	(table) => [
 		index('teams_name_idx').on(table.name),
 		index('teams_tag_idx').on(table.tag),
-		index('teams_archived_at_idx').on(table.archivedAt)
+		index('teams_archived_at_idx').on(table.archivedAt),
+		uniqueIndex('teams_name_unique_ci').on(sql`lower(${table.name})`),
+		uniqueIndex('teams_tag_unique_ci').on(sql`lower(${table.tag})`)
 	]
 );
 
@@ -44,6 +47,8 @@ export const players = sqliteTable(
 	(table) => [
 		index('players_display_name_idx').on(table.displayName),
 		index('players_riot_id_idx').on(table.riotId),
-		index('players_archived_at_idx').on(table.archivedAt)
+		index('players_archived_at_idx').on(table.archivedAt),
+		uniqueIndex('players_display_name_unique_ci').on(sql`lower(${table.displayName})`),
+		uniqueIndex('players_riot_id_unique_ci').on(sql`lower(${table.riotId})`)
 	]
 );

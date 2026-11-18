@@ -658,7 +658,8 @@ it('matches exact resource UUIDs, permits substitute lineups and blocks duplicat
 				.canConfirm
 		).toBe(false);
 		data.map.externalId = 'uuid-map';
-		await fixture.db.update(s.players).set({ riotId: 'sub#tag' }).where(eq(s.players.id, 'a2'));
+		// Spaced variant: distinct for the unique index, but the same identity once canonicalised.
+		await fixture.db.update(s.players).set({ riotId: 'SUB # TAG' }).where(eq(s.players.id, 'a2'));
 		expect(
 			(
 				await createPostGameReview({
