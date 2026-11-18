@@ -1,5 +1,7 @@
 # ZIP Bundle for importing Teams and Players
 
+STATUS: Done ([#11](https://github.com/BEUS-Esports/vlr-broadcast-fptshopxacer/pull/11))
+
 ## Goal
 
 - Add import feature to Teams and Players, increasing the workflow speed

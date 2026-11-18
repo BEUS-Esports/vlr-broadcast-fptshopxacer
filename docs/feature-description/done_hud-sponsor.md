@@ -1,6 +1,6 @@
 # Sponsor Customization for HUD GFX
 
-STATUS: Done.
+STATUS: Done([#10](https://github.com/BEUS-Esports/vlr-broadcast-fptshopxacer/pull/10))
 
 ## Goal
 
