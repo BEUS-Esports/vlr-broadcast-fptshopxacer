@@ -3,4 +3,4 @@
 	import { graphicIds } from '#lib/broadcast/controls.ts';
 </script>
 
-<LiveOutput graphics={graphicIds} />
+<LiveOutput graphics={graphicIds} output="composite" />

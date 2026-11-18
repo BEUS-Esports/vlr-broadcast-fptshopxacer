@@ -4,4 +4,4 @@
 	let { graphic }: { graphic: GraphicId } = $props();
 </script>
 
-<LiveOutput graphics={[graphic]} />
+<LiveOutput graphics={[graphic]} output="standalone" />
