@@ -232,3 +232,31 @@ it('shows kills as K/D for a player who never died', () => {
 		view.container.querySelector('[data-entry-id="a"] [data-team-mvp]')?.textContent
 	).toContain('21.0');
 });
+
+// WAAPI runs on the real compositor clock (fake timers do not advance it), so these use real time
+// with wide margins: 400ms animations, "pending" probed at 250ms, "done" polled up to 2s.
+const settled = (promise: Promise<void>) => {
+	const state = { done: false };
+	void promise.then(() => (state.done = true));
+	return state;
+};
+
+it('stop resolves only after the outro finishes', async () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'player-lineup' });
+	const state = settled(view.component.stop());
+	await new Promise((resolve) => setTimeout(resolve, 250));
+	expect(state.done).toBe(false);
+	await expect.poll(() => state.done, { timeout: 2000 }).toBe(true);
+	const root = view.container.querySelector('.rs-root')!;
+	expect(getComputedStyle(root).opacity).toBe('0');
+});
+
+it('play resolves after the intro and leaves the graphic fully visible', async () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'player-lineup' });
+	const state = settled(view.component.play());
+	await new Promise((resolve) => setTimeout(resolve, 250));
+	expect(state.done).toBe(false);
+	await expect.poll(() => state.done, { timeout: 2000 }).toBe(true);
+	const root = view.container.querySelector('.rs-root')!;
+	expect(getComputedStyle(root).opacity).toBe('1');
+});
