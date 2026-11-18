@@ -108,8 +108,6 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await expect(onAir).toContainText('Map 1');
 	const context = await browser.newContext();
 	const other = await context.newPage();
-	// This operator keeps several full-screen graphics on air; accept each "already on air" prompt.
-	other.on('dialog', (dialog) => dialog.accept());
 	await other.goto('http://localhost:4173/admin/graphics');
 	await expect(other.getByLabel('Broadcast connection')).toContainText('Connection: connected');
 	await expect(page.getByRole('combobox', { name: 'Tournament', exact: true })).toBeDisabled();

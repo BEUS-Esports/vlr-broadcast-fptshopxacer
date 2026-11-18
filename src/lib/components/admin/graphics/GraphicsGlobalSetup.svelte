@@ -2,14 +2,28 @@
 	import { resolve } from '$app/paths';
 	import ManagementForm from '../management/ManagementForm.svelte';
 	import type { BroadcastSnapshot } from '#lib/broadcast/types.ts';
-	import { graphicIds, graphicLabels } from '#lib/broadcast/controls.ts';
+	import {
+		graphicIds,
+		graphicLabels,
+		graphicLayers,
+		layerNumbers
+	} from '#lib/broadcast/controls.ts';
 	import type { GraphicsControlData } from './GraphicsWorkspace.svelte';
 	let {
 		data,
 		live,
 		connection
 	}: { data: GraphicsControlData; live: BroadcastSnapshot; connection: string } = $props();
-	const locked = $derived(Object.values(live.controls.visibility).some(Boolean));
+	const standaloneOn = $derived(Object.values(live.controls.visibility).some(Boolean));
+	const locked = $derived(standaloneOn || Object.values(live.composite.visibility).some(Boolean));
+	const layers = $derived(
+		layerNumbers.map((number) => ({
+			number,
+			occupant: graphicIds.find(
+				(id) => graphicLayers[id] === number && live.composite.visibility[id]
+			)
+		}))
+	);
 	const selectionInitial = $derived({
 		expectedRevision: live.controlRevision,
 		tournamentId: live.selection?.tournamentId ?? '',
@@ -55,8 +69,10 @@
 		Connection: {connection} · Control revision {live.controlRevision} · Data revision {live.dataRevision}
 	</p>
 	{#if locked}<p role="status" class="text-warning-600-400">
-			Hide all shown graphics before changing or clearing the live selection.
-		</p>
+			Hide all shown graphics and clear the composite before changing or clearing the live
+			selection.
+		</p>{/if}
+	{#if standaloneOn}
 		<ManagementForm
 			action="/admin/graphics?/controls"
 			recordDraft={false}
@@ -74,7 +90,49 @@
 						.join(', ')}</span
 				>
 			</div>
-		</ManagementForm>{/if}
+		</ManagementForm>
+	{/if}
+	<section aria-label="Live now" class="space-y-2">
+		<h2 class="h3">Live Now — Composite</h2>
+		<ul class="space-y-2">
+			{#each layers as { number, occupant } (number)}
+				<li class="flex flex-wrap items-center gap-3">
+					<span>Layer {number}: {occupant ? graphicLabels[occupant] : '—'}</span>
+					{#if occupant}
+						<ManagementForm
+							action="/admin/graphics?/controls"
+							recordDraft={false}
+							initial={{
+								expectedRevision: live.controlRevision,
+								republish: { composite: [occupant] }
+							}}
+						>
+							<button class="btn preset-tonal-primary btn-sm">Update</button>
+						</ManagementForm>
+						<ManagementForm
+							action="/admin/graphics?/controls"
+							recordDraft={false}
+							initial={{ expectedRevision: live.controlRevision, composite: { [occupant]: false } }}
+						>
+							<button class="btn preset-tonal-error btn-sm">Take Off</button>
+						</ManagementForm>
+					{/if}
+				</li>
+			{/each}
+		</ul>
+		{#if layers.some(({ occupant }) => occupant)}
+			<ManagementForm
+				action="/admin/graphics?/controls"
+				recordDraft={false}
+				initial={{
+					expectedRevision: live.controlRevision,
+					composite: Object.fromEntries(graphicIds.map((id) => [id, false]))
+				}}
+			>
+				<button class="btn preset-filled-error-500">Clear composite</button>
+			</ManagementForm>
+		{/if}
+	</section>
 	<section aria-label="On air" class="space-y-2">
 		<h2 class="h3">On air</h2>
 		{#if live.selection}

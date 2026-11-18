@@ -18,6 +18,7 @@ test('each graphics control route shares setup and a visibility-independent prev
 		'Game Resources',
 		'Tournaments',
 		'Player Cameras',
+		'Sponsors',
 		'Global Settings',
 		...graphicIds.map((id) => graphicLabels[id])
 	]);
@@ -183,7 +184,6 @@ test('inline saved editing updates preview while shared program captures hold an
 			.getByRole('combobox', { name: 'Alpha 6 Agent', exact: true })
 			.selectOption('workflow-agent');
 		await save(page, 'Save agent selections');
-		page.once('dialog', (dialog) => dialog.accept()); // Another full-screen graphic is on air.
 		await save(page, 'Show Agent Select');
 		await output2.goto('/gfx/live/agent-select');
 		await expect(output2.getByText('Alpha 6', { exact: true })).toBeVisible();

@@ -97,6 +97,7 @@ it('MVP scope owns only its controls and does not resubmit retained Player Stats
 		dataRevision: 2,
 		selection: { tournamentId: 't', matchId: 'm', gameId: 'g' },
 		publications: { mvp: null },
+		composite: { visibility: defaultVisibility, publications: {} },
 		controls: {
 			visibility: defaultVisibility,
 			playerStats: { ...defaultPlayerStats, playerId: 'removed-player' },

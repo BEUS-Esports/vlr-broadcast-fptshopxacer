@@ -12,9 +12,11 @@ export const test = base.extend<{ broadcastIsolation: void }>({
 				db.execute({
 					sql: `UPDATE broadcast_state SET selected_game_id = NULL, swapped = 0, booths_swapped = 0,
 					current_attackers_entry_id = NULL, visibility = ?, publications = '{}',
+					composite_visibility = ?, composite_publications = '{}',
 					player_stats = ?, mvp_scope = 'game', lineup_teams = 'both', mvp_fields = ?, pause = '{"type":"none"}', ceremony = NULL,
 					control_revision = control_revision + 1, revision = revision + 1 WHERE id = 1`,
 					args: [
+						JSON.stringify(defaultVisibility),
 						JSON.stringify(defaultVisibility),
 						JSON.stringify(defaultPlayerStats),
 						JSON.stringify(statisticFields)

@@ -63,7 +63,5 @@ it('blocks Map winner while Lineup is on air with a result that is not published
 		}
 	});
 	expect(button(view).disabled).toBe(true);
-	expect(view.container.textContent).toContain(
-		'Hide → Show Player Lineup to publish the result first'
-	);
+	expect(view.container.textContent).toContain('Update Player Lineup to publish the result first');
 });

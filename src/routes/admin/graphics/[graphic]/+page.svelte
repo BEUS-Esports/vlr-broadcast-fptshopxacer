@@ -27,7 +27,10 @@
 <svelte:head><title>{graphicLabels[data.graphic]} | Graphics Control</title></svelte:head>
 <header class="space-y-2">
 	<h1 class="h1">{graphicLabels[data.graphic]}</h1>
-	<p>Save preparation, inspect Preview, and Show the saved version on program.</p>
+	<p>
+		Save preparation, inspect Preview, Show the saved version on the standalone output, or Take it
+		Live on the composite.
+	</p>
 </header>
 <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
 	<div class="min-w-0 space-y-5">
