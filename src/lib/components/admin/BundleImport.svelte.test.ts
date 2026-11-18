@@ -46,6 +46,23 @@ it('blocks confirm and shows the located error when the preview has errors', asy
 		.toHaveAttribute('href', '#import-teams.csv-2');
 });
 
+it('lists errors before warnings', async () => {
+	const base = preview(true);
+	const warning = {
+		level: 'warning' as const,
+		file: 'player_images/x.png',
+		row: null,
+		field: null,
+		message: 'Matched no player.'
+	};
+	const view = render(BundleImport, {
+		result: { importPreview: { ...base, problems: [warning, ...base.problems] } }
+	});
+	const items = Array.from(view.container.querySelectorAll('ul li'), (li) => li.textContent);
+	expect(items[0]).toContain('already used by team');
+	expect(items[1]).toContain('Matched no player.');
+});
+
 it('enables confirm for a clean preview until the file changes', async () => {
 	render(BundleImport, { result: { importPreview: preview(false) } });
 	await expect.element(confirm()).toBeEnabled();

@@ -14,6 +14,13 @@ export const PROFILE_LIMITS = {
 /** Comparison key for names, tags and Riot IDs; SQLite lower() only folds ASCII, so compare in JS. */
 export const profileKey = (value: string) => value.normalize('NFC').trim().toLocaleLowerCase();
 
+/** Riot ID with spaces around the # removed, matching how post-game identifies players. */
+export const canonicalRiotId = (value: string) =>
+	value
+		.split('#')
+		.map((part) => part.trim())
+		.join('#');
+
 export function riotIdProblem(value: string): string | null {
 	const parts = value.split('#');
 	if (parts.length !== 2) return 'Riot ID must contain exactly one #.';
@@ -115,10 +122,11 @@ export type PlayerInput = {
 };
 
 export async function savePlayer(input: PlayerInput) {
+	const riotId = optional(input.riotId, 'Riot ID', PROFILE_LIMITS.riotId);
 	const values = {
 		displayName: required(input.displayName, 'Display name', PROFILE_LIMITS.displayName),
 		fullName: optional(input.fullName, 'Full name', PROFILE_LIMITS.fullName),
-		riotId: optional(input.riotId, 'Riot ID', PROFILE_LIMITS.riotId),
+		riotId: riotId && canonicalRiotId(riotId),
 		...(input.portraitPath && { portraitPath: input.portraitPath })
 	};
 	const rows = await db
@@ -130,7 +138,8 @@ export async function savePlayer(input: PlayerInput) {
 		})
 		.from(players);
 	const others = rows.filter((row) => row.id !== input.id);
-	if (values.riotId && values.riotId !== rows.find((row) => row.id === input.id)?.riotId) {
+	const stored = rows.find((row) => row.id === input.id)?.riotId;
+	if (values.riotId && values.riotId !== (stored && canonicalRiotId(stored.normalize('NFC')))) {
 		const problem = riotIdProblem(values.riotId);
 		if (problem) throw new SaveError('invalid', problem);
 	}
@@ -146,7 +155,9 @@ export async function savePlayer(input: PlayerInput) {
 		);
 	if (values.riotId) {
 		const riotKey = profileKey(values.riotId);
-		const sameRiot = others.find((other) => other.riotId && profileKey(other.riotId) === riotKey);
+		const sameRiot = others.find(
+			(other) => other.riotId && profileKey(canonicalRiotId(other.riotId)) === riotKey
+		);
 		if (sameRiot)
 			throw new SaveError(
 				'invalid',

@@ -4,11 +4,20 @@ import { pathToFileURL } from 'node:url';
 // Same key as profileKey in src/lib/server/services/profiles.ts.
 const key = (value) => value.normalize('NFC').trim().toLocaleLowerCase();
 
-function groups(label, rows) {
+// Same key as profileKey(canonicalRiotId(...)): spaces around # do not distinguish Riot IDs.
+const riotKey = (value) =>
+	key(
+		value
+			.split('#')
+			.map((part) => part.trim())
+			.join('#')
+	);
+
+function groups(label, rows, keyOf = key) {
 	const byKey = new Map();
 	for (const { id, value } of rows) {
-		if (!value) continue;
-		const k = key(value);
+		if (value == null) continue;
+		const k = keyOf(value);
 		byKey.set(k, [...(byKey.get(k) ?? []), { id, value }]);
 	}
 	return [...byKey.values()]
@@ -32,7 +41,8 @@ export function findDuplicates({ teams, players }) {
 		),
 		...groups(
 			'Player Riot ID',
-			players.map((r) => ({ id: r.id, value: r.riot_id }))
+			players.map((r) => ({ id: r.id, value: r.riot_id })),
+			riotKey
 		)
 	];
 }

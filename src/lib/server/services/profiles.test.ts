@@ -108,4 +108,23 @@ describe('savePlayer duplicates and Riot ID', () => {
 			).rejects.toMatchObject({ message: ONE_HASH });
 		});
 	});
+
+	it('stores Riot IDs without spaces around # and clashes with legacy spaced rows', async () => {
+		await withManagementFixture(async ({ db }) => {
+			const { savePlayer } = await import('./profiles');
+			const row = await savePlayer({ displayName: 'Spaced', fullName: '', riotId: 'Name #TAG' });
+			expect(row.riotId).toBe('Name#TAG');
+			await expect(
+				savePlayer({ displayName: 'Other', fullName: '', riotId: 'name #tag' })
+			).rejects.toMatchObject({
+				message: 'Riot ID "name#tag" is already used by player "Spaced".'
+			});
+			await db.update(s.players).set({ riotId: 'Legacy Name #EUW' }).where(eq(s.players.id, 'a2'));
+			await expect(
+				savePlayer({ displayName: 'Another', fullName: '', riotId: 'legacy name#euw' })
+			).rejects.toMatchObject({
+				message: 'Riot ID "legacy name#euw" is already used by player "Player a2".'
+			});
+		});
+	});
 });

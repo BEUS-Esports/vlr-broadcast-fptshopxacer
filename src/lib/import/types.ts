@@ -10,8 +10,8 @@ export type ImportTeamRow = {
 	row: number;
 	name: string;
 	tag: string;
-	logos: Record<LogoVariant, string | null>;
-}; // zip entry paths
+	logos: Record<LogoVariant, string | null>; // zip entry paths
+};
 export type ImportPlayerRow = {
 	row: number;
 	displayName: string;

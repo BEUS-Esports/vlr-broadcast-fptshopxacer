@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
 import { zipSync } from 'fflate';
 import { BUNDLE_LIMITS, readBundle } from './bundle.ts';
+import { profileKey } from '#lib/server/services/profiles.ts';
 
 const enc = (text: string) => new TextEncoder().encode(text);
 const zip = (files: Record<string, Uint8Array>) => zipSync(files, { level: 0 });
@@ -89,6 +90,20 @@ describe('readBundle sheets', () => {
 	});
 });
 
+describe('readBundle CSV encoding', () => {
+	it('rejects a non-UTF-8 CSV instead of corrupting names', () => {
+		const bytes = Uint8Array.from([...enc('team_name,team_tag\nH'), 0xe1, ...enc('\n')]);
+		expect(failure(zip({ 'teams.csv': bytes })).message).toBe(
+			'teams.csv is not UTF-8. Save it as "CSV UTF-8" or use .xlsx.'
+		);
+	});
+
+	it('keeps a trailing blank header out of the cells', () => {
+		const { teams } = readBundle(zip({ 'teams.csv': enc('team_name,team_tag,\nA,B,\n') }));
+		expect(teams?.rows[0].cells).toEqual({ team_name: 'A', team_tag: 'B' });
+	});
+});
+
 describe('readBundle limits and safety', () => {
 	it('rejects too many entries', () => {
 		const files: Record<string, Uint8Array> = { 'teams.csv': enc('a\n1\n') };
@@ -172,5 +187,25 @@ describe('readBundle images', () => {
 		expect(
 			failure(zip({ 'teams.csv': enc('a\n1\n'), 'bundle/player_images/A.png': png })).message
 		).toBe('Put the bundle files either at the top of the zip or inside one folder, not both.');
+	});
+
+	it('recovers UTF-8 entry names written without the UTF-8 flag', () => {
+		const bytes = zip({ 'teams.csv': enc('a\n1\n'), 'player_images/Thắng#VN2.png': png });
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		for (let i = 0; i + 8 < bytes.length; i++) {
+			const sig = view.getUint32(i, true);
+			const at = sig === 0x04034b50 ? i + 6 : sig === 0x02014b50 ? i + 8 : -1;
+			if (at > 0) view.setUint16(at, view.getUint16(at, true) & ~0x800, true); // clear the UTF-8 flag
+		}
+		const { portraits } = readBundle(bytes);
+		expect(portraits.map(({ path, key }) => [path, key])).toEqual([
+			['player_images/Thắng#VN2.png', profileKey('Thắng#VN2')]
+		]);
+	});
+
+	it('keys NFD entry names like NFC ones', () => {
+		const name = 'player_images/' + 'Thắng#VN2'.normalize('NFD') + '.png';
+		const { portraits } = readBundle(zip({ 'teams.csv': enc('a\n1\n'), [name]: png }));
+		expect(portraits[0].key).toBe(profileKey('Thắng#VN2'));
 	});
 });

@@ -35,3 +35,15 @@ test('reports nothing when profiles are distinct', () => {
 		[]
 	);
 });
+
+test('treats spaces around # in Riot IDs as the same player', () => {
+	const lines = findDuplicates({
+		teams: [],
+		players: [
+			{ id: '1', display_name: 'P1', riot_id: 'A #B' },
+			{ id: '2', display_name: 'P2', riot_id: 'a#b' }
+		]
+	});
+	assert.equal(lines.length, 1);
+	assert.match(lines[0], /Player Riot ID/);
+});

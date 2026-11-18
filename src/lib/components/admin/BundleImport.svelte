@@ -7,6 +7,7 @@
 	const problems = $derived(preview?.problems ?? []);
 	const errors = $derived(problems.filter((problem) => problem.level === 'error'));
 	const warnings = $derived(problems.length - errors.length);
+	const ordered = $derived([...errors, ...problems.filter((problem) => problem.level !== 'error')]);
 	// Set when the file input changes; cleared once a new preview has been rendered.
 	let changed = $state(false);
 	const canConfirm = $derived(!!preview && !errors.length && !changed);
@@ -85,7 +86,7 @@
 				{preview.teams.length} teams, {preview.players.length} players, {preview.imageCount} images,
 				{errors.length} errors, {warnings} warnings
 			</p>
-			{#if problems.length}{@render issues(problems, true)}{/if}
+			{#if problems.length}{@render issues(ordered, true)}{/if}
 			{#if preview.teams.length}
 				<div class="table-wrap">
 					<table class="table">

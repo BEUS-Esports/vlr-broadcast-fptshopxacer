@@ -34,12 +34,26 @@ const isUnsafe = (name: string) =>
 	/^[a-z]:/i.test(name) ||
 	name.split('/').includes('..');
 
+// fflate decodes names without the UTF-8 flag (macOS Archive Utility, older Explorer) as Latin-1; recover UTF-8 when the bytes are valid.
+function entryName(name: string) {
+	if (!/[\u0080-\u00ff]/.test(name) || /[\u0100-\uffff]/.test(name)) return name;
+	try {
+		return new TextDecoder('utf-8', { fatal: true }).decode(
+			Uint8Array.from(name, (c) => c.charCodeAt(0))
+		);
+	} catch {
+		return name;
+	}
+}
+
 function unzip(bytes: Uint8Array) {
 	let count = 0;
 	let total = 0;
 	try {
-		return unzipSync(bytes, {
-			filter: ({ name, originalSize }) => {
+		const raw = unzipSync(bytes, {
+			filter: (entry) => {
+				const { originalSize } = entry;
+				const name = entryName(entry.name);
 				if (isUnsafe(name)) throw invalid(`The bundle contains an unsafe path: ${name}`);
 				if (++count > BUNDLE_LIMITS.entries) throw invalid('The bundle has more than 500 files.');
 				total += originalSize;
@@ -48,18 +62,27 @@ function unzip(bytes: Uint8Array) {
 				return !isJunk(name);
 			}
 		});
+		return Object.fromEntries(Object.entries(raw).map(([name, data]) => [entryName(name), data]));
 	} catch (error) {
 		throw error instanceof SaveError ? error : invalid('This file is not a valid zip.');
 	}
 }
 
 function parseSheet(file: string, bytes: Uint8Array): Sheet {
+	let csv: string | undefined;
+	if (file.toLowerCase().endsWith('.csv'))
+		try {
+			csv = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+		} catch {
+			throw invalid(`${file} is not UTF-8. Save it as "CSV UTF-8" or use .xlsx.`);
+		}
 	let rows: unknown[][];
 	let offset = 0;
 	try {
-		const book = file.toLowerCase().endsWith('.csv')
-			? XLSX.read(new TextDecoder().decode(bytes), { type: 'string', raw: true })
-			: XLSX.read(bytes, { type: 'buffer' });
+		const book =
+			csv === undefined
+				? XLSX.read(bytes, { type: 'buffer' })
+				: XLSX.read(csv, { type: 'string', raw: true });
 		const sheet = book.Sheets[book.SheetNames[0]];
 		if (sheet['!ref']) offset = XLSX.utils.decode_range(sheet['!ref']).s.r;
 		rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {

@@ -7,6 +7,7 @@ import type {
 } from '#lib/import/types.ts';
 import { imageType } from '#lib/server/assets.ts';
 import {
+	canonicalRiotId,
 	clashMessage,
 	PROFILE_LIMITS,
 	profileKey,
@@ -48,9 +49,13 @@ export function buildPreview(
 		for (const column of expected)
 			if (!sheet.header.includes(column))
 				add('error', sheet.file, 1, column, `Missing column ${column}.`);
-		for (const column of sheet.header)
+		sheet.header.forEach((column, index) => {
+			if (!column) return;
 			if (!expected.includes(column))
 				add('error', sheet.file, 1, column, `Unknown column ${column}.`);
+			else if (sheet.header.indexOf(column) !== index)
+				add('error', sheet.file, 1, column, `Duplicate column ${column}.`);
+		});
 		return problems.length === before;
 	};
 
@@ -139,7 +144,7 @@ export function buildPreview(
 			'player',
 			byKey(
 				existing.players.map((p) => [
-					p.riotId ?? '',
+					canonicalRiotId(p.riotId ?? ''),
 					{ name: p.displayName, archivedAt: p.archivedAt }
 				])
 			)
@@ -147,7 +152,7 @@ export function buildPreview(
 		for (const { row, cells } of bundle.players.rows) {
 			const displayName = clean(cells.display_name);
 			const fullName = clean(cells.full_name);
-			const riotId = clean(cells.riot_id);
+			const riotId = canonicalRiotId(clean(cells.riot_id));
 			if (!displayName || displayName.length > PROFILE_LIMITS.displayName)
 				add(
 					'error',
@@ -175,6 +180,10 @@ export function buildPreview(
 			players.push({ row, displayName, fullName: fullName || null, riotId, portrait: null });
 		}
 	}
+
+	const sheetFile = (bundle.teams ?? bundle.players)?.file;
+	if (sheetFile && !teams.length && !players.length && !problems.some((p) => p.level === 'error'))
+		add('error', sheetFile, null, null, 'The bundle has no rows.');
 
 	// Maps image key -> path for one slot; invalid or contested images are reported and left out.
 	const claim = (images: BundleImage[]) => {

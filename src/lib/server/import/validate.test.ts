@@ -225,4 +225,43 @@ describe('buildPreview', () => {
 		]);
 		expect(preview.imageCount).toBe(0);
 	});
+
+	it('canonicalises Riot IDs, clashes with spaced existing rows and matches portraits', () => {
+		const preview = buildPreview(
+			bundle({
+				players: playerSheet(['Neo', '', 'Name #TAG'], ['Trin', '', 'Old#EUW']),
+				portraits: [image('player_images/Name#TAG.png')]
+			}),
+			{ teams: [], players: [{ displayName: 'Zed', riotId: 'Old #EUW', archivedAt: null }] },
+			'h'
+		);
+		expect(preview.players[0]).toMatchObject({
+			riotId: 'Name#TAG',
+			portrait: 'player_images/Name#TAG.png'
+		});
+		expect(preview.problems).toEqual([
+			err('players.csv', 3, 'riot_id', 'Riot ID "Old#EUW" is already used by player "Zed".')
+		]);
+	});
+
+	it('ignores blank header cells', () => {
+		const sheet = { ...teamSheet(['A', 'B']), header: ['team_name', 'team_tag', ''] };
+		expect(problems(bundle({ teams: sheet }))).toEqual([]);
+	});
+
+	it('reports duplicate columns', () => {
+		const sheet = {
+			...playerSheet(['A', '', 'Abc#123']),
+			header: ['display_name', 'riot_id', 'full_name', 'riot_id']
+		};
+		expect(problems(bundle({ players: sheet }))).toEqual([
+			err('players.csv', 1, 'riot_id', 'Duplicate column riot_id.')
+		]);
+	});
+
+	it('reports a bundle with no data rows', () => {
+		expect(problems(bundle({ teams: teamSheet(), players: playerSheet() }))).toEqual([
+			err('teams.csv', null, null, 'The bundle has no rows.')
+		]);
+	});
 });
