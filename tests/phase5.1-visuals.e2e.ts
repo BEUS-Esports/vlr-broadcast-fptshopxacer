@@ -108,6 +108,8 @@ test('Test GFX v2 renders deterministic complete and edge states inside the nati
 			const prepared = { ...fixture };
 			const capture = { ...prepared };
 			Reflect.deleteProperty(capture, 'publications');
+			Reflect.deleteProperty(capture, 'sponsor');
+			Reflect.deleteProperty(capture, 'composite');
 			const snapshot = {
 				...prepared,
 				controls: {

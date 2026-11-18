@@ -107,13 +107,15 @@ test('Update Live keeps the graphic on air', async ({ page, browser }) => {
 		const lineup = composite.locator('[data-live-layer="1"] [data-graphic="player-lineup"]');
 		await expect(lineup.locator(':scope > div')).toHaveCount(1);
 		const before = Number(await lineup.getAttribute('data-data-revision'));
-		// Record whether the layer is ever empty from here on.
+		// Tag this node and watch the whole layer: an out-then-in would drop the node and empty the layer.
 		await lineup.evaluate((element) => {
+			element.setAttribute('data-probe', '1');
+			const layer = element.closest('[data-live-layer]')!;
 			const win = window as unknown as { emptied: boolean };
 			win.emptied = false;
 			new MutationObserver(() => {
-				if (!element.querySelector(':scope > div')) win.emptied = true;
-			}).observe(element, { childList: true });
+				if (!layer.querySelector('[data-graphic] > div')) win.emptied = true;
+			}).observe(layer, { childList: true, subtree: true });
 		});
 		await page.getByRole('button', { name: 'Alpha slot 1 Move Down', exact: true }).click();
 		moved = true;
@@ -125,6 +127,7 @@ test('Update Live keeps the graphic on air', async ({ page, browser }) => {
 			.poll(async () => Number(await lineup.getAttribute('data-data-revision')))
 			.toBeGreaterThan(before);
 		await expect(lineup.locator(':scope > div')).toHaveCount(1);
+		await expect(lineup).toHaveAttribute('data-probe', '1');
 		expect(
 			await composite.evaluate(() => (window as unknown as { emptied: boolean }).emptied)
 		).toBe(false);
