@@ -51,14 +51,14 @@ Applied to every row. Each problem is reported with its file, row number (spread
 - **Riot ID:** exactly one `#`. Game name is 3–16 characters of letters, digits, or spaces in any script (`/^[\p{L}\p{N} ]{3,16}$/u`, trimmed). Tagline is 3–5 letters or digits (`/^[\p{L}\p{N}]{3,5}$/u`). Riot's FAQ says "alphanumeric", but real IDs such as `Hide on bush#KR1` contain spaces and non-Latin letters. The same rule applies to the manual player form when a Riot ID is entered (still optional there). On edit, it runs only if the Riot ID changed from the stored value, so legacy IDs don't block saving other fields (my call).
 - **Duplicates:** compared case-insensitively after trimming (`toLocaleLowerCase()`).
   - Within the bundle: "Row 7 `riot_id` duplicates row 3".
-  - Against the database, including archived rows: "Row 7 `team_tag` `USEC` is already used by team *VNUHCM – University of Science Esports Club* (archived)".
+  - Against the database, including archived rows: "Row 7 `team_tag` `USEC` is already used by team _VNUHCM – University of Science Esports Club_ (archived)".
 - **Images:** an image whose name matches no row is a **warning** ("`player_images/Foo#BAR.png` matched no player"). Warnings don't block the import. Errors do.
 
 ## Flow (chosen: upload → preview → confirm)
 
 1. On `/admin/teams` or `/admin/players`, the operator opens **Import bundle** and picks a zip. The form posts to a shared `?/importPreview` action. Both pages use the same component and the same server service.
 2. The server parses and validates and returns a preview. Nothing is written.
-   - Summary: *N teams, M players, K images, E errors, W warnings*.
+   - Summary: _N teams, M players, K images, E errors, W warnings_.
    - Teams table: row #, name, tag, logo matches (normal / white / black: file name or "—"), problems inline.
    - Players table: row #, display name, full name, Riot ID, portrait match, problems inline.
    - Errors also listed together at the top, each linking to its row.

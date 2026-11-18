@@ -26,7 +26,7 @@ Order: **Info → Lineup → Map Veto → Agent Select → Post-Game Report**.
 
 ## Importing teams and players
 
-On **Teams** or **Players**, open **Import bundle**, choose a `.zip`, then **Preview import**. Nothing is saved until **Confirm import**, and it stays disabled while the preview has errors or after the file is changed. The import is all or nothing: one error blocks every row. It never changes tournament rosters, and re-importing a bundle fails on duplicates.
+On **Teams** or **Players**, open **Import bundle**, choose a `.zip`, then **Preview import**. Nothing is saved until **Confirm import**, and it stays disabled while the preview has errors or after the file is changed. The import is all or nothing: one error blocks every row. It never changes tournament rosters, and re-importing a bundle fails on duplicates. Before upgrading an existing install, run `pnpm db:duplicates` (see `docs/BROADCAST-OPERATIONS.md`; for compose use `DATABASE_URL=file:data/broadcast.db pnpm db:duplicates` with the app stopped) to find profiles that already clash.
 
 ```text
 bundle.zip
@@ -49,7 +49,7 @@ bundle.zip
 
 - `ASSET_DIR` holds uploaded logos and portraits plus imported game art, outside the build. Back it up with the database.
 - Asset URLs are relative to the app origin, so other PCs load them through the server's LAN address.
-- With the Node adapter, set `BODY_SIZE_LIMIT=40M` to allow three team logos of up to 10 MB each and the 32 MB bundle import (a 32 MB zip plus form overhead exceeds `32M`).
+- With the Node adapter, set `BODY_SIZE_LIMIT=40M` (also in the `.env` that compose reads) to allow three team logos of up to 10 MB each and the 32 MB bundle import (a 32 MB zip plus form overhead exceeds `32M`).
 - A failed team or player save deletes the uploads it just completed.
 
 ### Cleanup

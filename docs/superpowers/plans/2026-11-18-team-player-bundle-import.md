@@ -38,6 +38,7 @@
 ### Task 1: Profile rules, unique indexes, clash finder
 
 **Files:**
+
 - Modify: `src/lib/server/services/profiles.ts`
 - Modify: `src/lib/server/db/schema/profiles.ts`
 - Create: `drizzle/0018_profile_unique_names.sql` (+ `drizzle/meta` snapshot/journal via generator)
@@ -46,6 +47,7 @@
 - Test: `src/lib/server/services/profiles.test.ts` (new)
 
 **Interfaces:**
+
 - Produces (from `profiles.ts`):
   - `profileKey(value: string): string`
   - `riotIdProblem(value: string): string | null`, which returns one of these messages: `'Riot ID must contain exactly one #.'`, `'Riot ID game name must be 3–16 letters, digits, or spaces.'`, `'Riot ID tagline must be 3–5 letters or digits.'`
@@ -66,12 +68,14 @@
 - [ ] **Step 3: Implement in `profiles.ts`.** `required` / `optional` also apply `.normalize('NFC')`. `saveTeam` / `savePlayer` load the other rows (`id, name, tag, archivedAt` / `id, displayName, riotId, archivedAt`, excluding `input.id`) and compare with `profileKey` in JS. SQLite `lower()` folds only ASCII, and the catalogs hold hundreds of rows at most. Throw `SaveError('invalid', clashMessage(...))` for the first clash. `savePlayer` runs `riotIdProblem` when riotId is non-empty and (new player, or the trimmed value differs from the stored one). Map `UNIQUE constraint failed` from the insert/update to `SaveError('invalid', 'Another operator saved a matching profile. Reload and try again.')`. Use `PROFILE_LIMITS` in place of the literal lengths.
 
 - [ ] **Step 4: Add unique indexes** to `schema/profiles.ts` (keep the existing plain indexes):
+
   ```ts
-  uniqueIndex('teams_name_unique_ci').on(sql`lower(${table.name})`),
-  uniqueIndex('teams_tag_unique_ci').on(sql`lower(${table.tag})`),
-  uniqueIndex('players_display_name_unique_ci').on(sql`lower(${table.displayName})`),
-  uniqueIndex('players_riot_id_unique_ci').on(sql`lower(${table.riotId})`)
+  (uniqueIndex('teams_name_unique_ci').on(sql`lower(${table.name})`),
+  	uniqueIndex('teams_tag_unique_ci').on(sql`lower(${table.tag})`),
+  	uniqueIndex('players_display_name_unique_ci').on(sql`lower(${table.displayName})`),
+  	uniqueIndex('players_riot_id_unique_ci').on(sql`lower(${table.riotId})`));
   ```
+
   Generate: `DATABASE_URL=file:/tmp/unused.db pnpm db:generate --name profile_unique_names`. Expected: `drizzle/0018_profile_unique_names.sql` containing four `CREATE UNIQUE INDEX … (lower(…))` statements and nothing else.
 
 - [ ] **Step 5: Run** the profiles test (PASS), then the whole server project, `pnpm vitest run --project server`. Expected: PASS. If any existing fixture inserts names that now clash case-insensitively, rename the fixture value, not the rule.
@@ -83,19 +87,48 @@
 ### Task 2: Dependencies and shared import types
 
 **Files:**
+
 - Modify: `package.json`, `pnpm-lock.yaml`
 - Create: `src/lib/import/types.ts`
 - Modify: `src/lib/server/assets.ts` (export `imageType`, `saveBytes`)
 
 **Interfaces:**
+
 - Produces `src/lib/import/types.ts` (client-safe, no server imports):
   ```ts
-  export type ImportProblem = { level: 'error' | 'warning'; file: string; row: number | null; field: string | null; message: string };
+  export type ImportProblem = {
+  	level: 'error' | 'warning';
+  	file: string;
+  	row: number | null;
+  	field: string | null;
+  	message: string;
+  };
   export type LogoVariant = 'normal' | 'white' | 'black';
-  export type ImportTeamRow = { row: number; name: string; tag: string; logos: Record<LogoVariant, string | null> }; // zip entry paths
-  export type ImportPlayerRow = { row: number; displayName: string; fullName: string | null; riotId: string; portrait: string | null };
-  export type ImportPreview = { hash: string; teams: ImportTeamRow[]; players: ImportPlayerRow[]; imageCount: number; problems: ImportProblem[] };
-  export type ImportResult = { importPreview?: ImportPreview; imported?: { teams: number; players: number }; importError?: string };
+  export type ImportTeamRow = {
+  	row: number;
+  	name: string;
+  	tag: string;
+  	logos: Record<LogoVariant, string | null>;
+  }; // zip entry paths
+  export type ImportPlayerRow = {
+  	row: number;
+  	displayName: string;
+  	fullName: string | null;
+  	riotId: string;
+  	portrait: string | null;
+  };
+  export type ImportPreview = {
+  	hash: string;
+  	teams: ImportTeamRow[];
+  	players: ImportPlayerRow[];
+  	imageCount: number;
+  	problems: ImportProblem[];
+  };
+  export type ImportResult = {
+  	importPreview?: ImportPreview;
+  	imported?: { teams: number; players: number };
+  	importError?: string;
+  };
   ```
 - Produces: `imageType(bytes: Uint8Array): { extension; mime }` and `saveBytes(bytes: Uint8Array): Promise<string>`, both now exported unchanged.
 
@@ -107,21 +140,31 @@
 ### Task 3: Bundle reader
 
 **Files:**
+
 - Create: `src/lib/server/import/bundle.ts`
 - Test: `src/lib/server/import/bundle.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ImportProblem`, `LogoVariant` (Task 2).
 - Produces:
+
   ```ts
-  export const BUNDLE_LIMITS = { zipBytes: 32 * 1024 * 1024, entries: 500, expandedBytes: 100 * 1024 * 1024, imageBytes: 10 * 1024 * 1024 } as const;
-  export type SheetRow = { row: number; cells: Record<string, string> };      // row = spreadsheet row, header = 1
+  export const BUNDLE_LIMITS = {
+  	zipBytes: 32 * 1024 * 1024,
+  	entries: 500,
+  	expandedBytes: 100 * 1024 * 1024,
+  	imageBytes: 10 * 1024 * 1024
+  } as const;
+  export type SheetRow = { row: number; cells: Record<string, string> }; // row = spreadsheet row, header = 1
   export type Sheet = { file: string; header: string[]; rows: SheetRow[] };
   export type BundleImage = { path: string; key: string; bytes: Uint8Array }; // key = profileKey(basename without extension)
   export type ParsedBundle = {
-    teams: Sheet | null; players: Sheet | null;
-    logos: Record<LogoVariant, BundleImage[]>; portraits: BundleImage[];
-    problems: ImportProblem[];
+  	teams: Sheet | null;
+  	players: Sheet | null;
+  	logos: Record<LogoVariant, BundleImage[]>;
+  	portraits: BundleImage[];
+  	problems: ImportProblem[];
   };
   export function readBundle(bytes: Uint8Array): ParsedBundle; // bundle-level failures throw SaveError('invalid', message)
   ```
@@ -141,19 +184,27 @@
 ### Task 4: Preview builder
 
 **Files:**
+
 - Create: `src/lib/server/import/validate.ts`
 - Test: `src/lib/server/import/validate.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ParsedBundle` (Task 3), `profileKey`, `riotIdProblem`, `clashMessage`, `PROFILE_LIMITS` (Task 1), `imageType` (Task 2), `BUNDLE_LIMITS.imageBytes`.
 - Produces:
+
   ```ts
   export type ExistingProfiles = {
-    teams: Array<{ name: string; tag: string; archivedAt: Date | null }>;
-    players: Array<{ displayName: string; riotId: string | null; archivedAt: Date | null }>;
+  	teams: Array<{ name: string; tag: string; archivedAt: Date | null }>;
+  	players: Array<{ displayName: string; riotId: string | null; archivedAt: Date | null }>;
   };
-  export function buildPreview(bundle: ParsedBundle, existing: ExistingProfiles, hash: string): ImportPreview;
+  export function buildPreview(
+  	bundle: ParsedBundle,
+  	existing: ExistingProfiles,
+  	hash: string
+  ): ImportPreview;
   ```
+
   The preview's `problems` start with `bundle.problems`. Rows carry NFC-normalized, trimmed values. `fullName` is empty → `null`. `imageCount` counts matched images.
 
 - [ ] **Step 1: Write failing tests** (pure, with hand-built `ParsedBundle` objects; build image bytes from the PNG signature used in `upload-lifecycle.test.ts`). Each row problem asserts `{ level, file, row, field, message }`:
@@ -173,11 +224,13 @@
 ### Task 5: Import actions
 
 **Files:**
+
 - Create: `src/lib/server/import/actions.ts`
 - Modify: `src/routes/admin/teams/+page.server.ts`, `src/routes/admin/players/+page.server.ts` (spread `...bundleImportActions` into `actions`)
 - Test: `src/lib/server/import/actions.test.ts`
 
 **Interfaces:**
+
 - Consumes: `readBundle`, `BUNDLE_LIMITS` (Task 3), `buildPreview` (Task 4), `saveBytes`, `removeAsset`, `ImportResult` (Task 2).
 - Produces: `export const bundleImportActions: { importPreview: Action; importCommit: Action }`. The form fields are `bundle` (File) and `hash` (string, commit only). Return values:
   - preview OK → `{ importPreview }`
@@ -201,12 +254,14 @@
 ### Task 6: Import UI, e2e, docs
 
 **Files:**
+
 - Create: `src/lib/components/admin/BundleImport.svelte`, `src/lib/components/admin/BundleImport.svelte.test.ts`
 - Modify: `src/routes/admin/teams/+page.svelte` (replace the `Import coming soon` badge), `src/routes/admin/players/+page.svelte`
 - Create: `tests/bundle-import.e2e.ts`
 - Modify: `.env.example`, `docs/MANAGEMENT.md`, `docs/BROADCAST-OPERATIONS.md` (`BODY_SIZE_LIMIT=40M`, bundle format, `pnpm db:duplicates` before upgrading)
 
 **Interfaces:**
+
 - Consumes: `ImportResult`, `ImportPreview` (Task 2). Action names `?/importPreview`, `?/importCommit`, and fields `bundle`, `hash` (Task 5).
 - Produces: `<BundleImport result={form} />`, where `result: ImportResult | null | undefined`.
 
