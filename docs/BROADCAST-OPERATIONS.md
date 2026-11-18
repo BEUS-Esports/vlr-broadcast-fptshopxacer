@@ -22,7 +22,7 @@
 - Team A/B is competition order. **Swap Left/Right** changes only screen presentation.
 - Current attackers/defenders set the blue/red colors without moving teams.
 - Unknown tournament slugs use the generic test templates. A slug `<template>-<anything>` uses that template, so `predator-roadshow-val-dong-nai` uses `predator-roadshow-val`.
-- A tournament template's `Graphic.svelte` may export `play()`, `stop()` and `update(snapshot)` to animate in, out and on data change; a template without them gets a 150ms fade. Predator Roadshow animates in and out (400ms) and has no `update`.
+- A tournament template's `Graphic.svelte` may export `play()`, `stop()` and `update(snapshot)` to animate in, out and on data change. A template without `play`/`stop` gets a 150ms fade (0ms with reduced motion); `update` is optional, and without it new data just appears. Predator Roadshow animates in and out (400ms) and has no `update`.
 - The Phase 5/5.1 native In-Game fallback passed real Valorant/OBS composition testing. The Phase 5/5.1 native/test package is the accepted fallback baseline; external-provider HUD acceptance is recorded separately.
 
 ## OBS URLs
@@ -41,7 +41,7 @@ Read-only, on a transparent 1920×1080 canvas:
 
 For rehearsal, `/gfx/live/composite` combines all seven in one output with shared connections. It has its own on-air state, independent of Show/Hide on the individual URLs.
 
-- **Take Live** puts a graphic on the composite and captures its saved data. **Update Live** recaptures the latest saved data for a graphic already on air, and **Take Off** removes it with its out animation. The **Live Now — Composite** panel on Global Setup lists each layer and its occupant, with per-row Update and Take Off and **Clear all**.
+- **Take Live** puts a graphic on the composite and captures its saved data. **Update Live** recaptures the latest saved data for a graphic already on air, and **Take Off** removes it with its out animation. The **Live Now — Composite** panel on Global Setup lists each layer and its occupant, with per-row Update and Take Off and **Clear composite**.
 - Layers from back to front: 0 In-Game; 1 Player Lineup, Player Stats, Map Veto, Post-Game, MVP; 2 Agent Select. Each layer holds one graphic. Taking another graphic live on an occupied layer plays the old one's out animation first, then the new one's in animation. Graphics on different layers stack.
 - Compare vMix performance before going on air with it. Keep the individual URLs as a rehearsed fallback.
 
