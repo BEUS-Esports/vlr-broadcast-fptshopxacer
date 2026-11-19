@@ -40,11 +40,11 @@
 </script>
 
 <div class="feature" {@attach fitGroup('players')}>
-	<div class="stats">
+	<div class="stats" data-rs-motion="from-left">
 		<StatPanel statistics={selected.statistics} {fields} {scope} />
 		<p class="scope">{scopeLabels[scope]}</p>
 	</div>
-	<div class="agent">
+	<div class="agent" data-rs-motion="from-bottom">
 		<strong>AGENT</strong>
 		<small>Đặc vụ</small>
 		<span class="portrait">
@@ -56,7 +56,7 @@
 		</span>
 		{#if agent}<p class="agent-name">{agent.displayName}</p>{/if}
 	</div>
-	<div class="card">
+	<div class="card" data-rs-motion="from-right">
 		<PlayerCard
 			name={selected.player?.displayName ?? selected.statistics?.displayName ?? null}
 			tag={null}
@@ -78,7 +78,6 @@
 		top: 0;
 		width: 816px;
 		height: 843px;
-		animation: rs-in 0.35s ease-out both;
 	}
 	.scope {
 		position: absolute;
@@ -110,7 +109,6 @@
 			0 calc(100% - 18px),
 			0 18px
 		);
-		animation: rs-in 0.35s 0.08s ease-out both;
 	}
 	.agent strong {
 		display: block;
@@ -148,19 +146,5 @@
 		right: 0;
 		top: 0;
 		width: 502px;
-		animation: rs-in 0.35s 0.16s ease-out both;
-	}
-	@keyframes rs-in {
-		from {
-			opacity: 0;
-			translate: 0 30px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.stats,
-		.agent,
-		.card {
-			animation: none;
-		}
 	}
 </style>

@@ -7,13 +7,13 @@
 </script>
 
 <header class="rs-header">
-	{#if logos}<img class="predator" src={predator} alt="Predator" />{/if}
+	{#if logos}<img class="predator" src={predator} alt="Predator" data-rs-motion="logo-left" />{/if}
 	{#if title}
-		<h1 class="title">{title}</h1>
+		<h1 class="title" data-rs-motion="title">{title}</h1>
 	{:else}
-		<img class="lockup" src={roadshow} alt="Roadshow" />
+		<img class="lockup" src={roadshow} alt="Roadshow" data-rs-motion="title" />
 	{/if}
-	{#if logos}<img class="fpt" src={fptShop} alt="FPT Shop" />{/if}
+	{#if logos}<img class="fpt" src={fptShop} alt="FPT Shop" data-rs-motion="logo-right" />{/if}
 </header>
 
 <style>
@@ -42,7 +42,6 @@
 		top: 46px;
 		width: 600px;
 		transform: translateX(-50%);
-		animation: rs-drop 0.35s ease-out both;
 	}
 	.title {
 		position: absolute;
@@ -57,18 +56,5 @@
 		background-clip: text;
 		color: transparent;
 		filter: drop-shadow(0 0 18px #2bf0b866);
-		animation: rs-drop 0.35s ease-out both;
-	}
-	@keyframes rs-drop {
-		from {
-			opacity: 0;
-			translate: 0 -16px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.lockup,
-		.title {
-			animation: none;
-		}
 	}
 </style>

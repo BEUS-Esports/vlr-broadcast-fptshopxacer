@@ -27,7 +27,7 @@
 	{#each shown as side (side.position)}
 		{@const lineup = lineupForTeam(snapshot, side.entryId)}
 		<section class="team" data-position={side.position} data-entry-id={side.entryId}>
-			<div class="identity">
+			<div class="identity" data-rs-motion="identity">
 				<span class="logo">
 					<Asset
 						path={side.team?.logoPath ?? side.team?.logoWhitePath ?? null}
@@ -40,7 +40,7 @@
 			<ol class="cards">
 				{#each [1, 2, 3, 4, 5] as slot (slot)}
 					{@const saved = lineup.find((row) => row.slot === slot)}
-					<li data-slot={slot}>
+					<li data-slot={slot} data-rs-motion="card">
 						<PlayerCard
 							name={saved?.player?.displayName ?? null}
 							tag={side.team?.tag ?? null}
@@ -78,21 +78,6 @@
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
 		gap: 26px;
-	}
-	.cards li {
-		animation: rs-rise 0.4s ease-out both;
-	}
-	.cards li:nth-child(2) {
-		animation-delay: 0.06s;
-	}
-	.cards li:nth-child(3) {
-		animation-delay: 0.12s;
-	}
-	.cards li:nth-child(4) {
-		animation-delay: 0.18s;
-	}
-	.cards li:nth-child(5) {
-		animation-delay: 0.24s;
 	}
 	.identity {
 		position: absolute;
@@ -155,16 +140,5 @@
 	.both .logo {
 		--asset-width: 120px;
 		--asset-height: 120px;
-	}
-	@keyframes rs-rise {
-		from {
-			opacity: 0;
-			translate: 0 40px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.cards li {
-			animation: none;
-		}
 	}
 </style>

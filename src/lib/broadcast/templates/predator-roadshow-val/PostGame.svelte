@@ -60,7 +60,7 @@
 </script>
 
 <div class="post" {@attach fitGroup('players')} {@attach fitGroup('teams')}>
-	<div class="header">
+	<div class="header" data-rs-motion="post-header">
 		<img src={header} alt="" />
 		<div class="center">
 			<small>GAME {snapshot.game?.number ?? '—'}</small>
@@ -70,6 +70,7 @@
 	{#each sides as side (side.position)}
 		<section
 			class={['side', side.position]}
+			data-rs-motion={side.position === 'left' ? 'from-left' : 'from-right'}
 			data-position={side.position}
 			data-entry-id={side.entryId}
 		>
@@ -152,7 +153,6 @@
 		top: 29px;
 		width: 1862px;
 		height: 191px;
-		animation: rs-drop 0.35s ease-out both;
 	}
 	.header img {
 		position: absolute;
@@ -241,7 +241,6 @@
 			0 calc(100% - 18px),
 			0 18px
 		);
-		animation: rs-rise 0.4s 0.1s ease-out both;
 	}
 	.left .panel {
 		left: 40px;
@@ -360,23 +359,5 @@
 	dd {
 		margin: 0;
 		font: 900 22px/1 var(--rs-font);
-	}
-	@keyframes rs-drop {
-		from {
-			opacity: 0;
-			translate: 0 -20px;
-		}
-	}
-	@keyframes rs-rise {
-		from {
-			opacity: 0;
-			translate: 0 30px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.header,
-		.panel {
-			animation: none;
-		}
 	}
 </style>

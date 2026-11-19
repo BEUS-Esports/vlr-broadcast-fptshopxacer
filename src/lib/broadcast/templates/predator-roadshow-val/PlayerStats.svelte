@@ -59,7 +59,10 @@
 	<Header title="HEAD TO HEAD" logos={false} />
 	<div class="versus" {@attach fitGroup('players')}>
 		{#each sides as side, index (index)}
-			<div class={['card', index ? 'right' : 'left']}>
+			<div
+				class={['card', index ? 'right' : 'left']}
+				data-rs-motion={index ? 'from-right' : 'from-left'}
+			>
 				<PlayerCard
 					name={side.selected.player?.displayName ?? side.selected.statistics?.displayName ?? null}
 					tag={null}
@@ -69,7 +72,7 @@
 				<TeamChip team={side.team} align={index ? 'right' : 'left'} />
 			</div>
 		{/each}
-		<div class="table">
+		<div class="table" data-rs-motion="from-bottom">
 			<StatPanel
 				statistics={sides[0].selected.statistics}
 				compare={sides[1].selected.statistics}
@@ -90,14 +93,12 @@
 		position: absolute;
 		top: 240px;
 		width: 486px;
-		animation: rs-in 0.35s ease-out both;
 	}
 	.left {
 		left: 30px;
 	}
 	.right {
 		right: 30px;
-		animation-delay: 0.1s;
 	}
 	.table {
 		position: absolute;
@@ -105,7 +106,6 @@
 		right: 534px;
 		top: 240px;
 		height: 816px;
-		animation: rs-in 0.35s 0.05s ease-out both;
 	}
 	.agent {
 		justify-self: center;
@@ -124,17 +124,5 @@
 	.agent-label small {
 		color: #d6f7fa;
 		font: 400 16px/1.2 var(--rs-font);
-	}
-	@keyframes rs-in {
-		from {
-			opacity: 0;
-			translate: 0 30px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.card,
-		.table {
-			animation: none;
-		}
 	}
 </style>

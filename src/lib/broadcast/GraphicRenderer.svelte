@@ -168,5 +168,9 @@
 			{/if}
 		</div>
 	{/if}
-	{#if presented && graphic === 'in-game'}<CenterMatchBanner snapshot={presented} {clock} />{/if}
+	{#if presented && graphic === 'in-game'}<CenterMatchBanner
+			snapshot={presented}
+			{clock}
+			exitMs={template.bannerExitMs}
+		/>{/if}
 </div>

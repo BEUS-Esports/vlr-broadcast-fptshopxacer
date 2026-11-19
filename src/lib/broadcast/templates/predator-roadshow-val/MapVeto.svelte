@@ -18,7 +18,7 @@
 	{@attach fitGroup('maps')}
 	style:--count={Math.max(steps.length, 1)}
 >
-	<div class="matchup">
+	<div class="matchup" data-rs-motion="matchup">
 		{#each [teams.teamA, teams.teamB] as team, index (index)}
 			<div class={['team', index ? 'right' : 'left']}>
 				<Asset
@@ -35,7 +35,7 @@
 		{#each steps as step (step.sequence)}
 			{@const actor = vetoActor(snapshot, step)}
 			{@const chooser = teamByEntryId(snapshot, step.sideChooserEntryId)}
-			<li class={step.action} data-sequence={step.sequence}>
+			<li class={step.action} data-sequence={step.sequence} data-rs-motion="map">
 				<div class="tile">
 					<span class="art">
 						<Asset
@@ -44,7 +44,11 @@
 							blankMissing
 						/>
 					</span>
-					{#if step.action === 'ban'}<span class="ban-mark" aria-hidden="true"></span>{/if}
+					{#if step.action === 'ban'}
+						<span class="ban-shade" data-rs-motion="ban-shade" aria-hidden="true">
+							<span class="ban-mark" data-rs-motion="ban-mark"></span>
+						</span>
+					{/if}
 					{#if step.sideChoice}
 						<span class="side">
 							{chooser?.tag ?? chooser?.name ?? ''} CHỌN {sideLabels[step.sideChoice]}
@@ -53,7 +57,7 @@
 					{#if step.gameNumber !== null}<span class="game">GAME {step.gameNumber}</span>{/if}
 					<strong class="map-name" data-fit="maps">{step.map?.displayName ?? 'TBD'}</strong>
 				</div>
-				<div class="plate">
+				<div class="plate" data-rs-motion="plate">
 					{#if step.action !== 'decider'}<strong data-actor
 							>{actor?.tag ?? actor?.name ?? '—'}</strong
 						>{/if}
@@ -140,25 +144,6 @@
 		grid-template-rows: 1fr 116px;
 		gap: 10px;
 		min-width: 0;
-		animation: rs-rise 0.35s ease-out both;
-	}
-	li:nth-child(2) {
-		animation-delay: 0.05s;
-	}
-	li:nth-child(3) {
-		animation-delay: 0.1s;
-	}
-	li:nth-child(4) {
-		animation-delay: 0.15s;
-	}
-	li:nth-child(5) {
-		animation-delay: 0.2s;
-	}
-	li:nth-child(6) {
-		animation-delay: 0.25s;
-	}
-	li:nth-child(7) {
-		animation-delay: 0.3s;
 	}
 	.tile {
 		position: relative;
@@ -183,16 +168,20 @@
 	.art :global(img) {
 		object-fit: cover;
 	}
-	.ban .art {
-		filter: grayscale(1) brightness(0.38);
+	/* Ban overlay: desaturates and darkens the art beneath it, so it can slide in over the map. */
+	.ban-shade {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		padding-bottom: 12%;
+		background: #00000066;
+		backdrop-filter: grayscale(1) brightness(0.6);
 	}
 	.ban-mark {
-		position: absolute;
-		left: 50%;
-		top: 44%;
+		position: relative;
 		width: 46%;
 		aspect-ratio: 1;
-		translate: -50% -50%;
 		border: 12px solid var(--rs-plate-to);
 		border-radius: 50%;
 		box-sizing: border-box;
@@ -274,16 +263,5 @@
 	.plate small {
 		font: 700 17px/1.1 var(--rs-font);
 		text-align: center;
-	}
-	@keyframes rs-rise {
-		from {
-			opacity: 0;
-			translate: 0 30px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		li {
-			animation: none;
-		}
 	}
 </style>

@@ -13,7 +13,7 @@
 	]);
 </script>
 
-<div class="band" {@attach fitGroup('players')} {@attach fitGroup('teams')}>
+<div class="band" data-rs-motion="band" {@attach fitGroup('players')} {@attach fitGroup('teams')}>
 	{#each sides as { position, entryId, team } (position)}
 		{@const lineup = lineupForTeam(snapshot, entryId)}
 		{@const side = gameplaySide(snapshot, entryId, 'prepared')}
@@ -28,7 +28,7 @@
 			<ol>
 				{#each [1, 2, 3, 4, 5] as slot (slot)}
 					{@const saved = lineup.find((row) => row.slot === slot)}
-					<li data-slot={slot}>
+					<li data-slot={slot} data-rs-motion="agent">
 						<span class="agent">
 							<Asset
 								path={saved?.agent?.displayIconPath ?? null}
@@ -55,7 +55,6 @@
 		position: absolute;
 		inset: auto 0 0;
 		height: 236px;
-		animation: rs-up 0.4s ease-out both;
 	}
 	.band::before {
 		content: '';
@@ -192,16 +191,5 @@
 		color: var(--rs-plate-to);
 		font: 900 30px/1.15 var(--rs-font);
 		text-transform: uppercase;
-	}
-	@keyframes rs-up {
-		from {
-			opacity: 0;
-			translate: 0 60px;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.band {
-			animation: none;
-		}
 	}
 </style>

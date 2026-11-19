@@ -2,6 +2,8 @@
 	import type { SponsorSupport } from '../../sponsor';
 
 	export const sponsor: SponsorSupport = { banners: true, loop: true };
+	// Matches the reverse X-reveal of the ceremony banner in theme.css (rs-ceremony-close).
+	export const bannerExitMs = 280;
 </script>
 
 <script lang="ts">
@@ -9,7 +11,7 @@
 	import { graphicLabels } from '../../controls';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import type { GraphicTemplateProps } from '../../templates';
-	import { playGraphic, stopGraphic } from '../../template-motion';
+	import { playRoadshow, stopRoadshow } from './motion';
 	import { dev } from '$app/env';
 	import Header from './Header.svelte';
 	import PlayerLineup from './PlayerLineup.svelte';
@@ -26,11 +28,11 @@
 	let root = $state<HTMLElement>();
 
 	export function play() {
-		return playGraphic(root, prefersReducedMotion.current);
+		return playRoadshow(root, graphic, prefersReducedMotion.current);
 	}
 
 	export function stop() {
-		return stopGraphic(root, prefersReducedMotion.current);
+		return stopRoadshow(root, graphic, prefersReducedMotion.current);
 	}
 </script>
 
@@ -44,7 +46,7 @@
 		{#if graphic !== 'in-game'}
 			<Header />
 			<div class="rs-content" data-gfx-motion="content">
-				<div class="empty">
+				<div class="empty" data-rs-motion="from-bottom">
 					<strong>WAITING FOR MATCH</strong>
 					<p>No game selected</p>
 				</div>
