@@ -197,7 +197,7 @@ function finishActive(root: HTMLElement) {
 export function playRoadshow(
 	root: HTMLElement | undefined,
 	graphic: GraphicId,
-	reducedMotion: boolean
+	reducedMotion: boolean = false
 ): Promise<void> {
 	if (!root) return Promise.resolve();
 	finishActive(root);
@@ -220,7 +220,7 @@ export function playRoadshow(
 export function stopRoadshow(
 	root: HTMLElement | undefined,
 	graphic: GraphicId,
-	reducedMotion: boolean
+	reducedMotion: boolean = false
 ): Promise<void> {
 	if (!root) return Promise.resolve();
 	const running = active.get(root);

@@ -9,7 +9,6 @@
 <script lang="ts">
 	import './theme.css';
 	import { graphicLabels } from '../../controls';
-	import { prefersReducedMotion } from 'svelte/motion';
 	import type { GraphicTemplateProps } from '../../templates';
 	import { playRoadshow, stopRoadshow } from './motion';
 	import { dev } from '$app/env';
@@ -28,11 +27,11 @@
 	let root = $state<HTMLElement>();
 
 	export function play() {
-		return playRoadshow(root, graphic, prefersReducedMotion.current);
+		return playRoadshow(root, graphic);
 	}
 
 	export function stop() {
-		return stopRoadshow(root, graphic, prefersReducedMotion.current);
+		return stopRoadshow(root, graphic);
 	}
 </script>
 

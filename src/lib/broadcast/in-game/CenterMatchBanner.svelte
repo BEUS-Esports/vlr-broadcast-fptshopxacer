@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { prefersReducedMotion } from 'svelte/motion';
 	import type { BroadcastSnapshot } from '../types';
 	import type { BroadcastClock } from '../client';
 	import { gameplaySide, teamByEntryId } from '../selectors';
@@ -80,7 +79,6 @@
 			data-match-banner={banner.type}
 			data-entry-id={entryId ?? ''}
 			data-side={side ?? 'neutral'}
-			data-reduced-motion={prefersReducedMotion.current}
 			aria-label="Match banner"
 		>
 			{#if art.backgroundPath}

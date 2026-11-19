@@ -127,10 +127,10 @@ function run(
 	});
 }
 
-export function playGraphic(root: HTMLElement | undefined, reducedMotion: boolean) {
+export function playGraphic(root: HTMLElement | undefined, reducedMotion: boolean = false) {
 	return run(root, reducedMotion, 'play');
 }
 
-export function stopGraphic(root: HTMLElement | undefined, reducedMotion: boolean) {
+export function stopGraphic(root: HTMLElement | undefined, reducedMotion: boolean = false) {
 	return run(root, reducedMotion, 'stop');
 }

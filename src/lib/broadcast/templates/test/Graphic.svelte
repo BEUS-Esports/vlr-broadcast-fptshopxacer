@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { prefersReducedMotion } from 'svelte/motion';
 	import { graphicLabels } from '../../controls';
 	import type { GraphicTemplateProps } from '../../templates';
 	import { playGraphic, stopGraphic } from '../../template-motion';
@@ -16,11 +15,11 @@
 	let root = $state<HTMLElement>();
 
 	export function play() {
-		return playGraphic(root, prefersReducedMotion.current);
+		return playGraphic(root);
 	}
 
 	export function stop() {
-		return stopGraphic(root, prefersReducedMotion.current);
+		return stopGraphic(root);
 	}
 </script>
 
