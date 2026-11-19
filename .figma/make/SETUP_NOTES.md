@@ -18,6 +18,9 @@ Setup changes attempted:
 - Added executable `.figma/make/dev` binding Vite to the supervised `$PORT`.
 - Kept Node and pnpm pinned; changed pnpm's mise backend to `npm:pnpm` because the
   default aqua backend requested an asset name that does not exist for pnpm 12.16.1.
+- Tried binding Vite directly to port 5173. Vite listened there, but the Figma preview
+  continued probing its published port 3000 and could not connect, so the launcher was
+  restored to the required supervised `$PORT`.
 
 Deployment and deploy-preview verification remain intentionally deferred until
 bootstrap reports terminal success.
