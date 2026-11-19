@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { prefersReducedMotion } from 'svelte/motion';
 	import { graphicLabels } from '../../controls';
 	import type { GraphicTemplateProps } from '../../templates';
+	import { playGraphic, stopGraphic } from '../../template-motion';
 	import PlayerLineup from './PlayerLineup.svelte';
 	import MapVeto from './MapVeto.svelte';
 	import AgentSelect from './AgentSelect.svelte';
@@ -11,60 +13,73 @@
 	import { dev } from '$app/env';
 
 	let { snapshot, graphic }: GraphicTemplateProps = $props();
+	let root = $state<HTMLElement>();
+
+	export function play() {
+		return playGraphic(root, prefersReducedMotion.current);
+	}
+
+	export function stop() {
+		return stopGraphic(root, prefersReducedMotion.current);
+	}
 </script>
 
-{#if graphic === 'in-game'}
-	<InGame {snapshot} />
-{:else}
-	<section class="pregame" aria-label={graphicLabels[graphic]}>
-		<header class="package-header">
-			<div class="title-lockup">
-				<p class="event-name">{snapshot.tournament?.name ?? 'VALORANT'}</p>
-				<h1>{graphicLabels[graphic]}</h1>
-			</div>
-			<div class="event-context">
-				<strong>{snapshot.match?.label ?? 'Match unavailable'}</strong>
-				<p>
-					Game {snapshot.game?.number ?? '—'}
-					<span aria-hidden="true"> // </span>
-					{snapshot.game?.map?.displayName ?? snapshot.game?.name ?? 'Map TBD'}
-				</p>
-			</div>
-		</header>
-
-		<div class="content-frame">
-			{#if snapshot.selection && graphic === 'player-lineup'}
-				<PlayerLineup {snapshot} />
-			{:else if snapshot.selection && graphic === 'map-veto'}
-				<MapVeto {snapshot} />
-			{:else if snapshot.selection && graphic === 'agent-select'}
-				<AgentSelect {snapshot} />
-			{:else if snapshot.selection && graphic === 'post-game'}
-				<PostGame {snapshot} />
-			{:else if snapshot.selection && graphic === 'player-stats'}
-				<PlayerStats {snapshot} />
-			{:else if snapshot.selection && graphic === 'mvp'}
-				<MVP {snapshot} />
-			{:else if snapshot.selection}
-				<p>{snapshot.tournament?.name ?? 'Unknown tournament'}</p>
-				<p>{snapshot.match?.label ?? 'Unknown match'} · {snapshot.game?.name ?? 'Unknown game'}</p>
-			{:else}
-				<div class="empty-state">
-					<strong>WAITING FOR MATCH</strong>
-					<p>No game selected</p>
+<div bind:this={root} class="gfx-motion-root" data-graphic-body={graphic}>
+	{#if graphic === 'in-game'}
+		<div class="gfx-motion-content" data-gfx-motion="content"><InGame {snapshot} /></div>
+	{:else}
+		<section class="pregame" aria-label={graphicLabels[graphic]}>
+			<header class="package-header" data-gfx-motion="chrome">
+				<div class="title-lockup">
+					<p class="event-name">{snapshot.tournament?.name ?? 'VALORANT'}</p>
+					<h1>{graphicLabels[graphic]}</h1>
 				</div>
-			{/if}
-		</div>
-	</section>
-{/if}
+				<div class="event-context">
+					<strong>{snapshot.match?.label ?? 'Match unavailable'}</strong>
+					<p>
+						Game {snapshot.game?.number ?? '—'}
+						<span aria-hidden="true"> // </span>
+						{snapshot.game?.map?.displayName ?? snapshot.game?.name ?? 'Map TBD'}
+					</p>
+				</div>
+			</header>
 
-<footer
-	class:in-game={graphic === 'in-game'}
-	data-attribution-safe-area
-	aria-label="Reserved data source attribution"
->
-	{#if dev}<span>DATA SOURCE</span>{/if}
-</footer>
+			<div class="content-frame" data-gfx-motion="content">
+				{#if snapshot.selection && graphic === 'player-lineup'}
+					<PlayerLineup {snapshot} />
+				{:else if snapshot.selection && graphic === 'map-veto'}
+					<MapVeto {snapshot} />
+				{:else if snapshot.selection && graphic === 'agent-select'}
+					<AgentSelect {snapshot} />
+				{:else if snapshot.selection && graphic === 'post-game'}
+					<PostGame {snapshot} />
+				{:else if snapshot.selection && graphic === 'player-stats'}
+					<PlayerStats {snapshot} />
+				{:else if snapshot.selection && graphic === 'mvp'}
+					<MVP {snapshot} />
+				{:else if snapshot.selection}
+					<p>{snapshot.tournament?.name ?? 'Unknown tournament'}</p>
+					<p>
+						{snapshot.match?.label ?? 'Unknown match'} · {snapshot.game?.name ?? 'Unknown game'}
+					</p>
+				{:else}
+					<div class="empty-state">
+						<strong>WAITING FOR MATCH</strong>
+						<p>No game selected</p>
+					</div>
+				{/if}
+			</div>
+		</section>
+	{/if}
+
+	<footer
+		class:in-game={graphic === 'in-game'}
+		data-attribution-safe-area
+		aria-label="Reserved data source attribution"
+	>
+		{#if dev}<span>DATA SOURCE</span>{/if}
+	</footer>
+</div>
 
 <svelte:head>
 	<!-- VCT Pacific: Barlow Condensed (tiêu đề) + Barlow (số, nhãn) -->
@@ -75,6 +90,11 @@
 </svelte:head>
 
 <style>
+	.gfx-motion-root,
+	.gfx-motion-content {
+		position: absolute;
+		inset: 0;
+	}
 	section {
 		position: absolute;
 		left: 48px;

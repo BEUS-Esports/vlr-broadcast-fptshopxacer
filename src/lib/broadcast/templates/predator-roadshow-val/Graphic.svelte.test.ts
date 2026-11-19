@@ -233,8 +233,8 @@ it('shows kills as K/D for a player who never died', () => {
 	).toContain('21.0');
 });
 
-// WAAPI runs on the real compositor clock (fake timers do not advance it), so these use real time
-// with wide margins: 400ms animations, "pending" probed at 250ms, "done" polled up to 2s.
+// GSAP runs on the real animation clock (fake timers do not advance it), so these assert that the
+// controls are asynchronous and then poll with a wide completion margin.
 const settled = (promise: Promise<void>) => {
 	const state = { done: false };
 	void promise.then(() => (state.done = true));
@@ -244,7 +244,7 @@ const settled = (promise: Promise<void>) => {
 it('stop resolves only after the outro finishes', async () => {
 	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'player-lineup' });
 	const state = settled(view.component.stop());
-	await new Promise((resolve) => setTimeout(resolve, 250));
+	await Promise.resolve();
 	expect(state.done).toBe(false);
 	await expect.poll(() => state.done, { timeout: 2000 }).toBe(true);
 	const root = view.container.querySelector('.rs-root')!;
