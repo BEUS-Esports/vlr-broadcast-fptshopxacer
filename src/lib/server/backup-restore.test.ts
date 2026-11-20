@@ -77,7 +77,10 @@ it('restores saved data, held Program, served artwork and encrypted settings wit
 				(await (await import('./settings/providers')).loadProviderSettings()).henrikdevApiKey
 			).toBe('synthetic-restored-secret');
 			const { GET } = await import('../../routes/assets/[name]/+server');
-			const response = await GET({ params: { name: assetName } } as Parameters<typeof GET>[0]);
+			const response = await GET({
+				params: { name: assetName },
+				request: new Request(`http://localhost/assets/${assetName}`)
+			} as Parameters<typeof GET>[0]);
 			expect(response.status).toBe(200);
 			expect(Buffer.from(await response.arrayBuffer())).toEqual(artwork);
 			expect(await readFile(join(output, 'manifest.json'), 'utf8')).not.toContain(

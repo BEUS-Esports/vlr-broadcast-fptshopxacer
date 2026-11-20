@@ -1,6 +1,6 @@
 export class SaveError extends Error {
 	constructor(
-		public readonly code: 'invalid' | 'not-found' | 'stale' | 'blocked',
+		public readonly code: 'invalid' | 'not-found' | 'stale' | 'blocked' | 'range',
 		message: string,
 		public readonly details?: Record<string, unknown>
 	) {
