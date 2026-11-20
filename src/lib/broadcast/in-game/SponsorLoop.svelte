@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { prefersReducedMotion } from 'svelte/motion';
 	import Asset from '../primitives/Asset.svelte';
 
 	let { logos, intervalMs }: { logos: readonly string[]; intervalMs: number } = $props();
@@ -23,7 +22,7 @@
 	<div class="sponsor-loop" data-sponsor-loop data-index={shown}>
 		<!-- A one-item keyed each lets the outgoing logo keep its own value while it fades out. -->
 		{#each [logos[shown]] as logo (logo)}
-			<div class="logo" transition:fade={{ duration: prefersReducedMotion.current ? 0 : 300 }}>
+			<div class="logo" transition:fade={{ duration: 300 }}>
 				<Asset path={logo} label="Sponsor logo" blankMissing />
 			</div>
 		{/each}

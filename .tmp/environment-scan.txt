@@ -1,0 +1,808 @@
+status: exited
+stdout file: /tmp/figaro-3701ca4d709ec8dc/runtime/tool-output/2547/bash/0/stdout (236258 bytes)
+stderr file: /tmp/figaro-3701ca4d709ec8dc/runtime/tool-output/2547/bash/0/stderr (0 bytes)
+exit code: 0
+
+OUTPUT TRUNCATED: the head-and-tail previews below are INCOMPLETE; the middle is omitted. Complete output is saved at the stdout/stderr paths above. If your task depends on omitted content, you MUST use `read` on the relevant file and follow its continuation offsets through the required content before generating or changing code. Do not guess or infer omitted content from the preview. Reading with bash again can truncate again.
+
+--- stdout (head + tail; full output in file above) ---
+--- root ---
+./.env.example
+./.figma/README.md
+./README.md
+./package.json
+./pnpm-lock.yaml
+./vite.config.ts
+--- package.json ---
+{
+	"name": "vlr-fptshopxacer",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"engines": {
+		"node": "26.13.0",
+		"pnpm": "12.16.1"
+	},
+	"packageManager": "pnpm@12.16.1",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"test:unit": "vitest run --coverage",
+		"test:seed": "node --test scripts/seed.test.mjs",
+		"test:backup": "node --test scripts/backup.test.mjs",
+		"fake:spectra": "node scripts/fake-spectra.mjs",
+		"backup": "node --env-file-if-exists=.env scripts/backup.mjs",
+		"test": "npm run test:seed && node --test scripts/find-profile-duplicates.test.mjs && npm run test:unit -- --run && npm run test:e2e",
+		"test:e2e": "playwright install && playwright test",
+		"db:push": "drizzle-kit push",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate",
+		"db:seed": "node --env-file-if-exists=.env scripts/seed.mjs",
+		"db:duplicates": "node --env-file-if-exists=.env scripts/find-profile-duplicates.mjs",
+		"db:studio": "drizzle-kit studio"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.65.1",
+		"@skeletonlabs/skeleton": "^5.0.4",
+		"@skeletonlabs/skeleton-svelte": "^5.0.4",
+		"@sveltejs/adapter-node": "^6.0.2",
+		"@sveltejs/kit": "^3.2.0",
+		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"@tailwindcss/forms": "^0.5.11",
+		"@tailwindcss/vite": "^4.3.5",
+		"@types/node": "^24.19.2",
+		"@vitest/browser-playwright": "^4.1.12",
+		"@vitest/coverage-istanbul": "4.1.12",
+		"@vitest/ui": "4.1.12",
+		"drizzle-kit": "^0.31.11",
+		"drizzle-orm": "^0.45.4",
+		"eslint": "^10.15.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.24.1",
+		"fflate": "0.8.3",
+		"globals": "^17.14.0",
+		"playwright": "^1.65.1",
+		"prettier": "^3.10.1",
+		"prettier-plugin-svelte": "^4.1.1",
+		"prettier-plugin-tailwindcss": "^0.8.1",
+		"socket.io": "^4.8.4",
+		"svelte": "^5.57.3",
+		"svelte-check": "^4.7.8",
+		"tailwindcss": "^4.3.5",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.72.2",
+		"vite": "^8.3.8",
+		"vitest": "^4.1.12",
+		"vitest-browser-svelte": "^2.2.1",
+		"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"@libsql/client": "^0.17.4",
+		"@lucide/svelte": "^1.73.0",
+		"rotating-file-stream": "^3.2.10",
+		"socket.io-client": "^4.8.4",
+		"tslog": "^5.5.0"
+	}
+}
+--- README.md ---
+> "Work expands so as to fill the time available for its completion" - Parkinson's Law
+>
+> Actually, work always expands to my personal life =))))))
+
+# FPT Shop x Acer - VLR Graphics Controller
+
+Valorant broadcast graphics controller: SvelteKit 3, Svelte 5, Skeleton UI.
+
+Manages teams, players, tournaments → matches → games and game resources, and drives seven graphics: Player Lineup, Player Stats, Map Veto, Agent Select, In-Game, Post-Game and MVP.
+
+## Setup
+
+Node 26.13.0 and pnpm 12.16.1 (`mise.toml`). Copy `.env.example` to `.env`, then:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm db:migrate
+pnpm db:seed   # optional: 3 fictional teams, 18 players
+pnpm dev
+```
+
+## Rules
+
+- Change the schema only with reviewed migrations; the app applies them on startup after an automatic backup. Never `db:push` event data.
+- Run `pnpm check`, `pnpm build` and E2E one after another; they share generated files. Use `PLAYWRIGHT_CHANNEL=chrome` for installed Chrome.
+- Run one Node process. SSE and the live-provider session are process-local.
+- Management routes have no sign-in (trusted LAN only). `/gfx/live/*` output pages have no controls.
+- Keep provider keys and group codes out of public env vars, fixtures, OBS URLs, SSE, form responses and client data.
+- Log server operations with `logEvent` and safe metadata only. Pass known credentials as the last argument so they are redacted:
+  `logEvent('warn', 'example.failed', { provider }, cause, [accessKey, groupCode])`
+- `ORIGIN` is read at startup: set it before `node build`, and restart when it changes. No rebuild.
+- Back up the database, `ASSET_DIR` and the encryption key together.
+- Team A/B is competition order. Swap Left/Right changes only presentation.
+- Preview follows saved data. A shown graphic keeps its capture until **Update** (standalone) or **Update Live** (composite).
+
+## Docs
+
+- [Management](./docs/MANAGEMENT.md): tournaments, game preparation, assets, resource sync
+- [Broadcast operations](./docs/BROADCAST-OPERATIONS.md): GFX control, OBS URLs, deployment (including HTTPS with Docker + Caddy), migrations, backups
+- [Live providers](./docs/LIVE-PROVIDERS.md): Spectra, GStack, external HUD, connection diagnostics
+- [Post-game imports](./docs/POST-GAME-IMPORTS.md): HenrikDev, Spectra
+- [Logging](./docs/LOGGING.md) · [Testing](./docs/TESTING.md) · [Recovery runbook](./docs/RHS-RUNBOOK.md) · [Spec](./docs/TECH-SPEC.md)
+
+## Integrations
+
+- Live data: [ValoSpectra](https://www.valospectra.com/) ([server](https://github.com/ValoSpectra/Spectra-Server), Overwolf) and [GStack](https://gstack.app) ([VHUD API](https://gstack.app/API/VHUD.html), OCR/machine vision). Direct Riot integration is out of scope.
+- Game resources: [VALORANT-API](https://valorant-api.com/) maps, agents and weapons, downloaded locally on sync.
+
+## Inspiration
+
+- VCT broadcast graphics; post-match cards from <stats.bumpfull.com> and [val-image-generator](https://github.com/ranamerp/val-image-generator); the [Barracks.gg](https://barracks.gg) controller.
+- Earlier work: [TFT, FPT Shop Uni Tour 2026](https://github.com/Rookie001MC/tft-broadcast) and [MLBB Road to Asiad 2026](https://github.com/BEUS-Esports/mlbb-hud-road-to-asiad-2026) (private repo).
+--- setup docs ---
+### docs/BROADCAST-OPERATIONS.md
+# Broadcast operation and production
+
+## Controller
+
+- The sidebar has **Preparation** (Teams, Players, Game Resources, Tournaments) and **GFX Control** (Global Settings plus the seven graphics).
+- `/admin/graphics` is Global Settings. Each `/admin/graphics/<graphic>` page shares Global Setup and edits the same preparation data as normal management.
+- Choose Tournament → Match → Game, then **Take game live**. Partial selector drafts and browsing in management don't change the live game.
+- Hide every shown graphic before changing or clearing the live game. The server enforces this across controllers.
+
+## Preview and Show
+
+- Each page has an embedded 16:9 Preview and a **Large Preview** dialog. Both use the real output renderer.
+- Preview always follows the latest saved data, including while the graphic is hidden.
+- **Show** publishes a persisted capture of the graphic's saved preparation and content controls. Later saves update only Preview, and program keeps its capture. Pressing Show again keeps the capture; **Update** recaptures the latest saved version in place, without animating out and back in. **Hide** plays the graphic's out animation before it leaves.
+- Explicit presentation and current-side changes apply live.
+- An editor with unsaved changes keeps its original record and revision across a refresh or a remote selection change.
+- Player Stats offers Single and Head-to-Head, scoped to a game, match or tournament. MVP uses the operator's saved pick.
+- Missing preparation is shown as unavailable.
+
+## Presentation
+
+- Team A/B is competition order. **Swap Left/Right** changes only screen presentation.
+- Current attackers/defenders set the blue/red colors without moving teams.
+- Unknown tournament slugs use the generic test templates. A slug `<template>-<anything>` uses that template, so `predator-roadshow-val-dong-nai` uses `predator-roadshow-val`.
+- A tournament template's `Graphic.svelte` may export `play()`, `stop()` and `update(snapshot)` to animate in, out and on data change. A template without `play`/`stop` gets a 150ms fade (0ms with reduced motion); `update` is optional, and without it new data just appears. Predator Roadshow animates in and out (400ms) and has no `update`.
+- The Phase 5/5.1 native In-Game fallback passed real Valorant/OBS composition testing. The Phase 5/5.1 native/test package is the accepted fallback baseline; external-provider HUD acceptance is recorded separately.
+
+## OBS URLs
+
+Read-only, on a transparent 1920×1080 canvas:
+
+| Graphic       | Route                     |
+| ------------- | ------------------------- |
+| Player Lineup | `/gfx/live/player-lineup` |
+| Player Stats  | `/gfx/live/player-stats`  |
+| Map Veto      | `/gfx/live/map-veto`      |
+| Agent Select  | `/gfx/live/agent-select`  |
+| In-Game       | `/gfx/live/in-game`       |
+| Post-Game     | `/gfx/live/post-game`     |
+| MVP           | `/gfx/live/mvp`           |
+
+For rehearsal, `/gfx/live/composite` combines all seven in one output with shared connections. It has its own on-air state, independent of Show/Hide on the individual URLs.
+
+- **Take Live** puts a graphic on the composite and captures its saved data. **Update Live** recaptures the latest saved data for a graphic already on air, and **Take Off** removes it with its out animation. The **Live Now — Composite** panel on Global Setup lists each layer and its occupant, with per-row Update and Take Off and **Clear composite**.
+- Layers from back to front: 0 In-Game; 1 Player Lineup, Player Stats, Map Veto, Post-Game, MVP; 2 Agent Select. Each layer holds one graphic. Taking another graphic live on an occupied layer plays the old one's out animation first, then the new one's in animation. Graphics on different layers stack.
+- Compare vMix performance before going on air with it. Keep the individual URLs as a rehearsed fallback.
+
+## Predator Roadshow VALORANT
+
+- Give each stop's tournament a slug starting with `predator-roadshow-val-`, for example `predator-roadshow-val-dong-nai`, `-da-nang` or `-ha-noi`.
+- Pages stay transparent. Put the package background loop (`MAIN.mp4`) in OBS as its own layer below the full-screen graphics (Lineup, Map Veto, Player Stats, Post-Game, MVP). Do not put it behind In-Game or Agent Select.
+- **Map Winner** is on the Player Lineup page. Press **Map winner**, check the result line beside it (game, map, winner and score), then **Show Player Lineup**. Forfeits and walkovers show `13–0`. Choosing another game resets the mode to both lineups.
+- Long names shrink so every name in a group shares one size. On the In-Game scorebar, team names wrap to two lines instead.
+- The data-source placeholder appears only on In-Game.
+
+## Production deployment
+
+Use Node 26.13.0, pnpm 12.16.1 and `pnpm install --frozen-lockfile`. A clean Windows install and production build passed on 2026-11-03; the current lockfile needs no adapter patch.
+
+Set `ORIGIN` to the exact address that controllers and OBS use when starting the server. adapter-node reads it at startup, so changing the address needs a restart, not a rebuild. In PowerShell:
+
+```powershell
+pnpm build
+$env:ORIGIN = 'http://192.168.1.10:3000' # replace with the server LAN address
+$env:HOST = '0.0.0.0'
+$env:PORT = '3000'
+node --env-file=.env build
+```
+
+At runtime:
+
+- Keep `DATABASE_URL` and `ASSET_DIR` on persistent storage, and set `BODY_SIZE_LIMIT=160M` for uploads. Compose reads the operator's `.env`, so raise `BODY_SIZE_LIMIT` to `160M` there too.
+- Before upgrading to the version with bundle import, run `pnpm db:duplicates`. It lists team and player names, tags and Riot IDs that differ only by case or by spaces around `#`. The startup migration adds unique indexes and refuses to apply over such duplicates, so fix them first. The script reads `DATABASE_URL` from the host's `.env` (`file:local.db`), not the compose database, so for the compose deployment run `DATABASE_URL=file:data/broadcast.db pnpm db:duplicates` from the repo on the host, with the app stopped (or against a backup copy).
+- Run **one Node process**. SSE delivery is process-local, so several workers or replicas would need shared pub/sub.
+- Prepared graphic captures are stored in the database and survive restarts.
+- After deploying a new build, refresh every OBS browser source and open admin page. Output pages validate the live snapshot strictly, so one left open across a deploy that changed the snapshot shape stops updating.
+- Authentication is deferred for trusted-LAN operation. Output pages have no controls, but anyone who can reach the management routes can write.
+
+## Linux HTTPS deployment (Docker + Caddy)
+
+VDO.Ninja camera iframes load only in a secure context, so OBS and vMix on other PCs need HTTPS. `compose.yaml` runs the app behind Caddy at `https://valorant-gfx.noibo.beusesports.vn`. Caddy gets a Let's Encrypt certificate through the Cloudflare DNS-01 challenge, so the server never needs to be reachable from the internet. It has its own certificate and token, independent of the shared internal web server.
+
+Always open the app by hostname. `https://<IP>` gives a certificate error, and the app's own port is not published.
+
+### One-time setup
+
+1. Run `sudo systemctl enable --now docker.service`. With only `docker.socket` enabled, Docker starts on the first `docker` command, not at boot, so after a reboot the outputs would stay blank until someone ran one.
+2. Reserve the server's LAN IP in DHCP. The reservation is per network interface: Wi-Fi and Ethernet have different MAC addresses, so reserve the one used on show day.
+3. In Cloudflare, add an A record `valorant-gfx.noibo` → that IP, **DNS-only** (grey cloud). Cloudflare's proxy cannot reach a private IP. Add the same name → IP to every local DNS override that answers for it (AdGuard, MikroTik).
+4. Create an API token with **Zone → DNS → Edit** for `beusesports.vn` only. Cloudflare scopes tokens per zone, so this token can edit any record in it. Keep it only on this machine.
+5. `cp deploy/caddy/caddy.env.example deploy/caddy/caddy.env`, `chmod 600 deploy/caddy/caddy.env`, and paste the token. The file is gitignored, and the app container never sees it.
+6. Keep `.env` as for any production run. Compose overrides `ORIGIN` and pins `DATABASE_URL=file:data/broadcast.db`, `ASSET_DIR=./data/assets` and `SETTINGS_ENCRYPTION_KEY_FILE=./data/settings.key`, so every data path stays inside the `./data` bind mount.
+7. Prepare `./data` as your own user before the first start. The container runs as uid 1000, so `id -u` must print `1000`. If Docker has to create the directory itself, it is owned by root and the app cannot write to it.
+   - Run `mkdir -p data/assets`.
+   - To keep existing data, copy the database with `sqlite3 local.db ".backup data/broadcast.db"`. This is safe even while a dev server has `local.db` open.
+   - For a new event database, leave `data/broadcast.db` absent. The app creates it and applies every migration on first start.
+
+### Start, stop and logs
+
+```bash
+docker compose up -d --build
+docker compose logs caddy | grep -i 'certificate obtained'   # first start only
+docker compose logs -f app
+docker compose down
+```
+
+Both services restart with Docker unless they were stopped. Before the show, check that `docker compose ps` lists `app` and `caddy` as running. The certificate and ACME account live in the `caddy_data` volume. Renewal needs internet roughly every 60 days, so start the stack once before travelling to an offline venue.
+
+### Backups and upgrades
+
+The database, assets and key stay in `./data`, so the host-side scripts work. Host commands read `.env`, and `.env` may still point at `local.db` for development. Always pass the event paths explicitly; the prefix wins over `.env`. Stop the app first:
+
+```bash
+export DATABASE_URL=file:data/broadcast.db ASSET_DIR=data/assets SETTINGS_ENCRYPTION_KEY_FILE=data/settings.key
+docker compose stop app
+pnpm backup -- --output <new-directory> --app-stopped
+docker compose start app
+```
+
+To upgrade, between shows and never during one:
+
+```bash
+git rev-parse --short HEAD   # note the running version, for rolling back
+git pull
+docker compose up -d --build
+docker compose logs app | grep -i migrations   # empty when nothing was pending
+```
+
+On start the app applies pending migrations by itself. If the database already has data, it first backs up the database and assets to `data/backups/<time>-before-<migration>/` (the log shows it as `/app/data/backups/…`). These backups are never pruned; delete old ones yourself. The encryption key is not copied into them; it stays in `data/settings.key`.
+
+If the backup or a migration fails, nothing is applied and the app exits. It writes what failed, the backup path and the error to `data/backups/MIGRATION-FAILED`. Docker keeps restarting the app, but while that file exists, a start with pending migrations neither backs up nor migrates: it logs the failure and exits again, so one failure makes at most one backup. The data is untouched, so roll back only the code: `git checkout <noted version>`, then `docker compose up -d --build`. The old version has nothing pending and starts normally. Delete `data/backups/MIGRATION-FAILED` only when you want the next start to try the upgrade again with a fresh backup.
+
+If the migration succeeded but the result is wrong, roll back the code **and** the data. Restoring only the data does not help: the new build would migrate it again on start. Check that the backup's `manifest.json` has `"complete": true`, then:
+
+```bash
+docker compose stop app
+git checkout <noted version>
+B=data/backups/<time>-before-<migration>
+mv data/broadcast.db data/broadcast.db.rejected && mv data/assets data/assets.rejected
+cp "$B/database.db" data/broadcast.db && cp -r "$B/assets" data/assets
+docker compose up -d --build
+```
+
+Edits made after the upgrade are only in the `.rejected` copies. The [RHS runbook](./RHS-RUNBOOK.md) covers checking the restored outputs before going back on air.
+
+Optional rehearsal: to preview what a migration changes on air (such as 0007 hiding shown graphics), copy the database with `sqlite3 data/broadcast.db ".backup <copy>.db"` and start the new build against the copy first.
+
+### Network checks
+
+- **IP changed:** update the Cloudflare A record **and** every local DNS override (AdGuard, MikroTik). A local override answers first, so leaving it behind keeps the dead address. Then run `ipconfig /flushdns` on each graphics PC and reload its browser sources. Nothing needs rebuilding.
+- **Before the show,** run `nslookup valorant-gfx.noibo.beusesports.vn` on each graphics PC and compare the answer with the server's LAN interface address (`ip -4 addr show wlan0` or the Ethernet interface; ignore the 172.x Docker bridges). If the name does not resolve, the router may block DNS answers that point to private IPs. Add a DNS override on the router, or a hosts-file entry on that PC.
+- **GStack:** inside the container, `localhost` is the container itself. Set the GStack URL in Settings to the GStack PC's LAN IP.
+
+## Backups
+
+Stopped-app backup: `pnpm backup -- --output <new-directory> --app-stopped`. For the Docker deployment, use the commands in [Backups and upgrades](#backups-and-upgrades), which target `data/broadcast.db`. Protect the encryption key separately. Upgrades back up automatically before migrating; restore with the [RHS recovery runbook](./RHS-RUNBOOK.md).
+
+## Upgrading an existing installation
+
+Reviewed forward migrations:
+
+| Migration | Adds                                              |
+| --------- | ------------------------------------------------- |
+| 0004      | Broadcast state                                   |
+| 0005      | Prepared-data broadcast invalidation              |
+| 0006      | Independent broadcast-control revision            |
+| 0007      | Persisted graphic captures                        |
+| 0008      | Agent ability artwork metadata                    |
+| 0009      | In-game match controls                            |
+| 0010      | Post-game import provenance and report uniqueness |
+| 0011      | Encrypted provider settings                       |
+| 0012      | Separate Spectra post-game group code             |
+| 0013      | Delayed asset cleanup                             |
+
+- 0007 hides previously shown graphics because no reviewed capture exists for them yet. Show them again after reviewing preparation.
+- 0010 protects legacy imported agents whose manual-edit history is unavailable. Review differing agent proposals on the first reimport.
+
+To upgrade:
+
+For the Docker deployment, follow [Backups and upgrades](#backups-and-upgrades). `.env` may still point at the development `local.db`.
+
+1. Upgrade between shows, never during one.
+2. Confirm `DATABASE_URL` points at the event database.
+3. Start the new build. It backs up existing data to `data/backups/<time>-before-<migration>/`, then applies the reviewed migrations. If either step fails, it applies nothing, records the failure in `data/backups/MIGRATION-FAILED` and exits. It won't retry until you delete that file.
+4. Optionally, start the new build against a copy of the database first to preview on-air effects. Never use `db:push` on event data.
+
+Verification runs on disposable databases; the local/event database has not been migrated by this phase.
+### docs/LIVE-PROVIDER-TRANSPORT.md
+# Live Provider Transport Reference
+
+Last updated: 2026-10-24
+
+## Purpose
+
+This document is the transport-level source of truth for live VALORANT provider integration.
+
+It records:
+
+- how the application connects to each provider;
+- which upstream messages are considered authoritative observations;
+- how full snapshots and incremental updates are handled;
+- which provider fields are known, optional, enhanced, or still unresolved;
+- which upstream values are normalized into the shared `LiveGameState`;
+- which provider-specific values remain diagnostic/raw only;
+- reconnect and resynchronization expectations;
+- security rules for provider credentials and executable-looking payloads.
+
+Implementation order, UI work, and Phase 6 acceptance remain in
+[2026-10-03-phase-6-live-providers-external-hud.md](./2026-10-03-phase-6-live-providers-external-hud.md).
+
+The normalized application model owns the graphics contract. Neither ValoSpectra nor GStack payload structures may leak into HUD components.
+
+---
+
+## 1. Shared transport rules
+
+### 1.1 One upstream session
+
+The Node server owns the active provider connection.
+
+Opening additional:
+
+- Graphics Control pages;
+- embedded Previews;
+- Large Preview;
+- OBS/browser sources;
+
+must not create additional ValoSpectra or GStack upstream sessions.
+
+Browser clients receive the application's own read-only live-data stream, not a direct provider connection.
+
+### 1.2 Provider data is observational
+
+Providers may report:
+
+- names;
+- agents;
+- weapons;
+- health/shield;
+- economy;
+- K/D/A;
+- abilities;
+- ultimate state;
+- scores;
+- spike state;
+- round outcomes;
+- provider-side/team positions.
+
+They do not silently rewrite canonical:
+
+- Tournament entries;
+- Match Team A / Team B;
+- saved Game lineups;
+- Map Veto;
+- saved Agent Select;
+- local team/player branding;
+- operator broadcast presentation.
+
+Provider identity is joined to local identity through the explicit Phase 6 mapping layer.
+
+### 1.3 Missing is not zero
+
+Provider blanks, absent auxiliary-client fields, malformed optional values, or unsupported fields normalize to `null`.
+
+An observed numeric zero remains `0`.
+
+Missing enhanced fields do not by themselves indicate a dead provider.
+
+### 1.4 Raw data retention
+
+Keep only the current/latest raw provider state required by View Data and diagnostics.
+
+Do not persist every live tick to SQLite.
+
+Credentials, access keys, or private provider configuration must never be included in:
+
+- live SSE;
+- OBS output;
+- browser console output;
+- View Data;
+- raw diagnostic JSON returned to clients.
+
+---
+
+## 2. ValoSpectra
+
+### 2.1 Services
+
+Current integration uses two server-side endpoints.
+
+| Purpose                       | Default service | Protocol  |
+| ----------------------------- | --------------- | --------- |
+| Live match state              | port 5200       | Socket.IO |
+| Organization/supporter lookup | port 5101       | HTTP      |
+
+Recommended configuration:
+
+```text
+SPECTRA_SOCKET_URL=http://localhost:5200
+SPECTRA_EXTRAS_URL=http://localhost:5101
+SPECTRA_ACCESS_KEY=
+```
+
+The exact host may be remote/configured; the access key is server-only.
+
+### 2.2 Live Socket.IO session
+
+The client connects with a Socket.IO-compatible library.
+
+On connect:
+
+```js
+socket.emit(
+	'logon',
+	JSON.stringify({
+		groupCode
+	})
+);
+```
+
+The server responds with `logon_success`.
+
+After successful logon, consume `match_data` events.
+
+Do not substitute a raw WebSocket client for Socket.IO.
+
+A successful logon must be followed by usable `match_data` within five seconds. An acknowledgment alone does not establish usable telemetry; malformed data does not extend that deadline.
+
+### 2.3 match_data handling
+
+Treat each valid `match_data` event as the latest Spectra observation.
+
+The Spectra adapter converts only the fields consumed by the application into `LiveGameState`.
+
+The adapter should retain enough raw input in memory for View Data, but the raw object is never forwarded directly to OBS/browser SSE.
+
+Provider-side team order is not Match Team A/B identity.
+
+Prefer stable provider player identifiers where available, then join them to t
+
+[truncated: omitted lines 483-2806 (185132 bytes, bytes 25564-210695)]
+
+d an aspect ratio; the previously stated 305x170 px is not established by these source files alone.
+- Caches stream URL objects by player name in a `Map`. This stabilizes the URL binding, but does not preserve an iframe across unmounting or prevent independent connection failures.
+- HUD URL pattern:
+
+```
+https://vdo.ninja/?room=<identifier>&view=<Name>_H_<tagline>&scene=0&cleanoutput&vb=5000&transparent&waitmessage=Loading&disablehotkeys&codec=h265,av1,h264,vp8
+```
+
+**What it implies**
+
+- `room` + `view=<id>` + `scene=0` selects one feed from the room. It does not make outer CSS hiding a VDO.Ninja scene-membership change. [View selection](https://docs.vdo.ninja/advanced-settings/mixer-scene-parameters/view)
+- `_H_` is part of the naming scheme. These files do not establish a paired `_L_` publisher.
+- Ten feeds at the requested `vb=5000` would total about 50 Mbps of video **if each achieved that target**, before transport/audio overhead. This is arithmetic, not observed traffic or a hard aggregate cap.
+- The source is evidence of an implementation pattern, not proof that ten full-quality feeds perform well on this production machine.
+
+**What to copy**
+
+- Stable URL values and deliberate camera identity handling.
+- Only initialize configured cameras; do not create empty iframe instances.
+- Presentation options such as `cleanoutput`, `transparent`, `waitmessage`, and `disablehotkeys` where appropriate.
+- Persistent camera ownership for this app's keep-warm requirement, including its ancestors.
+
+**What not to copy blindly**
+
+- Compare 1000–2500 kbps with higher targets at the actual displayed size; do not declare a universal sufficient bitrate from CSS dimensions alone.
+- `codec=h265,av1,h264,vp8` is an ordered preference. Check the negotiated codec and decode performance in the installed Chrome/vMix versions. H264 can be a starting comparison, not a hardware-acceleration guarantee.
+
+**Candidate fixed-view P2P URLs (untested)**
+
+Both links intentionally use the same stream ID. The preview scale assumes a 720p source. Substitute URL-encoded room/stream values and add the deployment's room credentials and remote-control settings as needed.
+
+```
+HUD:     https://vdo.ninja/?room=<room>&view=<id>&scene=0&cleanoutput&transparent&disablehotkeys&waitmessage=Loading&codec=h264&vb=2000
+Preview: https://vdo.ninja/?room=<room>&view=<id>&scene=0&cleanoutput&disablehotkeys&codec=h264&vb=200&scale=25
+```
+
+These illustrate per-view quality requests, not the consolidated director/scene implementation. Do not apply their quality assumptions to Meshcast, infer a 10 FPS limit, or put `maxvideobitrate=200` on the sender: that sender cap would also restrict the HUD viewer. Verify both connections' actual stats simultaneously.
+
+---
+
+## 4. Architecture to validate
+
+| Piece                  | Where it runs      | Candidate behavior                                                                                                                                        |
+| ---------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preview / director     | Operator PC        | Ten low-quality P2P subscriptions with operator controls; evaluate consolidation into one director or mixer.                                              |
+| Scoreboard HUD         | Production machine | Retain all ten camera connections and display the selected pair beside the scoreboard. Compare per-camera iframes with a preloaded controllable scene.    |
+| Optional pregame intro | Production machine | Display all ten player cameras with champion graphics over them. Budget ten extra subscriptions when using a separate retained pool.                      |
+| Senders                | Player PCs         | Test 720p30 capture against all display surfaces; permit independent quality requests. Budget two or three internal receiving peers per player under P2P. |
+
+Keep-warm describes the connection lifecycle. It does not require every hidden feed to run continuously at the active feed's quality. Full-quality recovery time, resource use, and connection reuse across app sections remain acceptance measurements. Server distribution is a separate option after resolving the quality-model limitation in §3.4b.
+
+---
+
+## 5. Diagnostics checklist (for the next test)
+
+Capture these, because the root cause is still unconfirmed:
+
+1. **Establish the runtime and baseline.** Record browser/vMix versions, launch command, capture settings, and every open camera consumer. Use the built runtime from §3.6. Confirm graphics load with cameras disabled before adding media.
+2. **Record startup evidence.** Capture console/network failures, a DevTools Performance trace, and Chrome task-manager CPU/memory by process. Compare no cameras, static iframe content, and real VDO.Ninja content; a static frame omits both app and media work and does not isolate which was responsible.
+3. **Increase load deliberately.** Test 0, 1, 2, 5, then 10 camera sources. With all ten publishing, validate the 20-subscription HUD-plus-preview case and the 30-subscription case with a separate pregame pool. Compare simultaneous/staggered startup and 1080p60/720p30 with other variables held fixed. An improvement narrows the investigation but does not uniquely prove a keyframe storm.
+4. **Measure both media endpoints.** Record per-connection bitrate, resolution, FPS, loss, keyframe requests, codec, and encoder/decoder information where exposed. Use VDO.Ninja stats and `chrome://webrtc-internals`; `chrome://gpu` shows capability/status, not proof of each stream's active decoder. [Stats troubleshooting](https://docs.vdo.ninja/guides/stats-menu/troubleshooting)
+5. **Exercise keep-warm and host differences.** Repeatedly change the selected pair, hide/show the HUD and intro, and update scores while recording iframe loads, reconnects, black frames, and time to first/full-quality video. Check that Solo View opens VDO.Ninja directly and adds only the expected external subscription without restarting the internal receivers. Compare Chrome and vMix under matched loads. A difference identifies an environment dependency, not CEF as the proven root cause.
+
+Use local looping video or stills for layout work. Those fixtures do not substitute for the live, multi-PC test on the production machine.
+
+---
+
+## 6. First experiments (in order)
+
+1. Establish the built-runtime baseline and collect startup diagnostics.
+2. Test separate P2P preview/HUD bitrate targets against the current 20 Mbps request, then compare capture resolutions and codecs.
+3. Preserve the required camera connections across selection and visibility changes; measure hidden cost and recovery time.
+4. Stagger initial camera startup and compare with simultaneous initialization.
+5. Benchmark a consolidated director/scene layout. Consider server distribution or separate vMix ingest only with the quality and processing costs described above.--- example env files ---
+### ./.env.example
+# Drizzle
+DATABASE_URL=file:local.db
+ASSET_DIR=./data/assets
+BODY_SIZE_LIMIT=160M
+
+# TSLog terminal output. debug includes successful reads and polling requests.
+LOG_LEVEL=info
+# Optional JSONL files: 10 MB per file, seven archives. One directory per server process.
+# LOG_DIR=./data/logs
+
+# Provider settings are saved in the database. Secrets are encrypted with this server key.
+# Recommended for production: 32 random bytes encoded as base64 or 64 hex characters.
+SETTINGS_ENCRYPTION_KEY=
+# If SETTINGS_ENCRYPTION_KEY is blank, a local 32-byte key is generated here on first use.
+SETTINGS_ENCRYPTION_KEY_FILE=./data/settings.key
+
+# Legacy bootstrap only.
+# These values are imported only when provider_settings is first created, then the Settings page/DB wins.
+HENRIKDEV_API_KEY=
+HENRIKDEV_BASE_URL=https://api.henrikdev.xyz
+HENRIKDEV_AFFINITY=ap
+HENRIKDEV_PLATFORM=pc
+HENRIKDEV_CANDIDATE_LIMIT=5
+POST_GAME_REQUEST_TIMEOUT_MS=15000
+SPECTRA_POST_GAME_BASE_URL=https://stats.valospectra.com
+SPECTRA_POST_GAME_GROUP_CODE=
+SPECTRA_POST_GAME_POLL_INTERVAL_MS=15000
+SPECTRA_POST_GAME_MAX_ATTEMPTS=3
+### ./deploy/caddy/caddy.env.example
+# Cloudflare API token: Zone -> DNS -> Edit, restricted to beusesports.vn. Copy to caddy.env (chmod 600).
+CLOUDFLARE_API_TOKEN=
+--- framework config ---
+### vite.config.ts
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vitest/config';
+import { playwright } from '@vitest/browser-playwright';
+import adapter from '@sveltejs/adapter-node';
+import { sveltekit } from '@sveltejs/kit/vite';
+
+export default defineConfig({
+	plugins: [
+		tailwindcss(),
+		sveltekit({
+			compilerOptions: {
+				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
+				runes: ({ filename }) =>
+					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
+			},
+			adapter: adapter()
+		})
+	],
+	test: {
+		// Keep browser and native database integration tests within the same machine's capacity.
+		maxWorkers: 2,
+		expect: { requireAssertions: true },
+		coverage: {
+			include: ['src/**/*.{ts,tsx,svelte}'],
+			// Schema callbacks never run in tests, test helpers are not product code, and the
+			// beus-graph-test templates are throwaway test artwork with no tests.
+			exclude: [
+				'src/lib/server/db/schema/**',
+				'src/lib/server/testing/**',
+				'src/lib/broadcast/templates/beus-graph-test/**'
+			],
+			provider: 'istanbul',
+			thresholds: {
+				// Regression floors a few points under the 2026-11-16 baseline (docs/QA-BASELINE.md).
+				// Raise them as coverage improves; the component floor is separate so strong .ts
+				// coverage cannot hide an untested .svelte file.
+				statements: 71,
+				branches: 67,
+				functions: 74,
+				lines: 70,
+				'src/**/*.svelte': { statements: 61, branches: 45, functions: 65, lines: 51 },
+				'src/lib/broadcast/**': { statements: 90, branches: 88, functions: 90, lines: 90 },
+				'src/lib/server/services/**': { statements: 86, branches: 84, functions: 88, lines: 86 },
+				'src/lib/server/post-game/**': { statements: 88, branches: 85, functions: 90, lines: 88 },
+				'src/lib/server/live/**': { statements: 82, branches: 75, functions: 82, lines: 84 }
+			}
+		},
+		projects: [
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'client',
+					browser: {
+						enabled: true,
+						provider: playwright({ launchOptions: { channel: process.env.PLAYWRIGHT_CHANNEL } }),
+						instances: [{ browser: 'chromium', headless: true }]
+					},
+					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+					exclude: ['src/lib/server/**']
+				}
+			},
+
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'server',
+					pool: 'forks',
+					globalSetup: ['./src/lib/server/testing/database-cleanup.ts'],
+					environment: 'node',
+					include: ['src/**/*.{test,spec}.{js,ts}'],
+					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+				}
+			}
+		]
+	}
+});
+--- environment reads (names/code only) ---
+./playwright.config.ts:7:process.env.VLR_E2E_DIR ??= mkdtempSync(join(tmpdir(), 'vlr-e2e-'));
+./playwright.config.ts:8:process.env.DATABASE_URL = `file:${join(process.env.VLR_E2E_DIR, 'app.db')}`;
+./playwright.config.ts:9:process.env.ASSET_DIR = join(process.env.VLR_E2E_DIR, 'assets');
+./playwright.config.ts:10:process.env.LIVE_PROVIDER_CONFIG_FILE = join(process.env.VLR_E2E_DIR, 'live-provider.json');
+./playwright.config.ts:18:		channel: process.env.PLAYWRIGHT_CHANNEL,
+./scripts/seed.mjs:3:const url = process.env.DATABASE_URL;
+./scripts/backup.mjs:66:export async function createBackup({ output, appStopped, env = process.env, cwd = process.cwd() }) {
+./scripts/backup.mjs:69:	const url = env.DATABASE_URL;
+./scripts/backup.mjs:74:	const assetPath = resolve(cwd, env.ASSET_DIR ?? 'data/assets');
+./scripts/backup.mjs:89:	const keyPath = resolve(cwd, env.SETTINGS_ENCRYPTION_KEY_FILE ?? 'data/settings.key');
+./scripts/backup.mjs:99:	const environmentKey = Boolean(env.SETTINGS_ENCRYPTION_KEY);
+./scripts/seed.test.mjs:14:			env: { ...process.env, DATABASE_URL: url },
+./scripts/seed.test.mjs:24:			"import { createClient } from '@libsql/client'; import { drizzle } from 'drizzle-orm/libsql'; import { migrate } from 'drizzle-orm/libsql/migrator'; const client = createClient({ url: process.env.DATABASE_URL }); await migrate(drizzle(client), { migrationsFolder: 'drizzle' }); client.close();"
+./scripts/seed.test.mjs:29:			"import { createClient } from '@libsql/client'; const client = createClient({ url: process.env.DATABASE_URL }); const rows = await client.execute(\"SELECT (SELECT count(*) FROM teams) AS teams, (SELECT count(*) FROM players) AS players, (SELECT name FROM teams WHERE id = 'seed-team-alpha') AS teamName, (SELECT display_name FROM players WHERE id = 'seed-player-alpha-1') AS playerName\"); console.log(JSON.stringify(rows.rows[0])); client.close();";
+./scripts/seed.test.mjs:34:			"import { createClient } from '@libsql/client'; const client = createClient({ url: process.env.DATABASE_URL }); await client.batch([\"UPDATE teams SET name = 'Edited' WHERE id = 'seed-team-alpha'\", \"UPDATE players SET display_name = 'Edited' WHERE id = 'seed-player-alpha-1'\"]); client.close();"
+./scripts/find-profile-duplicates.mjs:51:	const url = process.env.DATABASE_URL;
+./scripts/fake-spectra.mjs:9:const port = Number(process.env.FAKE_SPECTRA_PORT ?? 5200);
+./vite.config.ts:55:						provider: playwright({ launchOptions: { channel: process.env.PLAYWRIGHT_CHANNEL } }),
+./deploy/caddy/Caddyfile:3:		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+./drizzle.config.ts:3:if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+./drizzle.config.ts:8:	dbCredentials: { url: process.env.DATABASE_URL },
+./design/pacific-gfx/scripts/record.mjs:28:const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
+./design/pacific-gfx/scripts/setup.mjs:39:const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
+./docs/superpowers/plans/2026-11-17-startup-migrations.md:48:  - **Setup:** each test gets a `mkdtemp` directory with `app.db`, an `assets/` folder, and `process.env` `DATABASE_URL`/`ASSET_DIR`/`SETTINGS_ENCRYPTION_KEY_FILE` pointing into it (restore them in `afterEach`). Use the client and Drizzle instance the way `management-fixture.ts` does. Close clients and remove the directory with `removeTestDatabase`.
+./docs/superpowers/plans/2026-10-01-phase-5-verification.md:28:That first run also rejected the SSE test's same-origin form action: this SvelteKit 3 adapter derives HTTPS when no configured origin exists and no trusted protocol header is provided. `vite.config.ts` now passes `process.env.ORIGIN` to **build-time** `paths.origin`. Set the intended LAN origin before building, then use the same address for controllers and outputs. Runtime `ORIGIN` alone does not reconfigure this installed adapter. CSRF checking remains enabled; no trusted-origin wildcard or protocol-header shortcut was added. Rebuild when the deployment origin changes.
+./docs/superpowers/plans/2026-11-17-https-deployment.md:17:- `ORIGIN` is a runtime setting only. Remove `paths: { origin: process.env.ORIGIN }` from `vite.config.ts`. One image works for any address.
+./docs/superpowers/plans/2026-11-17-https-deployment.md:47:- [ ] **Step 2: Delete `paths: { origin: process.env.ORIGIN }`** from the `sveltekit({...})` options in `vite.config.ts`.
+./docs/superpowers/plans/2026-11-17-https-deployment.md:116:		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+./docs/superpowers/plans/2026-11-17-player-cameras.md:70:- [ ] **Step 1: Write failing tests** in `secrets.test.ts` (set `process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64')`, delete it in `afterEach`):
+./src/lib/server/settings/secrets.ts:18:		const configured = process.env.SETTINGS_ENCRYPTION_KEY;
+./src/lib/server/settings/secrets.ts:20:		const file = resolve(process.env.SETTINGS_ENCRYPTION_KEY_FILE ?? 'data/settings.key');
+./src/lib/server/settings/secrets.test.ts:8:	process.env.SETTINGS_ENCRYPTION_KEY = key.toString('base64');
+./src/lib/server/settings/secrets.test.ts:11:	delete process.env.SETTINGS_ENCRYPTION_KEY;
+./src/lib/server/settings/providers.test.ts:11:	delete process.env.SETTINGS_ENCRYPTION_KEY;
+./src/lib/server/settings/providers.test.ts:12:	delete process.env.SETTINGS_ENCRYPTION_KEY_FILE;
+./src/lib/server/settings/providers.test.ts:13:	delete process.env.LIVE_PROVIDER_CONFIG_FILE;
+./src/lib/server/settings/providers.test.ts:18:		process.env.LIVE_PROVIDER_CONFIG_FILE = join(fixture.directory, 'legacy-live-provider.json');
+./src/lib/server/settings/providers.test.ts:42:		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+./src/lib/server/settings/providers.test.ts:44:		process.env.LIVE_PROVIDER_CONFIG_FILE = file;
+./src/lib/server/settings/providers.test.ts:65:		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+./src/lib/server/settings/providers.test.ts:67:		process.env.LIVE_PROVIDER_CONFIG_FILE = file;
+./src/lib/server/settings/providers.test.ts:87:		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+./src/lib/server/settings/providers.test.ts:89:		process.env.LIVE_PROVIDER_CONFIG_FILE = file;
+./src/lib/server/settings/providers.test.ts:108:			process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+./src/lib/server/settings/providers.test.ts:110:			process.env.LIVE_PROVIDER_CONFIG_FILE = file;
+./src/lib/server/settings/providers.test.ts:119:				process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
+./src/lib/server/settings/providers.test.ts:135:		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+./src/lib/server/settings/providers.test.ts:136:		process.env.LIVE_PROVIDER_CONFIG_FILE = join(fixture.directory, 'legacy-live-provider.json');
+./src/lib/server/settings/providers.test.ts:137:		process.env.SETTINGS_ENCRYPTION_KEY_FILE = join(fixture.directory, 'settings.key');
+./src/lib/server/settings/providers.test.ts:176:		process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
+./src/lib/server/settings/providers.test.ts:177:		process.env.LIVE_PROVIDER_CONFIG_FILE = join(fixture.directory, 'legacy-live-provider.json');
+./src/lib/server/settings/providers.test.ts:178:		process.env.SETTINGS_ENCRYPTION_KEY_FILE = join(fixture.directory, 'settings.key');
+./src/lib/server/db/startup-migrations.ts:49:		// Back up the database `db` opened, even when process.env disagrees with the app's env.
+./src/lib/server/db/startup-migrations.ts:51:			createBackup({ output, appStopped: true, env: { ...process.env, DATABASE_URL } })
+./src/lib/server/settings/cameras.test.ts:6:	process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+./src/lib/server/settings/cameras.test.ts:9:	delete process.env.SETTINGS_ENCRYPTION_KEY;
+./src/lib/server/db/startup-migrations.test.ts:25:	(name) => [name, process.env[name]] as const
+./src/lib/server/db/startup-migrations.test.ts:36:	env.DATABASE_URL = `file:${join(directory, 'app.db')}`;
+./src/lib/server/db/startup-migrations.test.ts:37:	process.env.DATABASE_URL = 'file:somewhere-else.db';
+./src/lib/server/db/startup-migrations.test.ts:38:	process.env.ASSET_DIR = join(directory, 'assets');
+./src/lib/server/db/startup-migrations.test.ts:39:	process.env.SETTINGS_ENCRYPTION_KEY_FILE = join(directory, 'settings.key');
+./src/lib/server/db/startup-migrations.test.ts:40:	client = createClient({ url: env.DATABASE_URL });
+./src/lib/server/db/startup-migrations.test.ts:46:		if (value === undefined) delete process.env[name];
+./src/lib/server/db/startup-migrations.test.ts:47:		else process.env[name] = value;
+./src/lib/server/live/providers/gstack-deltas.test.ts:65:		'[ExecuteScript]: SetNamePlayer(0,1,`${process.env.SECRET}`)',
+./src/lib/server/live/config.ts:86:	resolve(process.env.LIVE_PROVIDER_CONFIG_FILE ?? 'data/live-provider.json');
+./src/lib/server/testing/database-cleanup.ts:9:	process.env.VLR_TEST_CLEANUP = manifest;
+./tests/phase6.1-banners.e2e.ts:24:	const db = createClient({ url: process.env.DATABASE_URL! });
+./src/lib/server/assets.ts:5:const directory = process.env.ASSET_DIR ?? join(process.cwd(), 'data', 'assets');
+./src/lib/server/testing/management-fixture.ts:29:		if ((cause as NodeJS.ErrnoException).code !== 'EBUSY' || !process.env.VLR_TEST_CLEANUP)
+./src/lib/server/testing/management-fixture.ts:32:		await appendFile(process.env.VLR_TEST_CLEANUP, `${directory}\n`);
+./tests/phase5.1-visuals.e2e.ts:19:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/fixtures.ts:10:			const db = createClient({ url: process.env.DATABASE_URL! });
+./src/lib/server/post-game/config.ts:51:		const apiKey = env.HENRIKDEV_API_KEY?.trim() ?? '';
+./src/lib/server/post-game/config.ts:52:		const affinity = (env.HENRIKDEV_AFFINITY || 'ap').toLowerCase();
+./src/lib/server/post-game/config.ts:53:		const platform = (env.HENRIKDEV_PLATFORM || 'pc').toLowerCase();
+./src/lib/server/post-game/config.ts:62:			baseUrl: host(env.HENRIKDEV_BASE_URL || 'https://api.henrikdev.xyz'),
+./src/lib/server/post-game/config.ts:66:			timeoutMs: integer(env.POST_GAME_REQUEST_TIMEOUT_MS, 15000, 1, 30000),
+./src/lib/server/post-game/config.ts:67:			candidateLimit: integer(env.HENRIKDEV_CANDIDATE_LIMIT, 5, 1, 10)
+./src/lib/server/post-game/config.ts:78:		const groupCode = (env.SPECTRA_POST_GAME_GROUP_CODE?.trim() || spectraGroupCode).trim();
+./src/lib/server/post-game/config.ts:82:			baseUrl: host(env.SPECTRA_POST_GAME_BASE_URL || 'https://stats.valospectra.com'),
+./src/lib/server/post-game/config.ts:84:			timeoutMs: integer(env.POST_GAME_REQUEST_TIMEOUT_MS, 15000, 1, 30000),
+./src/lib/server/post-game/config.ts:85:			pollIntervalMs: integer(env.SPECTRA_POST_GAME_POLL_INTERVAL_MS, 15000, 1, 15000),
+./src/lib/server/post-game/config.ts:86:			maxAttempts: integer(env.SPECTRA_POST_GAME_MAX_ATTEMPTS, 3, 1, 4)
+./tests/setup.ts:18:	await mkdir(process.env.ASSET_DIR!, { recursive: true });
+./tests/setup.ts:19:	const client = createClient({ url: process.env.DATABASE_URL! });
+./tests/setup.ts:93:	process.env.ORIGIN = 'http://localhost:4173';
+./tests/setup.ts:94:	process.env.SETTINGS_ENCRYPTION_KEY = Buffer.alloc(32, 5).toString('base64');
+./tests/setup.ts:96:	process.env.HENRIKDEV_API_KEY = 'synthetic-e2e-key';
+./tests/setup.ts:97:	process.env.HENRIKDEV_AFFINITY = 'ap';
+./tests/setup.ts:98:	process.env.HENRIKDEV_PLATFORM = 'pc';
+./tests/setup.ts:99:	process.env.HENRIKDEV_CANDIDATE_LIMIT = '5';
+./tests/setup.ts:100:	process.env.POST_GAME_REQUEST_TIMEOUT_MS = '2000';
+./tests/setup.ts:144:	process.env.VLR_E2E_PROVIDER_URL = providerUrl;
+./tests/setup.ts:145:	process.env.HENRIKDEV_BASE_URL = providerUrl;
+./tests/setup.ts:146:	process.env.SPECTRA_POST_GAME_BASE_URL = providerUrl;
+./tests/setup.ts:147:	process.env.SPECTRA_POST_GAME_GROUP_CODE = 'SYNTHETIC';
+./tests/setup.ts:148:	process.env.SPECTRA_POST_GAME_POLL_INTERVAL_MS = '150';
+./tests/setup.ts:149:	process.env.SPECTRA_POST_GAME_MAX_ATTEMPTS = '3';
+./tests/setup.ts:186:		const directory = resolve(process.env.VLR_E2E_DIR!);
+./src/lib/server/post-game/providers/providers.test.ts:59:		expect(config.henrikdev?.apiKey).toBe(env.HENRIKDEV_API_KEY);
+./tests/graphics-action-isolation.e2e.ts:14:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/phase5-graphics.e2e.ts:50:	const db = createClient({ url: process.env.DATABASE_URL! });
+./src/lib/server/services/management-reopen.test.ts:14:const role = process.env.VLR_PERSIST_ROLE;
+./src/lib/server/services/management-reopen.test.ts:15:const databasePath = process.env.VLR_PERSIST_FILE;
+./src/lib/server/services/management-reopen.test.ts:302:			const env = { ...process.env, VLR_PERSIST_FILE: join(directory, 'app.db') };
+./tests/phase6-live.e2e.ts:84:	const db = createClient({ url: process.env.DATABASE_URL! });
+./src/lib/server/services/phase2.test.ts:14:	const previousAssetDir = process.env.ASSET_DIR;
+./src/lib/server/services/phase2.test.ts:15:	process.env.ASSET_DIR = join(directory, 'assets');
+./src/lib/server/services/phase2.test.ts:190:		if (previousAssetDir === undefined) delete process.env.ASSET_DIR;
+./src/lib/server/services/phase2.test.ts:191:		else process.env.ASSET_DIR = previousAssetDir;
+./tests/phase7-post-game.e2e.ts:8:	const response = await fetch(`${process.env.VLR_E2E_PROVIDER_URL}/scenario?name=${name}`);
+./tests/phase5.1-workflow.e2e.ts:72:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/gfx-preload.e2e.ts:14:const put = (path: string) => writeFile(join(process.env.ASSET_DIR!, path.split('/').pop()!), png);
+./tests/gfx-preload.e2e.ts:56:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/gfx-preload.e2e.ts:120:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/phase5.1-duplication.e2e.ts:16:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/server.mjs:4:process.env.PORT = '4173';
+./tests/roadshow-visuals.e2e.ts:19:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/sponsors.e2e.ts:21:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/sponsors.e2e.ts:100:	const db = createClient({ url: process.env.DATABASE_URL! });
+./tests/sponsors.e2e.ts:197:	const before = await readdir(process.env.ASSET_DIR!);
+./tests/sponsors.e2e.ts:211:	expect(await readdir(process.env.ASSET_DIR!)).toEqual(before);
+./tests/phase5-controller.e2e.ts:31:	const db = createClient({ url: process.env.DATABASE_URL! });
+
+--- stderr ---
+
+
+Use `read` on the stdout/stderr paths above for the full output.

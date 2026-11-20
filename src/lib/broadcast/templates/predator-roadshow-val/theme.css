@@ -72,30 +72,153 @@
 	-webkit-line-clamp: none;
 }
 
-/* Pause / ceremony banner: cyan header strip over a dark body (league 5.3 idea). */
+/* Pause / ceremony banner: cyan header strip over a dark body (league 5.3 idea).
+ * The chamfered clip-path is written in terms of --rs-open (0 = a thin centre bar, 1 = full banner),
+ * so the ceremony can reveal from the middle out on X and close the same way. */
+@property --rs-open {
+	syntax: '<number>';
+	inherits: false;
+	initial-value: 1;
+}
 [data-template='predator-roadshow-val'] .match-banner.match-banner {
+	/* Half-width of the centre bar the ceremony blinks before opening. */
+	--rs-bar: 5px;
+	--rs-l: calc((50% - var(--rs-bar)) * (1 - var(--rs-open)));
+	--rs-r: calc(100% - var(--rs-l));
+	--rs-c: calc(18px * var(--rs-open));
 	background:
 		linear-gradient(180deg, var(--rs-plate-from), var(--rs-plate-to)) 0 0 / 100% 10px no-repeat,
 		linear-gradient(180deg, #000000f0, #062c33f0);
 	border: 0;
 	border-bottom: 5px solid var(--accent);
-	clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
+	clip-path: polygon(
+		calc(var(--rs-l) + var(--rs-c)) 0,
+		calc(var(--rs-r) - var(--rs-c)) 0,
+		var(--rs-r) var(--rs-c),
+		var(--rs-r) 100%,
+		var(--rs-l) 100%,
+		var(--rs-l) var(--rs-c)
+	);
 }
 /* Sponsor art: background fills the banner under its clip-path; the logo straddles the top edge. */
 [data-template='predator-roadshow-val'] .match-banner.match-banner .sponsor-background {
 	inset: 10px 0 0;
 }
 [data-template='predator-roadshow-val'] .match-banner.match-banner:has(.sponsor-logo) {
+	--rs-nl: max(var(--rs-l), var(--sponsor-notch-left));
+	--rs-nr: min(var(--rs-r), var(--sponsor-notch-right));
 	clip-path: polygon(
-		18px 0,
-		var(--sponsor-notch-left) 0,
-		var(--sponsor-notch-left) var(--sponsor-notch-top),
-		var(--sponsor-notch-right) var(--sponsor-notch-top),
-		var(--sponsor-notch-right) 0,
-		calc(100% - 18px) 0,
-		100% 18px,
-		100% 100%,
-		0 100%,
-		0 18px
+		calc(var(--rs-l) + var(--rs-c)) 0,
+		var(--rs-nl) 0,
+		var(--rs-nl) var(--sponsor-notch-top),
+		var(--rs-nr) var(--sponsor-notch-top),
+		var(--rs-nr) 0,
+		calc(var(--rs-r) - var(--rs-c)) 0,
+		var(--rs-r) var(--rs-c),
+		var(--rs-r) 100%,
+		var(--rs-l) 100%,
+		var(--rs-l) var(--rs-c)
 	);
+}
+
+/* Round ceremony in: a team-colour bar blinks twice at the centre, then the banner snaps open on X. */
+[data-template='predator-roadshow-val'] .match-banner.match-banner.ceremony {
+	animation:
+		rs-ceremony-blink 300ms linear both,
+		rs-ceremony-open 340ms 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+[data-template='predator-roadshow-val'] .match-banner.match-banner.ceremony::after {
+	content: '';
+	position: absolute;
+	z-index: 3;
+	top: 0;
+	bottom: -5px;
+	left: calc(50% - var(--rs-bar));
+	width: calc(var(--rs-bar) * 2);
+	background: var(--accent);
+	box-shadow: 0 0 24px var(--accent);
+	opacity: 0;
+	animation: rs-ceremony-bar 520ms linear both;
+}
+/* Round ceremony out: the same X reveal reversed, no blink. Duration matches bannerExitMs. */
+[data-template='predator-roadshow-val'] .match-banner.match-banner.ceremony.departing {
+	animation: rs-ceremony-close 280ms both;
+}
+/* Pause: fades in and slides up from the centre of the screen into its slot (centre y 289 -> 540). */
+[data-template='predator-roadshow-val'] .match-banner.match-banner:not(.ceremony) {
+	animation: rs-pause-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes rs-ceremony-blink {
+	0%,
+	24.99% {
+		opacity: 1;
+	}
+	25%,
+	49.99% {
+		opacity: 0;
+	}
+	50%,
+	74.99% {
+		opacity: 1;
+	}
+	75%,
+	99.99% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+@keyframes rs-ceremony-open {
+	from {
+		--rs-open: 0;
+	}
+	to {
+		--rs-open: 1;
+	}
+}
+@keyframes rs-ceremony-bar {
+	0%,
+	58% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+@keyframes rs-ceremony-close {
+	0% {
+		--rs-open: 1;
+		opacity: 1;
+		animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+	}
+	90% {
+		--rs-open: 0;
+		opacity: 1;
+	}
+	100% {
+		--rs-open: 0;
+		opacity: 0;
+	}
+}
+@keyframes rs-pause-in {
+	0% {
+		opacity: 0;
+		transform: translate(-50%, 251px);
+	}
+	35% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	[data-template='predator-roadshow-val'] .match-banner.match-banner,
+	[data-template='predator-roadshow-val'] .match-banner.match-banner.ceremony,
+	[data-template='predator-roadshow-val'] .match-banner.match-banner.ceremony::after,
+	[data-template='predator-roadshow-val'] .match-banner.match-banner.ceremony.departing {
+		animation: none;
+	}
 }

@@ -23,11 +23,14 @@ export type TemplateControls = {
 export const TEMPLATE_ACTION_TIMEOUT_MS = 5000;
 
 // Add templates/<tournament-slug>/Graphic.svelte with the same typed props. A template opts in to
-// sponsor elements by exporting `sponsor` (SponsorSupport) from a `<script module>` block.
+// sponsor elements by exporting `sponsor` (SponsorSupport) from a `<script module>` block, and may
+// export `bannerExitMs` there to give its themed ceremony-banner exit animation more time.
 const noSponsor: SponsorSupport = { banners: false, loop: false };
+const DEFAULT_BANNER_EXIT_MS = 140;
 const modules = import.meta.glob<{
 	default: Component<GraphicTemplateProps, TemplateControls>;
 	sponsor?: SponsorSupport;
+	bannerExitMs?: number;
 }>('./templates/*/Graphic.svelte', { eager: true });
 const templates = {
 	...Object.fromEntries(
@@ -36,11 +39,17 @@ const templates = {
 			{
 				id: path.split('/')[2],
 				component: module.default,
-				sponsor: module.sponsor ?? noSponsor
+				sponsor: module.sponsor ?? noSponsor,
+				bannerExitMs: module.bannerExitMs ?? DEFAULT_BANNER_EXIT_MS
 			}
 		])
 	),
-	test: { id: 'test', component: TestGraphic, sponsor: noSponsor }
+	test: {
+		id: 'test',
+		component: TestGraphic,
+		sponsor: noSponsor,
+		bannerExitMs: DEFAULT_BANNER_EXIT_MS
+	}
 };
 
 export function resolveGraphicTemplate(slug: string | null | undefined) {

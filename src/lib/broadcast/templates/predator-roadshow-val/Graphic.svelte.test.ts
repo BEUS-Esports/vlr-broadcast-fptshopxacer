@@ -3,7 +3,7 @@ import { render } from 'vitest-browser-svelte';
 import { graphicIds } from '../../controls';
 import { resolveGraphicTemplate } from '../../templates';
 import { preparedSnapshot } from '../test-snapshot';
-import Graphic from './Graphic.svelte';
+import Graphic, { bannerExitMs } from './Graphic.svelte';
 
 it.each(graphicIds)('renders %s with and without a selection', (graphic) => {
 	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic });
@@ -233,8 +233,8 @@ it('shows kills as K/D for a player who never died', () => {
 	).toContain('21.0');
 });
 
-// WAAPI runs on the real compositor clock (fake timers do not advance it), so these use real time
-// with wide margins: 400ms animations, "pending" probed at 250ms, "done" polled up to 2s.
+// GSAP runs on the real animation clock (fake timers do not advance it), so these assert that the
+// controls are asynchronous and then poll with a wide completion margin.
 const settled = (promise: Promise<void>) => {
 	const state = { done: false };
 	void promise.then(() => (state.done = true));
@@ -244,7 +244,7 @@ const settled = (promise: Promise<void>) => {
 it('stop resolves only after the outro finishes', async () => {
 	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'player-lineup' });
 	const state = settled(view.component.stop());
-	await new Promise((resolve) => setTimeout(resolve, 250));
+	await Promise.resolve();
 	expect(state.done).toBe(false);
 	await expect.poll(() => state.done, { timeout: 2000 }).toBe(true);
 	const root = view.container.querySelector('.rs-root')!;
@@ -273,4 +273,55 @@ it('keeps the in-game map box opaque under the roadshow theme', () => {
 	view.container.setAttribute('data-template', 'predator-roadshow-val');
 	const box = view.container.querySelector('.match-bug')!;
 	expect(getComputedStyle(box).backgroundColor).toBe('rgb(0, 0, 0)');
+});
+
+it.each(graphicIds)(
+	'plays and stops %s, clearing every motion style afterwards',
+	async (graphic) => {
+		const view = render(Graphic, { snapshot: preparedSnapshot(), graphic });
+		const root = view.container.querySelector<HTMLElement>('.rs-root')!;
+		const play = settled(view.component.play());
+		await expect.poll(() => play.done, { timeout: 4000 }).toBe(true);
+		for (const element of root.querySelectorAll<HTMLElement>('[data-rs-motion]')) {
+			expect(element.style.clipPath).toBe('');
+			expect(element.style.transform).toBe('');
+			expect(element.style.opacity).toBe('');
+		}
+		expect(getComputedStyle(root).opacity).toBe('1');
+		const stop = settled(view.component.stop());
+		await Promise.resolve();
+		expect(stop.done).toBe(false);
+		await expect.poll(() => stop.done, { timeout: 2000 }).toBe(true);
+		expect(getComputedStyle(root).opacity).toBe('0');
+	}
+);
+
+it('slides a ban overlay carrying the ban mark over banned maps only', () => {
+	const view = render(Graphic, { snapshot: preparedSnapshot(), graphic: 'map-veto' });
+	for (const map of view.container.querySelectorAll<HTMLElement>('[data-rs-motion="map"]')) {
+		const shade = map.querySelector('[data-rs-motion="ban-shade"]');
+		expect(!!shade).toBe(map.classList.contains('ban'));
+		if (shade) expect(shade.querySelector('[data-rs-motion="ban-mark"]')).not.toBeNull();
+	}
+});
+
+it('gives the ceremony banner a blink-then-open intro, a reverse exit and a slide-up pause', () => {
+	const scope = document.createElement('div');
+	scope.setAttribute('data-template', 'predator-roadshow-val');
+	scope.innerHTML =
+		'<section class="match-banner ceremony"></section><section class="match-banner"></section>';
+	render(Graphic, { snapshot: preparedSnapshot(), graphic: 'in-game' });
+	document.body.append(scope);
+	const [ceremony, pause] = scope.querySelectorAll('section');
+	expect(getComputedStyle(ceremony).animationName).toBe('rs-ceremony-blink, rs-ceremony-open');
+	expect(getComputedStyle(ceremony, '::after').animationName).toBe('rs-ceremony-bar');
+	expect(getComputedStyle(pause).animationName).toBe('rs-pause-in');
+	ceremony.classList.add('departing');
+	expect(getComputedStyle(ceremony).animationName).toBe('rs-ceremony-close');
+	expect(getComputedStyle(ceremony).animationDuration).toBe(`${bannerExitMs / 1000}s`);
+	scope.remove();
+});
+
+it('gives its ceremony banner enough exit time through the template registry', () => {
+	expect(resolveGraphicTemplate('predator-roadshow-val').bannerExitMs).toBe(bannerExitMs);
 });

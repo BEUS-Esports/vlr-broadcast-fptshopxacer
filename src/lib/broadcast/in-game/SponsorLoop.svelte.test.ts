@@ -5,11 +5,6 @@ import SponsorLoop from './SponsorLoop.svelte';
 const motion = vi.hoisted(() => ({ reduced: false }));
 vi.mock('svelte/motion', async (importOriginal) => ({
 	...(await importOriginal<typeof import('svelte/motion')>()),
-	prefersReducedMotion: {
-		get current() {
-			return motion.reduced;
-		}
-	}
 }));
 
 // Real, loadable images: a failing URL would be retired by Asset's error handling mid-test.

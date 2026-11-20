@@ -2,13 +2,15 @@
 	import type { SponsorSupport } from '../../sponsor';
 
 	export const sponsor: SponsorSupport = { banners: true, loop: true };
+	// Matches the reverse X-reveal of the ceremony banner in theme.css (rs-ceremony-close).
+	export const bannerExitMs = 280;
 </script>
 
 <script lang="ts">
 	import './theme.css';
 	import { graphicLabels } from '../../controls';
-	import { prefersReducedMotion } from 'svelte/motion';
 	import type { GraphicTemplateProps } from '../../templates';
+	import { playRoadshow, stopRoadshow } from './motion';
 	import { dev } from '$app/env';
 	import Header from './Header.svelte';
 	import PlayerLineup from './PlayerLineup.svelte';
@@ -24,30 +26,12 @@
 
 	let root = $state<HTMLElement>();
 
-	// Template contract (see templates.ts). animate() runs synchronously so the renderer's reveal never paints
-	// a full-opacity frame. Without play() (admin previews) the graphic stays fully visible.
-	function run(keyframes: Keyframe[]) {
-		return (
-			root
-				?.animate(keyframes, {
-					duration: prefersReducedMotion.current ? 0 : 400,
-					fill: 'forwards'
-				})
-				.finished.then(
-					() => {},
-					() => {}
-				) ?? Promise.resolve()
-		);
-	}
-	const hidden = { opacity: 0, transform: 'translateY(24px)' };
-	const shown = { opacity: 1, transform: 'translateY(0)' };
-
 	export function play() {
-		return run([hidden, shown]);
+		return playRoadshow(root, graphic);
 	}
 
 	export function stop() {
-		return run([shown, hidden]);
+		return stopRoadshow(root, graphic);
 	}
 </script>
 
@@ -60,27 +44,33 @@
 	{#if !snapshot.selection}
 		{#if graphic !== 'in-game'}
 			<Header />
-			<div class="empty">
-				<strong>WAITING FOR MATCH</strong>
-				<p>No game selected</p>
+			<div class="rs-content" data-gfx-motion="content">
+				<div class="empty" data-rs-motion="from-bottom">
+					<strong>WAITING FOR MATCH</strong>
+					<p>No game selected</p>
+				</div>
 			</div>
 		{/if}
-	{:else if graphic === 'player-lineup'}
-		<PlayerLineup {snapshot} />
-	{:else if graphic === 'player-stats'}
-		<PlayerStats {snapshot} />
-	{:else if graphic === 'mvp'}
-		<MVP {snapshot} />
-	{:else if graphic === 'map-veto'}
-		<MapVeto {snapshot} />
-	{:else if graphic === 'agent-select'}
-		<AgentSelect {snapshot} />
-	{:else if graphic === 'post-game'}
-		<PostGame {snapshot} />
-	{:else if graphic === 'in-game'}
-		<InGame {snapshot} />
 	{:else}
-		<p class="pending">{graphicLabels[graphic]}</p>
+		<div class="rs-content" data-gfx-motion="content">
+			{#if graphic === 'player-lineup'}
+				<PlayerLineup {snapshot} />
+			{:else if graphic === 'player-stats'}
+				<PlayerStats {snapshot} />
+			{:else if graphic === 'mvp'}
+				<MVP {snapshot} />
+			{:else if graphic === 'map-veto'}
+				<MapVeto {snapshot} />
+			{:else if graphic === 'agent-select'}
+				<AgentSelect {snapshot} />
+			{:else if graphic === 'post-game'}
+				<PostGame {snapshot} />
+			{:else if graphic === 'in-game'}
+				<InGame {snapshot} />
+			{:else}
+				<p class="pending">{graphicLabels[graphic]}</p>
+			{/if}
+		</div>
 	{/if}
 </section>
 
@@ -100,6 +90,10 @@
 		overflow: hidden;
 		color: var(--rs-ink);
 		font-family: var(--rs-font);
+	}
+	.rs-content {
+		position: absolute;
+		inset: 0;
 	}
 	.empty {
 		position: absolute;

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { prefersReducedMotion } from 'svelte/motion';
 	import type { GraphicId, ProgramOutput } from './controls';
 	import type { BroadcastSnapshot } from './types';
 	import type { BroadcastClock } from './client';
@@ -84,7 +83,7 @@
 	function fade(from: number, to: number) {
 		return layer
 			?.animate([{ opacity: from }, { opacity: to }], {
-				duration: prefersReducedMotion.current ? 0 : 150,
+				duration: 150,
 				fill: 'forwards'
 			})
 			.finished.then(
@@ -168,5 +167,9 @@
 			{/if}
 		</div>
 	{/if}
-	{#if presented && graphic === 'in-game'}<CenterMatchBanner snapshot={presented} {clock} />{/if}
+	{#if presented && graphic === 'in-game'}<CenterMatchBanner
+			snapshot={presented}
+			{clock}
+			exitMs={template.bannerExitMs}
+		/>{/if}
 </div>

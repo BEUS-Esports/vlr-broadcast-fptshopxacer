@@ -10,7 +10,7 @@
 
 <Header title="MVP" logos={false} />
 {#if pick === null}
-	<div class="empty"><strong>MVP TBD</strong></div>
+	<div class="empty" data-rs-motion="from-bottom"><strong>MVP TBD</strong></div>
 {:else}
 	<PlayerFeature {snapshot} {scope} playerId={pick} fields={snapshot.controls.mvpFields} />
 {/if}

@@ -12,6 +12,7 @@ import { emptySponsor } from './sponsor';
 import { emptyComposite } from './templates/test-snapshot';
 import * as templates from './templates';
 import StubTemplate, { hooks } from './GraphicRenderer.stub.svelte';
+import PlainTemplate from './templates/test/PlayerLineup.svelte';
 
 vi.mock('./templates', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('./templates')>();
@@ -693,16 +694,26 @@ it('delegates play and stop to a template that exports them', async () => {
 });
 
 it('falls back to a fade for templates without the contract', async () => {
-	const view = render(GraphicRenderer, {
-		snapshot: plainSnapshot(),
-		graphic: 'post-game',
-		mode: 'preview'
-	});
-	const layer = view.container.querySelector('[data-graphic] > div')!;
-	await view.component.stop();
-	expect(getComputedStyle(layer).opacity).toBe('0');
-	await view.component.play();
-	expect(getComputedStyle(layer).opacity).toBe('1');
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({
+		...original(slug),
+		component: PlainTemplate as never
+	}));
+	try {
+		const view = render(GraphicRenderer, {
+			snapshot: plainSnapshot(),
+			graphic: 'post-game',
+			mode: 'preview'
+		});
+		const layer = view.container.querySelector('[data-graphic] > div')!;
+		await view.component.stop();
+		expect(getComputedStyle(layer).opacity).toBe('0');
+		await view.component.play();
+		expect(getComputedStyle(layer).opacity).toBe('1');
+	} finally {
+		resolve.mockImplementation(original);
+	}
 });
 
 it('times out a hung template stop and resolves', async () => {

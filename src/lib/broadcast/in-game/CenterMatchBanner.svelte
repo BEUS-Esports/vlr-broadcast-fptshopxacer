@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { prefersReducedMotion } from 'svelte/motion';
 	import type { BroadcastSnapshot } from '../types';
 	import type { BroadcastClock } from '../client';
 	import { gameplaySide, teamByEntryId } from '../selectors';
@@ -7,8 +6,16 @@
 	import Asset from '../primitives/Asset.svelte';
 	import type { SponsorBannerKind } from '../sponsor';
 
-	let { snapshot, clock = null }: { snapshot: BroadcastSnapshot; clock?: BroadcastClock | null } =
-		$props();
+	let {
+		snapshot,
+		clock = null,
+		exitMs = 140
+	}: {
+		snapshot: BroadcastSnapshot;
+		clock?: BroadcastClock | null;
+		/** Lead time before expiry when a ceremony gets its `departing` class (its exit animation). */
+		exitMs?: number;
+	} = $props();
 	let expiredSequence = $state<number | null>(null);
 	let departingSequence = $state<number | null>(null);
 	const ceremony = $derived(snapshot.liveControls.ceremony);
@@ -53,7 +60,7 @@
 			() => {
 				departingSequence = event.sequence;
 			},
-			Math.max(0, remaining - 140)
+			Math.max(0, remaining - exitMs)
 		);
 		return () => {
 			clearTimeout(timer);
@@ -72,7 +79,6 @@
 			data-match-banner={banner.type}
 			data-entry-id={entryId ?? ''}
 			data-side={side ?? 'neutral'}
-			data-reduced-motion={prefersReducedMotion.current}
 			aria-label="Match banner"
 		>
 			{#if art.backgroundPath}
