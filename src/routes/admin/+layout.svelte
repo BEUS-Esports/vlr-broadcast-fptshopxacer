@@ -17,6 +17,7 @@
 		Aperture,
 		Award,
 		Megaphone,
+		Film,
 		Settings2
 	} from '@lucide/svelte';
 	import { graphicIds, graphicLabels, type GraphicId } from '#lib/broadcast/controls.ts';
@@ -42,6 +43,7 @@
 	const tournamentsListActive = $derived(page.url.pathname === '/admin/tournaments');
 	const playerCamerasActive = $derived(page.url.pathname === '/admin/player-cameras');
 	const sponsorsActive = $derived(page.url.pathname === '/admin/sponsors');
+	const stingersActive = $derived(page.url.pathname === '/admin/stingers');
 
 	const navGroups = $derived([
 		{
@@ -77,6 +79,12 @@
 					label: 'Sponsors',
 					active: sponsorsActive,
 					icon: Megaphone
+				},
+				{
+					href: resolve('/admin/stingers'),
+					label: 'Stingers',
+					active: stingersActive,
+					icon: Film
 				}
 			]
 		},

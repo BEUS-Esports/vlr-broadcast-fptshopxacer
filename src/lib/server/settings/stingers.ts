@@ -23,7 +23,8 @@ function validateRevision(revision: number, label: string) {
 		throw new SaveError('invalid', `A valid ${label} revision is required.`);
 }
 
-function validateTiming(input: StingerTiming) {
+/** Shared with the upload endpoint, which must reject bad fields before streaming a body. */
+export function validateStingerTiming(input: StingerTiming) {
 	const name = typeof input.name === 'string' ? input.name.trim() : '';
 	if (!name || name.length > NAME_MAX_LENGTH)
 		throw new SaveError('invalid', `Name must be 1–${NAME_MAX_LENGTH} characters.`);
@@ -40,7 +41,7 @@ export async function listStingers(): Promise<Stinger[]> {
 }
 
 export async function createStinger(input: StingerTiming & { path: string; kind: StingerKind }) {
-	const timing = validateTiming(input);
+	const timing = validateStingerTiming(input);
 	const { path, kind } = input;
 	const extension = typeof path === 'string' && assetPath.exec(path)?.[1];
 	if (!extension) throw new SaveError('invalid', 'The stinger file is invalid.');
@@ -59,7 +60,7 @@ export async function updateStinger(
 	expectedRevision: number
 ): Promise<Stinger> {
 	validateRevision(expectedRevision, 'stinger');
-	const timing = validateTiming(input);
+	const timing = validateStingerTiming(input);
 	const [row] = await db
 		.update(stingers)
 		.set({ ...timing, revision: expectedRevision + 1 })
