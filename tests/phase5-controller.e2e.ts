@@ -99,8 +99,8 @@ test('controller commits complete selections and rejects retained stale drafts a
 	await mkdir('docs/phase-5-screenshots', { recursive: true });
 	const identityOutput = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 	await identityOutput.goto('/gfx/live/in-game');
-	const left = identityOutput.locator('[data-position="left"]');
-	const right = identityOutput.locator('[data-position="right"]');
+	const left = identityOutput.locator('.team-rail[data-position="left"]');
+	const right = identityOutput.locator('.team-rail[data-position="right"]');
 	await expect(left).toContainText('Alpha');
 	await expect(right).toContainText('Bravo');
 	const onAir = page.getByRole('region', { name: 'On air', exact: true });
