@@ -8,7 +8,7 @@ const deferred = () => {
 };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
-function setup(exitGate?: Promise<void>) {
+function setup(exitGate?: Promise<void>, transition?: { result: boolean; gate?: Promise<void> }) {
 	const log: string[] = [];
 	const seq = createLayerSequencer({
 		enter: async (t) => void log.push(`enter:${t.graphic}`),
@@ -16,7 +16,14 @@ function setup(exitGate?: Promise<void>) {
 			log.push(`exit:${t.graphic}`);
 			await exitGate;
 		},
-		refresh: async (t) => void log.push(`refresh:${t.graphic}`)
+		refresh: async (t) => void log.push(`refresh:${t.graphic}`),
+		...(transition && {
+			transition: async (from, to) => {
+				log.push(`transition:${from?.graphic ?? null}->${to?.graphic ?? null}`);
+				await transition.gate;
+				return transition.result;
+			}
+		})
 	});
 	return { log, seq };
 }
@@ -100,6 +107,93 @@ describe('layer sequencer', () => {
 		seq.set(null);
 		await seq.idle();
 		expect(log).toEqual(['enter:mvp', 'exit:mvp']);
+	});
+
+	describe('transition step', () => {
+		it('replaces exit/enter when it handles a graphic swap', async () => {
+			const { log, seq } = setup(undefined, { result: true });
+			seq.set(post());
+			await seq.idle();
+			log.length = 0;
+			seq.set(mvp());
+			await seq.idle();
+			expect(log).toEqual(['transition:post-game->mvp']);
+		});
+
+		it('is called when showing from empty and hiding to empty', async () => {
+			const { log, seq } = setup(undefined, { result: true });
+			seq.set(mvp());
+			await seq.idle();
+			seq.set(null);
+			await seq.idle();
+			expect(log).toEqual(['transition:null->mvp', 'transition:mvp->null']);
+		});
+
+		it('falls back to exit/enter, asking only once, when it returns false', async () => {
+			const { log, seq } = setup(undefined, { result: false });
+			seq.set(post());
+			await seq.idle();
+			log.length = 0;
+			seq.set(mvp());
+			await seq.idle();
+			expect(log).toEqual(['transition:post-game->mvp', 'exit:post-game', 'enter:mvp']);
+		});
+
+		it('asks again for a later swap after a declined one', async () => {
+			const { log, seq } = setup(undefined, { result: false });
+			seq.set(post());
+			await seq.idle();
+			seq.set(mvp());
+			await seq.idle();
+			seq.set(post());
+			await seq.idle();
+			expect(log.filter((l) => l.startsWith('transition'))).toEqual([
+				'transition:null->post-game',
+				'transition:post-game->mvp',
+				'transition:mvp->post-game'
+			]);
+		});
+
+		it('re-reads the desired target after a gated transition resolves', async () => {
+			const gate = deferred();
+			const { log, seq } = setup(undefined, { result: true, gate: gate.promise });
+			seq.set(mvp());
+			await tick();
+			seq.set(post());
+			gate.resolve();
+			await seq.idle();
+			expect(log).toEqual(['transition:null->mvp', 'transition:mvp->post-game']);
+		});
+
+		it('refreshes, never transitions, on a revision change of the same graphic', async () => {
+			const { log, seq } = setup(undefined, { result: true });
+			seq.set(mvp(1));
+			await seq.idle();
+			log.length = 0;
+			seq.set(mvp(2));
+			await seq.idle();
+			expect(log).toEqual(['refresh:mvp']);
+		});
+
+		it('treats a throwing transition as handled', async () => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const log: string[] = [];
+			const seq = createLayerSequencer({
+				enter: async (t) => void log.push(`enter:${t.graphic}`),
+				exit: async (t) => void log.push(`exit:${t.graphic}`),
+				refresh: async () => {},
+				transition: async () => {
+					throw new Error('boom');
+				}
+			});
+			seq.set(post());
+			await seq.idle();
+			seq.set(mvp());
+			await seq.idle();
+			expect(log).toEqual([]);
+			expect(warn).toHaveBeenCalled();
+			warn.mockRestore();
+		});
 	});
 
 	it('continues after a throwing step', async () => {
