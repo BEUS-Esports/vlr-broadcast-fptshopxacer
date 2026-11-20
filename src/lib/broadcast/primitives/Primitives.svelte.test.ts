@@ -78,6 +78,7 @@ it('renders unknown resources and competition-owned scores in swapped presentati
 			pause: { type: 'none' },
 			ceremony: null
 		},
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: {

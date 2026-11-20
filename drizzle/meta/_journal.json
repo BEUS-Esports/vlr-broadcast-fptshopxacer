@@ -141,6 +141,13 @@
       "when": 1794994095736,
       "tag": "0019_composite_output",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1795159570428,
+      "tag": "0020_stingers",
+      "breakpoints": true
     }
   ]
 }

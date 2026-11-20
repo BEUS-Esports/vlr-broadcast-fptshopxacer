@@ -88,6 +88,7 @@ function snapshot(): BroadcastSnapshot {
 			mvpFields: [...defaultPlayerStats.fields]
 		},
 		readiness: { selected: true, map: false, lineups: false, agents: false, result: false },
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(

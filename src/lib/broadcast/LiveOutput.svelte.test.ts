@@ -77,6 +77,7 @@ function compositeSnapshot(on: GraphicId, controlRevision = 1): BroadcastSnapsho
 	delete capture.publications;
 	delete capture.composite;
 	delete capture.sponsor;
+	delete capture.stinger;
 	return {
 		...prepared,
 		composite: {

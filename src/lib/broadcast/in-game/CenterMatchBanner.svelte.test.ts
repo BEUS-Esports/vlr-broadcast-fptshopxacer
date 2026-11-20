@@ -90,6 +90,7 @@ function fixture(): BroadcastSnapshot {
 			logoWhitePath: null,
 			logoBlackPath: null
 		})),
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -498,6 +499,7 @@ it('art update does not restart the ceremony window', async () => {
 	await view.rerender({
 		snapshot: {
 			...snapshot,
+			stinger: null,
 			sponsor: {
 				...emptySponsor,
 				banners: { ...emptySponsor.banners, clutch: art('/assets/two.png', null) }

@@ -125,6 +125,7 @@ it('prepares saved images while the output is hidden and retires images on unmou
 		prepared.presentation.leftEntryId = 'a';
 		const snapshot: BroadcastSnapshot = {
 			...prepared,
+			stinger: null,
 			sponsor: emptySponsor,
 			composite: emptyComposite,
 			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -149,6 +150,7 @@ it('credits saved Spectra reports independently of the live provider and respect
 	prepared.scopes.game.usesSpectra = true;
 	const snapshot: BroadcastSnapshot = {
 		...prepared,
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -199,6 +201,7 @@ it('refreshes weapon artwork in an open preview without a snapshot change', asyn
 	);
 	const snapshot: BroadcastSnapshot = {
 		...preparedFixture(),
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -237,6 +240,7 @@ it('renders latest preview when hidden and shared captured program data when sho
 	const snapshot: BroadcastSnapshot = {
 		...prepared,
 		dataRevision: 2,
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -275,6 +279,7 @@ it('keeps normal and live HUD previews independent of the on-air HUD mode', asyn
 	const snapshot: BroadcastSnapshot = {
 		...prepared,
 		controls: { ...prepared.controls, visibility: { ...defaultVisibility, 'in-game': true } },
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: {
@@ -347,6 +352,7 @@ it('shows the entire live HUD template immediately with empty fields when no dat
 		selection: null,
 		match: null,
 		game: null,
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -368,6 +374,7 @@ it('renders a provider template without game preparation or healthy status', () 
 	const snapshot: BroadcastSnapshot = {
 		...preparedFixture(),
 		selection: null,
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -439,6 +446,7 @@ function bannerFixture(): BroadcastSnapshot {
 			...prepared.liveControls,
 			pause: { type: 'tactical', entryId: 'a', pendingTechnical: false }
 		},
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -533,6 +541,7 @@ it('themes the live HUD only for the roadshow template', async () => {
 		const prepared = { ...preparedFixture(), tournament: { id: 't', name: 'T', slug } };
 		const snapshot = {
 			...prepared,
+			stinger: null,
 			sponsor: emptySponsor,
 			composite: emptyComposite,
 			publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -554,9 +563,9 @@ it('themes the live HUD only for the roadshow template', async () => {
 	}
 	const other = await hud('other');
 	expect(getComputedStyle(other).fontFamily).not.toContain('Predator');
-	expect(
-		getComputedStyle(other.querySelector('.team-rail')!).backgroundColor
-	).toMatch(/^rgba?\(16, 21, 29/);
+	expect(getComputedStyle(other.querySelector('.team-rail')!).backgroundColor).toMatch(
+		/^rgba?\(16, 21, 29/
+	);
 });
 
 it('strips sponsor for unsupported templates, including the live HUD', async () => {
@@ -607,6 +616,7 @@ it('hides the sponsor loop in the live HUD unless Spectra is attributed to a sup
 	const snapshot: BroadcastSnapshot = {
 		...preparedFixture(),
 		tournament: { id: 't', name: 'T', slug: 'predator-roadshow-val' },
+		stinger: null,
 		sponsor: { ...emptySponsor, loop: { logos: ['/assets/x.png'], intervalMs: 5000 } },
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications
@@ -644,6 +654,7 @@ it('hides the sponsor loop in the live HUD unless Spectra is attributed to a sup
 function plainSnapshot(): BroadcastSnapshot {
 	return {
 		...preparedFixture(),
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(graphicIds.map((id) => [id, null])) as BroadcastPublications

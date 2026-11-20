@@ -47,6 +47,7 @@ export function preparedSnapshot(): BroadcastSnapshot {
 			ceremony: null
 		},
 		sponsor: emptySponsor,
+		stinger: null,
 		publications: Object.fromEntries(
 			graphicIds.map((id) => [id, null])
 		) as BroadcastSnapshot['publications'],
