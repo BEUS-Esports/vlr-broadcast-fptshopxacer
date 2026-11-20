@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import { readFile, readdir } from 'node:fs/promises';
 import { createClient } from '@libsql/client';
 import { test } from './fixtures';
+import { save } from './management-helpers';
 
 const webm = () => readFile('src/lib/broadcast/fixtures/stinger.webm');
 
@@ -20,6 +21,17 @@ async function upload(page: Page, name: string, file: { name: string; buffer: Bu
 	await form.getByLabel('Name', { exact: true }).fill(name);
 	await form.locator('input[name="file"]').setInputFiles({ ...file, mimeType: 'video/webm' });
 	return form;
+}
+
+async function activate(page: Page, name: string) {
+	await page.goto('/admin/stingers');
+	const form = await upload(page, name, { name: 'stinger.webm', buffer: await webm() });
+	await form.getByRole('button', { name: 'Upload', exact: true }).click();
+	await expect(page.getByRole('form', { name: `Stinger ${name}`, exact: true })).toBeVisible();
+	const active = page.getByRole('form', { name: 'Active stinger', exact: true });
+	const saved = page.waitForResponse((response) => response.request().method() === 'POST');
+	await active.getByRole('radio', { name, exact: true }).check();
+	expect((await (await saved).json()).type).toBe('success');
 }
 
 async function submit(page: Page, form: ReturnType<Page['getByRole']>, button: string) {
@@ -67,8 +79,7 @@ test('activates a stinger and clears it with None', async ({ page }) => {
 	await expect(active.getByRole('radio', { name: 'Main' })).not.toBeChecked();
 });
 
-// Completed in Task 5 once the composite renders the stinger.
-test.fixme('the composite page shows the active stinger and drops it for None', async ({
+test('the composite page shows the active stinger and drops it for None', async ({
 	page,
 	browser
 }) => {
@@ -148,4 +159,45 @@ test('deletes a stinger after confirmation', async ({ page }) => {
 	await row.getByRole('button', { name: 'Delete', exact: true }).click();
 	expect((await (await removed).json()).type).toBe('success');
 	await expect(row).toHaveCount(0);
+});
+
+test('a layer 1 swap on the composite plays the stinger and ends on the new graphic', async ({
+	page,
+	browser
+}) => {
+	await activate(page, 'Main');
+	await page.goto('/admin/graphics/player-lineup');
+	await page.getByRole('combobox', { name: 'Tournament', exact: true }).selectOption('pg-event');
+	await page.getByRole('combobox', { name: 'Match', exact: true }).selectOption('pg-match');
+	await page.getByRole('combobox', { name: 'Game', exact: true }).selectOption('pg-henrik');
+	await save(page, 'Take game live');
+
+	const output = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+	try {
+		await output.goto('/gfx/live/composite');
+		const layer = output.locator('[data-live-layer="1"]');
+		// The first snapshot mounts without a stinger, so wait for it before taking anything.
+		await expect(layer).not.toHaveAttribute('data-stream-sequence', '0');
+		await output.evaluate(() => {
+			const win = window as unknown as { stingerPlays: number };
+			win.stingerPlays = 0;
+			document.addEventListener('playing', () => win.stingerPlays++, true);
+		});
+		const plays = () =>
+			output.evaluate(() => (window as unknown as { stingerPlays: number }).stingerPlays);
+
+		await save(page, 'Take Player Lineup Live');
+		await expect(layer.locator('[data-graphic="player-lineup"] > div')).toHaveCount(1);
+		await expect.poll(plays).toBe(1);
+
+		await page.goto('/admin/graphics/mvp');
+		await save(page, 'Take MVP Live');
+		await expect(layer.locator('[data-graphic="mvp"] > div')).toHaveCount(1);
+		await expect(layer.locator('[data-graphic="player-lineup"]')).toHaveCount(0);
+		await expect.poll(plays).toBe(2);
+		await expect(output.locator('[data-stinger]')).toHaveCSS('visibility', 'hidden');
+		await save(page, 'Clear composite');
+	} finally {
+		await output.close();
+	}
 });

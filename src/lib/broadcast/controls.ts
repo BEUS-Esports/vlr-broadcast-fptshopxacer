@@ -35,6 +35,8 @@ export const graphicLayers: Record<GraphicId, number> = {
 	mvp: 1,
 	'agent-select': 2
 };
+/** The composite layer holding the fullscreen graphics; the only one a stinger plays over. */
+export const fullscreenLayer = 1;
 export const layerNumbers: readonly number[] = [...new Set(Object.values(graphicLayers))].sort(
 	(a, b) => a - b
 );

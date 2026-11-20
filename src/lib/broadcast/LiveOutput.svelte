@@ -1,8 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { graphicLayers, layerNumbers, type GraphicId, type ProgramOutput } from './controls';
+	import {
+		fullscreenLayer,
+		graphicLayers,
+		layerNumbers,
+		type GraphicId,
+		type ProgramOutput
+	} from './controls';
 	import { createBroadcastClient } from './client';
 	import ProgramLayer from './ProgramLayer.svelte';
+	import StingerPlayer from './StingerPlayer.svelte';
 	import { createLiveClient } from '#lib/live/client.ts';
 	import { liveResources } from '#lib/live/resources.svelte.ts';
 	import type { LiveGameEnvelope } from '#lib/live/types.ts';
@@ -22,6 +29,7 @@
 	let telemetry = $state.raw<LiveGameEnvelope | null>(null);
 	const snapshot = $derived(broadcast.snapshot);
 	let preloader = $state<ReturnType<typeof createAssetPreloader> | null>(null);
+	let player = $state<StingerPlayer>();
 
 	$effect(() => {
 		const resources = liveResources.current;
@@ -75,9 +83,17 @@
 				{telemetry}
 				resources={liveResources.current}
 				clock={broadcast.clock}
+				stinger={output === 'composite' && number === fullscreenLayer ? (player ?? null) : null}
 			/>
 		</div>
 	{/each}
+	{#if output === 'composite'}
+		<StingerPlayer
+			bind:this={player}
+			stinger={snapshot?.stinger ?? null}
+			z={layerNumbers[layerNumbers.length - 1] + 1}
+		/>
+	{/if}
 </div>
 
 <style>
