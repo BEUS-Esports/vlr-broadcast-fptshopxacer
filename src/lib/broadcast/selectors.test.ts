@@ -86,11 +86,13 @@ it('rebuilds on-air booths from the live booth flag, like presentation', async (
 		const { buildBroadcastSnapshot } = await import('#lib/server/broadcast/snapshot.ts');
 		const { programSnapshot } = await import('./selectors');
 		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
-		const { publications, composite, sponsor, ...captured } = await buildBroadcastSnapshot();
+		const { publications, composite, sponsor, stinger, ...captured } =
+			await buildBroadcastSnapshot();
 		const latest = {
 			...captured,
 			composite,
 			sponsor,
+			stinger,
 			liveControls: { ...captured.liveControls, boothsSwapped: true },
 			booths: { booth1EntryId: 'entry-b', booth2EntryId: 'entry-a' },
 			controls: {
@@ -106,7 +108,7 @@ it('rebuilds on-air booths from the live booth flag, like presentation', async (
 	});
 });
 
-it('programSnapshot passes latest sponsor through', async () => {
+it('programSnapshot passes latest sponsor and stinger through', async () => {
 	const { preparedSnapshot } = await import('./templates/test-snapshot');
 	const { programSnapshot } = await import('./selectors');
 	const complete = preparedSnapshot();
@@ -123,18 +125,27 @@ it('programSnapshot passes latest sponsor through', async () => {
 			winnerEntryId: null
 		}
 	};
-	const { publications, composite, sponsor: _, ...captured } = base;
+	const { publications, composite, sponsor: _, stinger: __, ...captured } = base;
 	void publications;
 	void composite;
 	void _;
+	void __;
 	const sponsor = { ...base.sponsor, loop: { logos: ['/assets/x.png'], intervalMs: 5000 } };
+	const stinger = {
+		path: '/assets/x.webm',
+		kind: 'video' as const,
+		durationMs: 1000,
+		cutPointMs: 500
+	};
 	const latest = {
 		...base,
 		sponsor,
+		stinger,
 		controls: { ...base.controls, visibility: { ...base.controls.visibility, 'in-game': true } },
 		publications: { ...base.publications, 'in-game': captured }
 	};
 	expect(programSnapshot(latest, 'in-game')?.sponsor).toBe(latest.sponsor);
+	expect(programSnapshot(latest, 'in-game')?.stinger).toBe(stinger);
 });
 
 it('shows only the saved game winner in winner mode', async () => {
@@ -188,7 +199,7 @@ it('reads composite captures independently of standalone', async () => {
 		}
 	};
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Captures omit the publications containers and sponsor.
-	const { publications: _, composite: __, sponsor: ___, ...prepared } = base;
+	const { publications: _, composite: __, sponsor: ___, stinger: ____, ...prepared } = base;
 	const standalone = { ...prepared, dataRevision: 11 };
 	const captured = { ...prepared, dataRevision: 22 };
 	const latest = {

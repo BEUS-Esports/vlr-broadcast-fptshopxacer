@@ -14,6 +14,7 @@ import {
 	type BroadcastCeremonyEvent
 } from './in-game-controls';
 import { sponsorBannerSlots, type BroadcastSponsor } from './sponsor';
+import type { BroadcastStinger } from './stinger';
 
 export type BroadcastPlayer = {
 	playerId: string;
@@ -145,6 +146,7 @@ export type BroadcastSnapshot = BroadcastPreparedSnapshot & {
 	publications: BroadcastPublications;
 	composite: { visibility: GraphicVisibility; publications: BroadcastPublications };
 	sponsor: BroadcastSponsor;
+	stinger: BroadcastStinger | null;
 };
 
 export type BroadcastStreamCursor = {
@@ -448,9 +450,17 @@ const sponsorCheck = object({
 	loop: object({ logos: array(string), intervalMs: integer })
 });
 
+const stingerCheck = object({
+	path: string,
+	kind: oneOf('video', 'image'),
+	durationMs: integer,
+	cutPointMs: integer
+});
+
 const snapshotCheck = object({
 	...preparedFields,
 	sponsor: sponsorCheck,
+	stinger: nullable(stingerCheck),
 	publications: object(
 		Object.fromEntries(graphicIds.map((id) => [id, nullable(isBroadcastPublication)]))
 	),

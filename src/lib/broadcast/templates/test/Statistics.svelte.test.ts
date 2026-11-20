@@ -42,6 +42,7 @@ function preparedSnapshot(): BroadcastSnapshot {
 			pause: { type: 'none' },
 			ceremony: null
 		},
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(

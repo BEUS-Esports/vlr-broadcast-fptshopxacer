@@ -8,4 +8,5 @@ export * from './statistics';
 export * from './broadcast';
 
 export * from './settings';
+export * from './stingers';
 export * from './assets';

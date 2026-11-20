@@ -5,6 +5,15 @@ import { graphicIds, type GraphicId } from './controls';
 import type { BroadcastPublications, BroadcastSnapshot } from './types';
 import { emptyComposite, preparedSnapshot } from './templates/test-snapshot';
 import LiveOutput from './LiveOutput.svelte';
+import * as templates from './templates';
+import StubTemplate, { hooks } from './GraphicRenderer.stub.svelte';
+import webmUrl from './fixtures/stinger.webm?url';
+import type { BroadcastStinger } from './stinger';
+
+vi.mock('./templates', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('./templates')>();
+	return { ...actual, resolveGraphicTemplate: vi.fn(actual.resolveGraphicTemplate) };
+});
 
 it('owns two streams and one resource poller for three transparent ordered layers, and cleans up', async () => {
 	const sources: Array<{ url: string; closed: boolean }> = [];
@@ -57,7 +66,12 @@ it('owns two streams and one resource poller for three transparent ordered layer
 	}
 });
 
-function compositeSnapshot(on: GraphicId, controlRevision = 1): BroadcastSnapshot {
+function compositeSnapshot(
+	on: GraphicId | GraphicId[],
+	controlRevision = 1,
+	stinger: BroadcastStinger | null = null
+): BroadcastSnapshot {
+	const onAir = [on].flat();
 	const base = preparedSnapshot();
 	const prepared = {
 		...base,
@@ -77,16 +91,24 @@ function compositeSnapshot(on: GraphicId, controlRevision = 1): BroadcastSnapsho
 	delete capture.publications;
 	delete capture.composite;
 	delete capture.sponsor;
+	delete capture.stinger;
 	return {
 		...prepared,
+		stinger,
 		composite: {
-			visibility: { ...emptyComposite.visibility, [on]: true },
-			publications: { ...emptyComposite.publications, [on]: capture } as BroadcastPublications
+			visibility: {
+				...emptyComposite.visibility,
+				...Object.fromEntries(onAir.map((graphic) => [graphic, true]))
+			},
+			publications: {
+				...emptyComposite.publications,
+				...Object.fromEntries(onAir.map((graphic) => [graphic, capture]))
+			} as BroadcastPublications
 		}
 	};
 }
 
-async function mountComposite() {
+async function mountComposite(output: 'composite' | 'standalone' = 'composite') {
 	const sources = new Map<string, EventTarget>();
 	class Source extends EventTarget {
 		readyState = 1;
@@ -101,7 +123,7 @@ async function mountComposite() {
 		'fetch',
 		vi.fn(async () => new Response(JSON.stringify({ agents: [], weapons: [] })))
 	);
-	const view = render(LiveOutput, { graphics: graphicIds, output: 'composite' });
+	const view = render(LiveOutput, { graphics: graphicIds, output });
 	let sequence = 0;
 	const send = async (snapshot: BroadcastSnapshot) => {
 		sources.get('/api/broadcast/events')!.dispatchEvent(
@@ -162,4 +184,117 @@ it('keeps the outgoing graphic until its stop resolves', async () => {
 		await view.unmount();
 		vi.unstubAllGlobals();
 	}
+});
+
+const stinger: BroadcastStinger = {
+	path: webmUrl,
+	kind: 'video',
+	durationMs: 1000,
+	cutPointMs: 500
+};
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const slow = { timeout: 5000 };
+
+// Renders graphics with the recording stub template and tracks when the stinger video starts playing.
+async function withStubbedGraphics(
+	run: (ctx: Awaited<ReturnType<typeof mountComposite>>) => Promise<void>,
+	output: 'composite' | 'standalone' = 'composite'
+) {
+	const resolve = vi.mocked(templates.resolveGraphicTemplate);
+	const original = resolve.getMockImplementation()!;
+	resolve.mockImplementation((slug) => ({ ...original(slug), component: StubTemplate as never }));
+	hooks.events.length = 0;
+	const ctx = await mountComposite(output);
+	ctx.view.container.addEventListener('playing', () => hooks.events.push('stinger'), true);
+	try {
+		await run(ctx);
+	} finally {
+		await ctx.view.unmount();
+		vi.unstubAllGlobals();
+		resolve.mockImplementation(original);
+	}
+}
+
+it('plays the stinger between stop and mount when layer 1 swaps', async () => {
+	await withStubbedGraphics(async ({ send }) => {
+		await send(compositeSnapshot('post-game', 1, stinger));
+		await expect.poll(() => hooks.events, slow).toContain('play:post-game');
+		hooks.events.length = 0;
+		await send(compositeSnapshot('mvp', 2, stinger));
+		await expect.poll(() => hooks.events, slow).toContain('play:mvp');
+		expect(hooks.events).toEqual(['stop:post-game', 'stinger', 'mount:mvp', 'play:mvp']);
+	});
+});
+
+it('mounts without a stinger on the first snapshot the page sees', async () => {
+	await withStubbedGraphics(async ({ view, send }) => {
+		await send(compositeSnapshot('mvp', 1, stinger));
+		await expect.poll(() => hooks.events, slow).toContain('play:mvp');
+		await wait(300);
+		expect(hooks.events).toEqual(['mount:mvp', 'play:mvp']);
+		const root = view.container.querySelector<HTMLElement>('[data-stinger]')!;
+		expect(getComputedStyle(root).visibility).toBe('hidden');
+	});
+});
+
+// The same on-air graphic, expressed through the standalone (controls + publications) path.
+function standaloneSnapshot(on: GraphicId, controlRevision: number): BroadcastSnapshot {
+	const composite = compositeSnapshot(on, controlRevision, stinger);
+	return {
+		...composite,
+		controls: {
+			...composite.controls,
+			visibility: { ...composite.controls.visibility, [on]: true }
+		},
+		publications: { ...composite.publications, [on]: composite.composite.publications[on] }
+	};
+}
+
+it('does not render or use a stinger on a standalone output', async () => {
+	await withStubbedGraphics(async ({ view, send }) => {
+		await send(standaloneSnapshot('post-game', 1));
+		await expect.poll(() => hooks.events, slow).toContain('play:post-game');
+		await send(standaloneSnapshot('mvp', 2));
+		await expect.poll(() => hooks.events, slow).toContain('play:mvp');
+		expect(view.container.querySelector('[data-stinger]')).toBeNull();
+		expect(hooks.events).not.toContain('stinger');
+	}, 'standalone');
+});
+
+it('does not play a stinger for layer 0 or layer 2 changes', async () => {
+	await withStubbedGraphics(async ({ send }) => {
+		await send(compositeSnapshot('mvp', 1, stinger));
+		await expect.poll(() => hooks.events, slow).toContain('play:mvp');
+		await send(compositeSnapshot(['mvp', 'in-game'], 2, stinger));
+		await expect.poll(() => hooks.events, slow).toContain('play:in-game');
+		await send(compositeSnapshot(['mvp', 'agent-select'], 3, stinger));
+		await expect.poll(() => hooks.events, slow).toContain('play:agent-select');
+		await wait(300);
+		expect(hooks.events).not.toContain('stinger');
+		expect(hooks.events).toContain('stop:in-game');
+		expect(hooks.events.filter((event) => event === 'mount:mvp')).toHaveLength(1);
+	});
+});
+
+it('falls back to a plain exit and enter once the snapshot has no stinger', async () => {
+	await withStubbedGraphics(async ({ send }) => {
+		await send(compositeSnapshot('post-game', 1, stinger));
+		await expect.poll(() => hooks.events, slow).toContain('play:post-game');
+		hooks.events.length = 0;
+		await send(compositeSnapshot('mvp', 2, null));
+		await expect.poll(() => hooks.events, slow).toContain('play:mvp');
+		expect(hooks.events).toEqual(['stop:post-game', 'mount:mvp', 'play:mvp']);
+	});
+});
+
+it('falls back to a plain swap when the stinger file cannot play', async () => {
+	await withStubbedGraphics(async ({ send }) => {
+		const broken = { ...stinger, path: '/assets/does-not-exist.webm' };
+		await send(compositeSnapshot('post-game', 1, broken));
+		await expect.poll(() => hooks.events, slow).toContain('play:post-game');
+		hooks.events.length = 0;
+		await send(compositeSnapshot('mvp', 2, broken));
+		await expect.poll(() => hooks.events, slow).toContain('play:mvp');
+		expect(hooks.events).toEqual(['stop:post-game', 'mount:mvp', 'play:mvp']);
+	});
 });

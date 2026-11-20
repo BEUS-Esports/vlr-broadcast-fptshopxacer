@@ -307,7 +307,8 @@ it('upgrades saved v4 captures to v5 instead of dropping them', async () => {
 		const { validatedPublications } = await import('#lib/broadcast/types.ts');
 		await updateBroadcastState({ expectedRevision: 1, selectedGameId: 'g' });
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip the live envelope.
-		const { publications, composite, sponsor, ...current } = await buildBroadcastSnapshot();
+		const { publications, composite, sponsor, stinger, ...current } =
+			await buildBroadcastSnapshot();
 		const { booths, ...rest } = current;
 		const { boothsSwapped, ...liveControls } = current.liveControls;
 		expect({ booths, boothsSwapped }).toEqual({

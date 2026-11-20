@@ -4,6 +4,8 @@
 
 - `/admin/tournaments`: event details, team entries, player availability, map pools, matches, games, lineups and match-wide vetoes.
 - `/admin/teams`, `/admin/players`, `/admin/resources`: reusable profiles and game resources.
+- `/admin/sponsors`: sponsor banner art and the scorebar logo loop.
+- `/admin/stingers`: transition stingers for the Composite output. See [Stingers](./BROADCAST-OPERATIONS.md#stingers).
 
 ## Local data
 
@@ -49,7 +51,8 @@ bundle.zip
 
 - `ASSET_DIR` holds uploaded logos and portraits plus imported game art, outside the build. Back it up with the database.
 - Asset URLs are relative to the app origin, so other PCs load them through the server's LAN address.
-- With the Node adapter, set `BODY_SIZE_LIMIT=160M` (also in the `.env` that compose reads) to allow three team logos of up to 10 MB each and the 150 MB bundle import (a 150 MB zip plus form overhead exceeds `150M`).
+- With the Node adapter, set `BODY_SIZE_LIMIT=1G` (also in the `.env` that compose reads). Stingers can be up to 1 GB; the same limit also covers three team logos of up to 10 MB each and the 150 MB bundle import (a 150 MB zip plus form overhead exceeds `150M`).
+- Stinger files (WebM, WebP, AVIF) stream straight to `ASSET_DIR` and are served with HTTP Range, so browsers can seek them. Cleanup treats them like any other asset.
 - A failed team or player save deletes the uploads it just completed.
 
 ### Cleanup

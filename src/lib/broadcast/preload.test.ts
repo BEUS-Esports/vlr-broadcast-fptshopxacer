@@ -110,6 +110,7 @@ function fixture(): BroadcastSnapshot {
 			mvpFields: [...defaultPlayerStats.fields]
 		},
 		readiness: { selected: true, map: true, lineups: true, agents: true, result: false },
+		stinger: null,
 		sponsor: emptySponsor,
 		composite: emptyComposite,
 		publications: Object.fromEntries(
@@ -183,7 +184,7 @@ describe('saved asset collection', () => {
 	it('includes both latest saved and held Program images on reconnect without mutating captures', () => {
 		const snapshot = fixture();
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Captures omit the publications containers and sponsor.
-		const { publications: _, composite: ___, sponsor: __, ...held } = fixture();
+		const { publications: _, composite: ___, sponsor: __, stinger: ____, ...held } = fixture();
 		held.lineups[0].player!.portraitPath = '/held.png';
 		snapshot.controls.visibility['player-lineup'] = true;
 		snapshot.publications['player-lineup'] = held;
@@ -197,7 +198,7 @@ describe('saved asset collection', () => {
 	it('collects composite capture assets', () => {
 		const snapshot = fixture();
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Captures omit the publications containers and sponsor.
-		const { publications: _, composite: ___, sponsor: __, ...held } = fixture();
+		const { publications: _, composite: ___, sponsor: __, stinger: ____, ...held } = fixture();
 		held.lineups[0].player!.portraitPath = '/composite-held.png';
 		snapshot.composite = {
 			visibility: { ...defaultVisibility, 'player-lineup': true },

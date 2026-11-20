@@ -53,6 +53,18 @@ For rehearsal, `/gfx/live/composite` combines all seven in one output with share
 - Long names shrink so every name in a group shares one size. On the In-Game scorebar, team names wrap to two lines instead.
 - The data-source placeholder appears only on In-Game.
 
+## Stingers
+
+A stinger is a short transparent clip that covers the Composite output while its full-screen layer swaps graphics (layer 1: Player Lineup, Player Stats, Map Veto, Post-Game, MVP). The old graphic plays its out animation, the stinger plays, the graphic changes at the **cut point**, and the new graphic plays in. Standalone outputs, layers 0 and 2 and **Update Live** never use stingers.
+
+- Manage them at `/admin/stingers`: upload, set the duration and cut point in milliseconds, then pick the **Active stinger** (or None). Changes reach live outputs immediately.
+- Formats: WebM, WebP or AVIF, up to 1 GB. No MOV and no transcoding. For transparency, export WebM with `-c:v libvpx-vp9 -pix_fmt yuva420p`.
+- WebM durations are read from the file. For WebP or AVIF, enter the animation length yourself.
+- If a stinger fails to start within 1.5 seconds, the graphic changes immediately with its normal animations, so a bad file never blocks the show.
+- The first snapshot after a composite page loads or reconnects mounts without a stinger.
+- Deleting a stinger keeps its file for the 14-day cleanup window, so one that is on air finishes playing.
+- After deploying this version, refresh every OBS browser source and open admin page: the snapshot has a new `stinger` field.
+
 ## Production deployment
 
 Use Node 26.13.0, pnpm 12.16.1 and `pnpm install --frozen-lockfile`. A clean Windows install and production build passed on 2026-11-03; the current lockfile needs no adapter patch.
@@ -69,7 +81,7 @@ node --env-file=.env build
 
 At runtime:
 
-- Keep `DATABASE_URL` and `ASSET_DIR` on persistent storage, and set `BODY_SIZE_LIMIT=160M` for uploads. Compose reads the operator's `.env`, so raise `BODY_SIZE_LIMIT` to `160M` there too.
+- Keep `DATABASE_URL` and `ASSET_DIR` on persistent storage, and set `BODY_SIZE_LIMIT=1G` for uploads (stingers can be 1 GB). Compose pins `BODY_SIZE_LIMIT=1G` itself; the Dockerfile defaults to it, and `.env.example` shows it for a plain `node build`. Caddy has no request body limit, so nothing else needs changing for HTTPS.
 - Before upgrading to the version with bundle import, run `pnpm db:duplicates`. It lists team and player names, tags and Riot IDs that differ only by case or by spaces around `#`. The startup migration adds unique indexes and refuses to apply over such duplicates, so fix them first. The script reads `DATABASE_URL` from the host's `.env` (`file:local.db`), not the compose database, so for the compose deployment run `DATABASE_URL=file:data/broadcast.db pnpm db:duplicates` from the repo on the host, with the app stopped (or against a backup copy).
 - Run **one Node process**. SSE delivery is process-local, so several workers or replicas would need shared pub/sub.
 - Prepared graphic captures are stored in the database and survive restarts.

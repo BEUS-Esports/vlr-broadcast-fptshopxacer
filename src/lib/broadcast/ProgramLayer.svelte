@@ -7,7 +7,8 @@
 	import type { LiveResources } from '#lib/live/selectors.ts';
 	import GraphicRenderer from './GraphicRenderer.svelte';
 	import { programSnapshot } from './selectors';
-	import { createLayerSequencer } from './sequencer';
+	import { createLayerSequencer, type LayerTarget } from './sequencer';
+	import type StingerPlayer from './StingerPlayer.svelte';
 
 	let {
 		snapshot,
@@ -15,7 +16,8 @@
 		output,
 		telemetry = null,
 		resources = null,
-		clock = null
+		clock = null,
+		stinger = null
 	}: {
 		snapshot: BroadcastSnapshot | null;
 		candidates: readonly GraphicId[];
@@ -23,6 +25,8 @@
 		telemetry?: LiveGameEnvelope | null;
 		resources?: LiveResources | null;
 		clock?: BroadcastClock | null;
+		/** Only passed for the composite fullscreen layer. */
+		stinger?: StingerPlayer | null;
 	} = $props();
 
 	const target = $derived.by(() => {
@@ -44,6 +48,9 @@
 			mounted = { graphic: mounted.graphic, snapshot };
 	});
 
+	// The first snapshot this page sees mounts as-is, without a stinger.
+	let firstSnapshot: BroadcastSnapshot | null = null;
+
 	const sequencer = createLayerSequencer({
 		async enter({ graphic }) {
 			if (!snapshot) return;
@@ -59,10 +66,31 @@
 		},
 		async refresh() {
 			if (snapshot) await renderer?.update(snapshot);
+		},
+		async transition(from: LayerTarget | null, to: LayerTarget | null) {
+			const player = stinger;
+			if (!player || !snapshot?.stinger || snapshot === firstSnapshot) return false;
+			if (from) await renderer?.stop();
+			// The null tick forces a fresh GraphicRenderer (its program wrapper starts hidden). Nothing may be
+			// awaited between the second tick and play().
+			const cut = async () => {
+				mounted = null;
+				await tick();
+				if (to && snapshot) {
+					mounted = { graphic: to.graphic, snapshot };
+					await tick();
+					await renderer?.play();
+				}
+			};
+			if (!(await player.run(cut))) await cut();
+			return true;
 		}
 	});
 
-	$effect(() => sequencer.set(target));
+	$effect(() => {
+		if (snapshot && !firstSnapshot) firstSnapshot = snapshot;
+		sequencer.set(target);
+	});
 </script>
 
 {#if mounted}

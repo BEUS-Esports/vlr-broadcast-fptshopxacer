@@ -17,6 +17,8 @@ RUN pnpm install --prod --frozen-lockfile
 
 FROM node:26.13.0-bookworm-slim
 ENV NODE_ENV=production
+# Stinger uploads can reach 1 GB.
+ENV BODY_SIZE_LIMIT=1G
 WORKDIR /app
 COPY package.json ./
 COPY --from=deps /app/node_modules ./node_modules

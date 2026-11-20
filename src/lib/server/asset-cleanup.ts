@@ -21,7 +21,15 @@ export async function collectUnusedAssets(now = Date.now()) {
 	// shortcut: one write lock protects references; batch deletions if large queues delay saves.
 	await db.transaction(async (tx) => {
 		const referenced = new Set<string>();
-		for (const table of [s.teams, s.players, s.maps, s.agents, s.weapons, s.sponsorSettings])
+		for (const table of [
+			s.teams,
+			s.players,
+			s.maps,
+			s.agents,
+			s.weapons,
+			s.sponsorSettings,
+			s.stingers
+		])
 			collectReferences(await tx.select().from(table), referenced);
 		collectReferences(
 			await tx

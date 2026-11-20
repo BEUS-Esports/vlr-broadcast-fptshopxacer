@@ -28,6 +28,7 @@ export function programSnapshot(
 		publications: latest.publications,
 		composite: latest.composite,
 		sponsor: latest.sponsor,
+		stinger: latest.stinger,
 		liveControls: latest.liveControls,
 		controls: { ...prepared.controls, visibility },
 		presentation: {
