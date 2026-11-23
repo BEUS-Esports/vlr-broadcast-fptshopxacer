@@ -23,7 +23,6 @@
 	<img class="layer" src={back} alt="" />
 	<span class="portrait"><Asset path={portraitPath} label={name ?? 'Player'} blankMissing /></span>
 	<img class="layer" src={front} alt="" />
-	{#if iconPath}<span class="icon"><Asset path={iconPath} label="Role" blankMissing /></span>{/if}
 	<figcaption><span data-fit="players">{label}</span></figcaption>
 </figure>
 
